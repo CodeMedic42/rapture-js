@@ -4,7 +4,7 @@ const buildStatusRule = require('./status.js');
 const buildScreenRule = require('./screen.js');
 const buildSchemaRule = require('./schema.js');
 
-function buildRemicMetadataRuleDefinition() {
+function buildMetadataRuleDefinition() {
     return rapture.object().keys({
         schema: rapture.object().keys({
             name: rapture.string().define('artifactType', 'artifactContext'),
@@ -69,4 +69,4 @@ function buildRemicMetadataRuleDefinition() {
     });
 }
 
-module.exports = buildRemicMetadataRuleDefinition;
+module.exports = buildMetadataRuleDefinition;
