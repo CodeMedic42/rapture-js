@@ -1,8 +1,9 @@
-const BuildModelRule = require('./common.js').buildModelRule;
+const Rapture = require('rapture');
+const Common = require('./common.js');
 
 function buildSchema() {
-    return rapture.object().keys({
-        model: BuildModelRule(),
+    return Rapture.object().keys({
+        model: Common.buildModelRule(),
     }).required('model');
 }
 

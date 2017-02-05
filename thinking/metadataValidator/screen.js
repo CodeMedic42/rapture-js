@@ -1,58 +1,61 @@
-const layoutRule = rapture.object(rapture.scope()).keys({
-    view: rapture.string().defined(function viewDefinedSetup() {
-        this.onRun(function viewDefinedOnRun(value) {
+const Rapture = require('rapture');
+const Common = require('./common.js');
+
+const assetBindingTypeRule = Rapture.string().valid('view'))
+
+function buildLayoutKeys(components) {
+    return _.reduce(components, (keys, component) => {
+        if (component.type == 'core.view') {
+            keys[component.id] = Rapture.defer(() => layoutRule);
+        }
+
+        return keys;
+    }, {});
+}
+
+const layoutRule = Rapture.object(Rapture.scope()).keys({
+    view: Rapture.string().defined((setupContext) {
+        setupContext.onRun((runContext, value) => {
             return `asset/${value}`;
         });
-    }).define('targetView', function viewDefineSetup() {
-        this.require('childKeys', function viewDefineTargetSetup() {
-            this.require('targetComponent', () => {
-                this.require('targetComponentId', () => {
-                    this.onRun((value) => {
-                        return `asset/${value}/component`;
-                    })
-                });
-
-                this.onRun(() => {
-                    return this.params.targetComponentId;
-                });
+    }).define('targetViewComponents', null, (targetViewComponentsSetup) {
+        targetViewComponentsSetup.require('assetComponents', (assetComponentsSetup) => {
+            assetComponentsSetup.require('assetBindingId', (assetBindingIdSetup) {
+              assetBindingIdSetup.onRun((assetBindingIDRun, value) {
+                  return `asset/${value}/bindingId`;
+              });
             });
-            this.onRun(function viewDefineTargetOnRun(value) {
-                this
-                return `asset/${value}/component`;
+
+            assetComponentsSetup.onRun((assetComponentsRun) => {
+                return `${assetComponentsRun.params.assetBindingId}/components`
             });
         });
 
-        this.onRun(function viewDefineOnRun() {
-            return this.params.target;
-        });
+        targetViewComponentsSetup.onRun((targetViewComponentsRun) => {
+            return targetViewComponentsRun.params.assetComponents;
+        }),
     }),
+    children: Rapture.object().keys((keysSetup) => {
+        keysSetup.require('targetViewComponents');
 
+        keysSetup.onRun((keysRun) {
+            keysRun.params.targetViewComponents.onChange((components) => {
+                keysRun.set(buildLayoutKeys(components));
+            });
 
-    children: rapture.object().keys(function childrenKeysSetup() {
-        this.require('targetView');
-        this.onRun(function childrenKeysOnRun() {
-
+            return buildLayoutKeys(keysRun.params.targetViewComponents);
         });
     })
 });
 
-"layout": {
-    "view": "container",
-    "children": {
-      "content": {
-        "view": "beneficiaries-content"
-      }
-    }
-  },
-
 function buildScreen() {
-    return rapture.object().keys({
-        model: definedModelRule,
-        views: rapture.array().min(1).items(buildAssetRule(true, false)),
+    return Rapture.object().keys({
+        model: Common.buildModel(),
+        views: Rapture.array().min(1).items(buildAssetRule(true, false, assetBindingTypeRule)),
         layout: layoutRule
-        commands: commandsRule,
-        rules: rapture.any()
-    }).required('model', 'presentation');
+        commands: Common.buildCommandsRule(),
+        rules: Rapture.any()
+    }).required('model', 'views');
 }
 
 module.exports = buildScreen;

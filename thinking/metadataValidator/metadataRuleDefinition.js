@@ -1,4 +1,5 @@
 const Rapture = require('rapture');
+const ObservableList = require('observableList');
 const buildApplicationRule = require('./application.js');
 const buildWorkflowRule = require('./workflow.js');
 const buildStatusRule = require('./status.js');

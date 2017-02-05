@@ -98,7 +98,7 @@ function buildHandlersSchema(commandsAllowed, routesAllowed) {
     });
 }
 
-function buildAssetRule(commandsAllowed, routesAllowed)
+function buildAssetRule(commandsAllowed, routesAllowed, assetBindingTypeRule)
     return rapture.object(rapture.scope('asset')).keys({
         id: rapture.string().define('bindingID', 'asset'),
         component: rapture.object().keys({
@@ -119,10 +119,7 @@ function buildAssetRule(commandsAllowed, routesAllowed)
                     this.onPause(circOnPause);
                 })
                 .define('componentId', 'asset')
-            type: rapture.string()
-                .if('workflowType', (workflowType) => { return workflowType === 'process'; }, rapture.string().valid('workflow', 'status'))
-                .elseIf('workflowType', (workflowType) => { return workflowType === 'presentation'; }, rapture.string().valid('workflow', 'screen'))
-                .define('componentType', 'asset'),
+            type: assetBindingTypeRule.define('componentType', 'asset'),
             version: rapture.version()
         }).required('id', 'type', 'version'),
         input: Joi.object()
@@ -140,7 +137,7 @@ function buildAssetRule(commandsAllowed, routesAllowed)
     })
     .required('id', 'component', 'input', 'handlers');
     .define(['bindingId', (bindingId) => `asset/${bindingId}`], 'artifact')
-    .define(['bindingId', (bindingId) => `asset/${bindingId}/component`], 'artifact', '${componentType}/${componentId}');
+    .define(['bindingId', (bindingId) => `asset/${bindingId}/bindingId`], 'artifact', '${componentType}/${componentId}');
 }
 
 function buildModel() {
@@ -213,5 +210,8 @@ module.exports = {
     buildModelRule
     buildCommandsRule,
     buildAssetRule,
-    buildRulesRule
+    buildRulesRule,
+    patterns: {
+        standardPropertyPattern
+    }
 };

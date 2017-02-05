@@ -1,23 +1,24 @@
-const common = require('./common.js');
+const Rapture = require('rapture');
+const Common = require('./common.js');
 
-const routesRule = rapture.array().min(1).items(rapture.object().keys({
-    route: rapture.string().allow('').define((setupContext) => {
+const routesRule = Rapture.array().min(1).items(Rapture.object().keys({
+    route: Rapture.string().allow('').define((setupContext) => {
         setupContext.onRun((runContext, routeValue) => {
             return `route/${routeValue}`;
         });
     }),
     expression: rulesSchema(false).allow(null),
-    state: rapture.string().defined((setupContext) => {
+    state: Rapture.string().defined((setupContext) => {
         setupContext.onRun((runContext, stateValue) => {
             return `asset/${stateValue}`;
         });
     })
 }).required('route', 'state'));
 
-const redirectsRule = rapture.array().items(
-    rapture.object().keys({
+const redirectsRule = Rapture.array().items(
+    Rapture.object().keys({
         condition: Schemas.ConditionSchema,
-        route: rapture.string().defined((setupContext) => {
+        route: Rapture.string().defined((setupContext) => {
             setupContext.onRun((runContext, routeValue) => {
                 return `route/${routeValue}`;
             });
@@ -25,20 +26,33 @@ const redirectsRule = rapture.array().items(
     }).required('route', 'condition');
 );
 
+function checkWorkflowType(expectedType) {
+   return (setupContext) => {
+      setupContext.require('workflowType');
+      setupContext.onRun((runContext) => {
+         return runContext.params.workflowType === expectedType;
+      })
+   }
+}
+
+const assetBindingTypeRule = Rapture.string()
+   .if(checkWorkflowType('process'), Rapture.string().valid('workflow', 'status'))
+   .elseIf(checkWorkflowType('presentation'), Rapture.string().valid('workflow', 'screen'))
+
 function buildWorkflow() {
-    return rapture.object().keys({
-        model: common.buildModel(),
-        type: rapture.string().valid('presentation', 'process').define('workflowType', 'artifact'),
-        states: rapture.array().min(1).items(common.buildAssetRule(true, true)),
+    return Rapture.object().keys({
+        model: Common.buildModel(),
+        type: Rapture.string().valid('presentation', 'process').define('workflowType', 'artifact'),
+        states: Rapture.array().min(1).items(Common.buildAssetRule(true, true, assetBindingTypeRule)),
         routes: routesRule,
-        start: rapture.string().defined((setupContext) => {
+        start: Rapture.string().defined((setupContext) => {
             setupContext.onRun((runContext, startValue) => {
                 return `route/${startValue}`
             });
         }
         redirect: redirectsRule,
-        commands: commandsRule,
-        rules: rapture.any()
+        commands: Common.buildCommandsRule(),
+        rules: Rapture.any()
     }).required('model', 'type', 'states', 'start', 'routes');
 }
 
