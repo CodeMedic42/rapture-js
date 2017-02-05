@@ -1,23 +1,23 @@
 const common = require('./common.js');
 
-const routesRule = jRule.array().min(1).items(jRule.object().keys({
-    route: jRule.string().allow('').define((setupContext) => {
+const routesRule = rapture.array().min(1).items(rapture.object().keys({
+    route: rapture.string().allow('').define((setupContext) => {
         setupContext.onRun((runContext, routeValue) => {
             return `route/${routeValue}`;
         });
     }),
     expression: rulesSchema(false).allow(null),
-    state: jRule.string().defined((setupContext) => {
+    state: rapture.string().defined((setupContext) => {
         setupContext.onRun((runContext, stateValue) => {
             return `asset/${stateValue}`;
         });
     })
 }).required('route', 'state'));
 
-const redirectsRule = jRule.array().items(
-    jRule.object().keys({
+const redirectsRule = rapture.array().items(
+    rapture.object().keys({
         condition: Schemas.ConditionSchema,
-        route: jRule.string().defined((setupContext) => {
+        route: rapture.string().defined((setupContext) => {
             setupContext.onRun((runContext, routeValue) => {
                 return `route/${routeValue}`;
             });
@@ -26,19 +26,19 @@ const redirectsRule = jRule.array().items(
 );
 
 function buildWorkflow() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: common.buildModel(),
-        type: jRule.string().valid('presentation', 'process').define('workflowType', 'artifact'),
-        states: jRule.array().min(1).items(common.buildAssetRule(true, true)),
+        type: rapture.string().valid('presentation', 'process').define('workflowType', 'artifact'),
+        states: rapture.array().min(1).items(common.buildAssetRule(true, true)),
         routes: routesRule,
-        start: jRule.string().defined((setupContext) => {
+        start: rapture.string().defined((setupContext) => {
             setupContext.onRun((runContext, startValue) => {
                 return `route/${startValue}`
             });
         }
         redirect: redirectsRule,
         commands: commandsRule,
-        rules: jRule.any()
+        rules: rapture.any()
     }).required('model', 'type', 'states', 'start', 'routes');
 }
 

@@ -1,5 +1,5 @@
 function buildApplication() {
-    return jRule.object().keys({
+    return rapture.object().keys({
     });
 }
 

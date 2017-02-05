@@ -1,9 +1,9 @@
 function buildStatus() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
         presentation: buildAssetRule(true, false),
         commands: commandsRule,
-        rules: jRule.any()
+        rules: rapture.any()
     }).required('model', 'presentation');
 }
 

@@ -1,7 +1,7 @@
 const BuildModelRule = require('./common.js').buildModelRule;
 
 function buildSchema() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: BuildModelRule(),
     }).required('model');
 }

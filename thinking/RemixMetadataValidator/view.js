@@ -1,4 +1,4 @@
-const component = jRule.object();
+const component = rapture.object();
 
 function reduceToKeys(properties, set) {
     return _.reduce(properties, (keys, prop) => {
@@ -9,23 +9,23 @@ function reduceToKeys(properties, set) {
 }
 
 function buildView() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
-        components: jRule.array().min(1).items(component),
+        components: rapture.array().min(1).items(component),
         commands: commandsRule,
-        rules: jRule.object().keys({
-            system: jRule.object().keys({
+        rules: rapture.object().keys({
+            system: rapture.object().keys({
                 ready: rulesSchema(false),
                 'load:view': rulesSchema(false)
             }),
-            model: jRule.object().keys(function modelKeysSetup() {
+            model: rapture.object().keys(function modelKeysSetup() {
                 this.required('artifactModel');
 
                 this.onRun(function modelKeysOnRun(tokenContext) {
                     const model = this.params.artifactModel;
 
                     return {
-                        properties: jRule.object().keys(function propertiesKeysSetup() {
+                        properties: rapture.object().keys(function propertiesKeysSetup() {
                             this.onRun(function propertiesKeysOnRun(tokenContext) => {
                                 return reduceToKeys(model.properties, rulesSchema(false));
                             };
@@ -33,13 +33,13 @@ function buildView() {
                     };
                 });
             }),
-            components: jRule.object().keys(function componentsKeysSetup() {
+            components: rapture.object().keys(function componentsKeysSetup() {
                 this.required('components');
 
                 this.onRun(function componentsKeysOnRun(tokenContext) {
                     return _.reduce(this.components, (keys, prop) => {
-                        keys[prop] = jRule.object().keys({
-                                events: jRule.object().keys(function eventsKeysSetup() {
+                        keys[prop] = rapture.object().keys({
+                                events: rapture.object().keys(function eventsKeysSetup() {
                                     this.require('events', `component/${prop}/events`);
 
                                     this.onRun(function eventsKeysOnRun(tokenContext) {

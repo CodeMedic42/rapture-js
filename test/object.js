@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const chai = require('chai');
-const jRule = require('../src');
+const rapture = require('../src');
 
 const expect = chai.expect;
 
@@ -10,10 +10,10 @@ describe('Object Tests', function mainTest() {
         const testObject = {};
         const testData = JSON.stringify(testObject);
 
-        const ruleDefinition = jRule.object();
+        const ruleDefinition = rapture.object();
         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
 
-        const session = jRule.createSession(ruleDefinition);
+        const session = rapture.createSession(ruleDefinition);
         expect(session, 'Session is created').to.be.exist;
 
         const context = session.createContext(testData);
@@ -29,10 +29,10 @@ describe('Object Tests', function mainTest() {
     //     const testObject = [];
     //     const testData = JSON.stringify(testObject);
     //
-    //     const rule = jRule.object();
+    //     const rule = rapture.object();
     //     expect(rule, 'Rule is created').to.be.exist;
     //
-    //     const session = jRule.createSession(rule);
+    //     const session = rapture.createSession(rule);
     //     expect(session, 'Session is created').to.be.exist;
     //
     //     const context = session.createContext(testData);
@@ -57,10 +57,10 @@ describe('Object Tests', function mainTest() {
     //     const testObject = null;
     //     const testData = JSON.stringify(testObject);
     //
-    //     const ruleDefinition = jRule.object();
+    //     const ruleDefinition = rapture.object();
     //     expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //     const session = jRule.createSession(ruleDefinition);
+    //     const session = rapture.createSession(ruleDefinition);
     //     expect(session, 'Session is created').to.be.exist;
     //
     //     const context = session.createContext(testData);
@@ -76,10 +76,10 @@ describe('Object Tests', function mainTest() {
     //     const testObject = [];
     //     const testData = JSON.stringify(testObject);
     //
-    //     const rule = jRule.object();
+    //     const rule = rapture.object();
     //     expect(rule, 'Rule is created').to.be.exist;
     //
-    //     const session = jRule.createSession(rule);
+    //     const session = rapture.createSession(rule);
     //     expect(session, 'Session is created').to.be.exist;
     //
     //     const context = session.createContext(testData);
@@ -108,10 +108,10 @@ describe('Object Tests', function mainTest() {
     //         const testObject = {};
     //         const testData = JSON.stringify(testObject);
     //
-    //         const ruleDefinition = jRule.object().required();
+    //         const ruleDefinition = rapture.object().required();
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.be.exist;
     //
     //         const context = session.createContext(testData);
@@ -127,10 +127,10 @@ describe('Object Tests', function mainTest() {
     //         const testObject = null;
     //         const testData = JSON.stringify(testObject);
     //
-    //         const ruleDefinition = jRule.object().required();
+    //         const ruleDefinition = rapture.object().required();
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.be.exist;
     //
     //         const context = session.createContext(testData);
@@ -158,11 +158,11 @@ describe('Object Tests', function mainTest() {
     //         const testData = JSON.stringify(testObject);
     //
     //         const ruleDefinition =
-    //         jRule.object().keys({});
+    //         rapture.object().keys({});
     //
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.be.exist;
     //
     //         const context = session.createContext(testData);
@@ -181,11 +181,11 @@ describe('Object Tests', function mainTest() {
     //         const testData = JSON.stringify(testObject);
     //
     //         const ruleDefinition =
-    //         jRule.object().keys({});
+    //         rapture.object().keys({});
     //
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.be.exist;
     //
     //         const context = session.createContext(testData);
@@ -211,13 +211,13 @@ describe('Object Tests', function mainTest() {
     //         const testData = JSON.stringify(testObject);
     //
     //         const ruleDefinition =
-    //         jRule.object().keys({
-    //             'allowed': jRule.string()
+    //         rapture.object().keys({
+    //             'allowed': rapture.string()
     //         });
     //
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.be.exist;
     //
     //         const context = session.createContext(testData);
@@ -234,13 +234,13 @@ describe('Object Tests', function mainTest() {
     //         const testData = JSON.stringify(testObject);
     //
     //         const ruleDefinition =
-    //         jRule.object().keys({
-    //             'allowed': jRule.string().required()
+    //         rapture.object().keys({
+    //             'allowed': rapture.string().required()
     //         });
     //
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.be.exist;
     //
     //         const context = session.createContext(testData);
@@ -269,12 +269,12 @@ describe('Object Tests', function mainTest() {
     //         };
     //         const testData = JSON.stringify(testObject);
     //
-    //         const ruleDefinition = jRule.object().keys({
-    //             'id': jRule.string().register('idAlias')
+    //         const ruleDefinition = rapture.object().keys({
+    //             'id': rapture.string().register('idAlias')
     //         });
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = jRule.createSession(ruleDefinition);
+    //         const session = rapture.createSession(ruleDefinition);
     //         expect(session, 'Session is created').to.exist;
     //
     //         const context = session.createContext(testData);

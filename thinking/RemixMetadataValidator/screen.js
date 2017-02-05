@@ -1,5 +1,5 @@
-const layoutRule = jRule.object(jRule.scope()).keys({
-    view: jRule.string().defined(function viewDefinedSetup() {
+const layoutRule = rapture.object(rapture.scope()).keys({
+    view: rapture.string().defined(function viewDefinedSetup() {
         this.onRun(function viewDefinedOnRun(value) {
             return `asset/${value}`;
         });
@@ -28,7 +28,7 @@ const layoutRule = jRule.object(jRule.scope()).keys({
     }),
 
 
-    children: jRule.object().keys(function childrenKeysSetup() {
+    children: rapture.object().keys(function childrenKeysSetup() {
         this.require('targetView');
         this.onRun(function childrenKeysOnRun() {
 
@@ -46,12 +46,12 @@ const layoutRule = jRule.object(jRule.scope()).keys({
   },
 
 function buildScreen() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
-        views: jRule.array().min(1).items(buildAssetRule(true, false)),
+        views: rapture.array().min(1).items(buildAssetRule(true, false)),
         layout: layoutRule
         commands: commandsRule,
-        rules: jRule.any()
+        rules: rapture.any()
     }).required('model', 'presentation');
 }
 

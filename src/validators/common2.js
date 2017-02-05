@@ -128,10 +128,10 @@ function registerSetup(commands, rule) {
 //
 //             execute();
 //         }));
-//     } else if (islast.isJRule && isLogic.length === 1) {
+//     } else if (islast.israpture && isLogic.length === 1) {
 //         throw new Error('Not Implemented');
 //     } else {
-//         throw new Error('The "is" component must be either end in a function or must be a single jRule definition.');
+//         throw new Error('The "is" component must be either end in a function or must be a single rapture definition.');
 //     }
 //
 //     return ifContinueWith;

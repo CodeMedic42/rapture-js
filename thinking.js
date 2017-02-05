@@ -46,23 +46,23 @@ function circOnPause() {
 function rulesSchema(conditionRequired) {
     let ruleSchema = null;
 
-    const ruleArray = jRule.array().items(jRule.defer(() => ruleSchema));
+    const ruleArray = rapture.array().items(rapture.defer(() => ruleSchema));
 
-    const expression = jRule.string().min(1);
+    const expression = rapture.string().min(1);
 
-    const expressionArray = jRule.array().items(expression).min(1);
+    const expressionArray = rapture.array().items(expression).min(1);
 
-    const action = jRule.is(jRule.string(), expression)
-                        .elseIs(jRule.array(), expressionArray),
-                        .elseIs(jRule.object(),jRule.object().keys({
-                                expression: jRule.is(jRule.string(), expression)
-                                                 .elseIs(jRule.array(), expressionArray),
-                                then: jRule.defer(() => ruleSchema),
-                                catch: jRule.defer(() => ruleSchema)
+    const action = rapture.is(rapture.string(), expression)
+                        .elseIs(rapture.array(), expressionArray),
+                        .elseIs(rapture.object(),rapture.object().keys({
+                                expression: rapture.is(rapture.string(), expression)
+                                                 .elseIs(rapture.array(), expressionArray),
+                                then: rapture.defer(() => ruleSchema),
+                                catch: rapture.defer(() => ruleSchema)
                             }).required('expression');
                         );
 
-    const ruleObject = jRule.object().keys({
+    const ruleObject = rapture.object().keys({
         condition: conditionRequired ? conditionSchema : conditionSchema.allow(null),
         action,
         parallel: ruleArray,
@@ -76,9 +76,9 @@ function rulesSchema(conditionRequired) {
         ruleObject = ruleObject.with('action', 'condition');
     }
 
-    ruleSchema = jRule.is(jRule.string(), => expression)
-                      .elseIs(jRule.object(), ruleObject)
-                      .elseIs(jRule.array(), expressionArray);
+    ruleSchema = rapture.is(rapture.string(), => expression)
+                      .elseIs(rapture.object(), ruleObject)
+                      .elseIs(rapture.array(), expressionArray);
 
     return ruleSchema;
 }
@@ -86,35 +86,35 @@ function rulesSchema(conditionRequired) {
 function buildHandlersSchema(commandsAllowed, routesAllowed) {
     const keys = {
         expression: rulesSchema(false),
-        output: jRule.object().keys({
-            [standardPropertyPattern]: jRule.any()
+        output: rapture.object().keys({
+            [standardPropertyPattern]: rapture.any()
         })
     };
 
     if (routesAllowed) {
-        keys.route = jRule.string().allow('').defined([(routeID) => `route/${routeID}`]);
+        keys.route = rapture.string().allow('').defined([(routeID) => `route/${routeID}`]);
     }
 
     if (commandsAllowed) {
-        keys.command = jRule.string().defined([(commandID) => `command/${commandID}`]);;
+        keys.command = rapture.string().defined([(commandID) => `command/${commandID}`]);;
     }
 
-    let handlerSchema = jRule.object().keys(keys);
+    let handlerSchema = rapture.object().keys(keys);
 
     if (routesAllowed && commandsAllowed) {
         handlerSchema = handlerSchema.nand('command', 'route');
     }
 
-    return jRule.object().keys({
+    return rapture.object().keys({
         [standardPropertyPattern]: handlerSchema
     });
 }
 
 function buildAssetRule(commandsAllowed, routesAllowed)
-    return jRule.object(jRule.scope('asset')).keys({
-        id: jRule.string().define('bindingID', 'asset'),
-        component: jRule.object().keys({
-            id: jRule.string()
+    return rapture.object(rapture.scope('asset')).keys({
+        id: rapture.string().define('bindingID', 'asset'),
+        component: rapture.object().keys({
+            id: rapture.string()
                 .custom(function circularSetup() {
                     this.require('fullArtifactID');
                     this.require('references');
@@ -131,11 +131,11 @@ function buildAssetRule(commandsAllowed, routesAllowed)
                     this.onPause(circOnPause);
                 })
                 .define('componentId', 'asset')
-            type: jRule.string()
-                .if('workflowType', (workflowType) => { return workflowType === 'process'; }, jRule.string().valid('workflow', 'status'))
-                .elseIf('workflowType', (workflowType) => { return workflowType === 'presentation'; }, jRule.string().valid('workflow', 'screen'))
+            type: rapture.string()
+                .if('workflowType', (workflowType) => { return workflowType === 'process'; }, rapture.string().valid('workflow', 'status'))
+                .elseIf('workflowType', (workflowType) => { return workflowType === 'presentation'; }, rapture.string().valid('workflow', 'screen'))
                 .define('componentType', 'asset'),
-            version: jRule.version()
+            version: rapture.version()
         }).required('id', 'type', 'version'),
         input: Joi.object()
         .custom(function bindingSetup() {
@@ -155,32 +155,32 @@ function buildAssetRule(commandsAllowed, routesAllowed)
     .define(['bindingId', (bindingId) => `asset/${bindingId}/component`], 'artifact', '${componentType}/${componentId}');
 }
 
-const modelRule = jRule.object(jRule.scope()).keys({
+const modelRule = rapture.object(rapture.scope()).keys({
     // If ref exists only it can exist
     // If type does not exist then ref must exist
-    ref: jRule.string(),
+    ref: rapture.string(),
 
     // if extends exists then properties must exist
-    extend: jRule.string(),
+    extend: rapture.string(),
 
     // If ref does not exist then type must exist
-    type: jRule.string().valid('object', 'array', 'string', 'number', 'boolean').define('modelType'),
+    type: rapture.string().valid('object', 'array', 'string', 'number', 'boolean').define('modelType'),
 
     //* default can only exist if type exists and type === 'string'|'number'|'boolean'|'date'
-    default: jRule.if('modelType', jRule.assertions.isValue('string'), jRule.string())
-                  .elseif('modelType', modelType => modelType === 'number', jRule.number())
-                  .elseif('modelType', modelType => modelType === 'boolean', jRule.boolean())
-                  .elseif('modelType', modelType => modelType === 'date', jRule.date()))
+    default: rapture.if('modelType', rapture.assertions.isValue('string'), rapture.string())
+                  .elseif('modelType', modelType => modelType === 'number', rapture.number())
+                  .elseif('modelType', modelType => modelType === 'boolean', rapture.boolean())
+                  .elseif('modelType', modelType => modelType === 'date', rapture.date()))
 
     //* Must exist if extends exists
     //* Must exist if type  === 'object' otherwise cannot exist
     //* Must not exist if ref exists
-    properties: jRule.object().keys({
-        [standardPropertyPattern]: jRule.defer(() => modelRule)
+    properties: rapture.object().keys({
+        [standardPropertyPattern]: rapture.defer(() => modelRule)
     }),
 
     // Must exist if type  === 'array' otherwise cannot exist
-    items: jRule.defer(() => modelRule)
+    items: rapture.defer(() => modelRule)
 })
 // Must have type|ref|extend
 .xor('type', 'ref', 'extend')
@@ -193,9 +193,9 @@ const modelRule = jRule.object(jRule.scope()).keys({
 // If extends exists then properties must exist
 .with('extend', 'properties')
 // if type  === 'array' items is required, otherwise it is forbidden
-.if('modelType', modelType => modelType === 'object', jRule.object().required('properties').forbidden('items', 'default'))
-.elseif('modelType', modelType => modelType === 'array', jRule.object().required('items').forbidden('properties', 'default'))
-.else(jRule.object().forbidden('properties', 'items'));
+.if('modelType', modelType => modelType === 'object', rapture.object().required('properties').forbidden('items', 'default'))
+.elseif('modelType', modelType => modelType === 'array', rapture.object().required('items').forbidden('properties', 'default'))
+.else(rapture.object().forbidden('properties', 'items'));
 
 const definedModelRule = modelRule
 .define({
@@ -209,19 +209,19 @@ const definedModelRule = modelRule
     }], // default: this, can be an array
 })
 
-const commandsRule = jRule.array(jRule.object().keys({
+const commandsRule = rapture.array(rapture.object().keys({
     // string
     // required
     // Min length 1
-    id: jRule.string().min(1).define([(commandId) => `command/${commandId}`]),
-    condition: jRule.string().min(1).allow(null)
+    id: rapture.string().min(1).define([(commandId) => `command/${commandId}`]),
+    condition: rapture.string().min(1).allow(null)
 }).required('id'));
 
-const routesRule = jRule.array().min(1).items(jRule.object().keys({
+const routesRule = rapture.array().min(1).items(rapture.object().keys({
     // string
     // required
     // min length 1
-    route: jRule.string().allow('').define((route) => `route/${route}`),
+    route: rapture.string().allow('').define((route) => `route/${route}`),
     // follows rules schema
     // Not required
     // No min
@@ -231,51 +231,51 @@ const routesRule = jRule.array().min(1).items(jRule.object().keys({
     // required
     // min length 1
     // must ref a component in this workflow
-    state: jRule.string().defined([(start) => `asset/${state}`])
+    state: rapture.string().defined([(start) => `asset/${state}`])
 }).required('route', 'state'));
 
-const redirectsRule = jRule.array().items(
-    jRule.object().keys({
+const redirectsRule = rapture.array().items(
+    rapture.object().keys({
         condition: Schemas.ConditionSchema,
-        route: jRule.string().min(1)
+        route: rapture.string().min(1)
     }).required('route', 'condition');
 );
 
 function buildWorkflow() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
-        type: jRule.string().valid('presentation', 'process').define('workflowType', 'artifact'),
-        states: jRule.array().min(1).items(buildAssetRule(true, true)),
+        type: rapture.string().valid('presentation', 'process').define('workflowType', 'artifact'),
+        states: rapture.array().min(1).items(buildAssetRule(true, true)),
         routes: routesRule,
-        start: jRule.string().defined([(start) => `route/${start}`]),
+        start: rapture.string().defined([(start) => `route/${start}`]),
         redirect: redirectsRule,
         commands: commandsRule,
-        rules: jRule.any()
+        rules: rapture.any()
     }).required('model', 'type', 'states', 'start', 'routes');
 }
 
 function buildSchema() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: modelRule.define(),
     }).required('model');
 }
 
 function buildApplication() {
-    return jRule.object().keys({
+    return rapture.object().keys({
     });
 }
 
 function buildStatus() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
         presentation: buildAssetRule(true, false),
         commands: commandsRule,
-        rules: jRule.any()
+        rules: rapture.any()
     }).required('model', 'presentation');
 }
 
-const layoutRule = jRule.object(jRule.scope()).keys({
-    view: jRule.string().defined(function viewDefinedSetup() {
+const layoutRule = rapture.object(rapture.scope()).keys({
+    view: rapture.string().defined(function viewDefinedSetup() {
         this.onRun(function viewDefinedOnRun(value) {
             return `asset/${value}`;
         });
@@ -304,7 +304,7 @@ const layoutRule = jRule.object(jRule.scope()).keys({
     }),
 
 
-    children: jRule.object().keys(function childrenKeysSetup() {
+    children: rapture.object().keys(function childrenKeysSetup() {
         this.require('targetView');
         this.onRun(function childrenKeysOnRun() {
 
@@ -322,16 +322,16 @@ const layoutRule = jRule.object(jRule.scope()).keys({
   },
 
 function buildScreen() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
-        views: jRule.array().min(1).items(buildAssetRule(true, false)),
+        views: rapture.array().min(1).items(buildAssetRule(true, false)),
         layout: layoutRule
         commands: commandsRule,
-        rules: jRule.any()
+        rules: rapture.any()
     }).required('model', 'presentation');
 }
 
-const component = jRule.object();
+const component = rapture.object();
 
 function reduceToKeys(properties, set) {
     return _.reduce(properties, (keys, prop) => {
@@ -342,23 +342,23 @@ function reduceToKeys(properties, set) {
 }
 
 function buildView() {
-    return jRule.object().keys({
+    return rapture.object().keys({
         model: definedModelRule,
-        components: jRule.array().min(1).items(component),
+        components: rapture.array().min(1).items(component),
         commands: commandsRule,
-        rules: jRule.object().keys({
-            system: jRule.object().keys({
+        rules: rapture.object().keys({
+            system: rapture.object().keys({
                 ready: rulesSchema(false),
                 'load:view': rulesSchema(false)
             }),
-            model: jRule.object().keys(function modelKeysSetup() {
+            model: rapture.object().keys(function modelKeysSetup() {
                 this.required('artifactModel');
 
                 this.onRun(function modelKeysOnRun(tokenContext) {
                     const model = this.params.artifactModel;
 
                     return {
-                        properties: jRule.object().keys(function propertiesKeysSetup() {
+                        properties: rapture.object().keys(function propertiesKeysSetup() {
                             this.onRun(function propertiesKeysOnRun(tokenContext) => {
                                 return reduceToKeys(model.properties, rulesSchema(false));
                             };
@@ -366,13 +366,13 @@ function buildView() {
                     };
                 });
             }),
-            components: jRule.object().keys(function componentsKeysSetup() {
+            components: rapture.object().keys(function componentsKeysSetup() {
                 this.required('components');
 
                 this.onRun(function componentsKeysOnRun(tokenContext) {
                     return _.reduce(this.components, (keys, prop) => {
-                        keys[prop] = jRule.object().keys({
-                                events: jRule.object().keys(function eventsKeysSetup() {
+                        keys[prop] = rapture.object().keys({
+                                events: rapture.object().keys(function eventsKeysSetup() {
                                     this.require('events', `component/${prop}/events`);
 
                                     this.onRun(function eventsKeysOnRun(tokenContext) {
@@ -390,18 +390,18 @@ function buildView() {
     }).required('model', 'presentation');
 }
 
-const artifactRule = jRule.object().keys({
-    schema: jRule.object().keys({
-        name: jRule.string().define('artifactType', 'artifactContext'),
-        version: jRule.version(),
+const artifactRule = rapture.object().keys({
+    schema: rapture.object().keys({
+        name: rapture.string().define('artifactType', 'artifactContext'),
+        version: rapture.version(),
     }).required('name', 'version'),
-    id: jRule.string().define('fullArtifactID', 'artifact', (setupContext) => {
+    id: rapture.string().define('fullArtifactID', 'artifact', (setupContext) => {
         setupContext.require('artifactType');
         setupContext.onRun((runContext, propertyValue) => {
             return `${runContext.params.artifactType}/${propertyValue}`
         });
     }),
-    version: jRule.version()
+    version: rapture.version()
 }).required('schema', 'id', 'version')
 .if('artifactType', (type) => { return type === 'application'; }, buildApplication())
 .elseIf('artifactType', (type) => { return type === 'workflow'; }, buildWorkflow())
@@ -468,7 +468,7 @@ const testData = {
 
 const artifactA = JSON.parse(testData);
 
-const sessionContext = jRule.createSession(); // Need to add rules here
+const sessionContext = rapture.createSession(); // Need to add rules here
 
 const artifactContext = sessionContext.createArtifactContext('artifactID', artifactRule, artifactA);
 

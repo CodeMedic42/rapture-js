@@ -5,18 +5,18 @@ const buildScreenRule = require('./screen.js');
 const buildSchemaRule = require('./schema.js');
 
 function buildRemicMetadataRuleDefinition() {
-    return jRule.object().keys({
-        schema: jRule.object().keys({
-            name: jRule.string().define('artifactType', 'artifactContext'),
-            version: jRule.version(),
+    return rapture.object().keys({
+        schema: rapture.object().keys({
+            name: rapture.string().define('artifactType', 'artifactContext'),
+            version: rapture.version(),
         }).required('name', 'version'),
-        id: jRule.string().define('fullArtifactID', 'artifact', (setupContext) => {
+        id: rapture.string().define('fullArtifactID', 'artifact', (setupContext) => {
             setupContext.require('artifactType');
             setupContext.onRun((runContext, propertyValue) => {
                 return `${runContext.params.artifactType}/${propertyValue}`
             });
         }),
-        version: jRule.version()
+        version: rapture.version()
     }).required('schema', 'id', 'version')
     .if('artifactType', (type) => { return type === 'application'; }, buildApplicationRule())
     .elseIf('artifactType', (type) => { return type === 'workflow'; }, buildWorkflowRule())
