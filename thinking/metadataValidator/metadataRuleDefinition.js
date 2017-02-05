@@ -1,3 +1,4 @@
+const Rapture = require('rapture');
 const buildApplicationRule = require('./application.js');
 const buildWorkflowRule = require('./workflow.js');
 const buildStatusRule = require('./status.js');
@@ -5,18 +6,18 @@ const buildScreenRule = require('./screen.js');
 const buildSchemaRule = require('./schema.js');
 
 function buildMetadataRuleDefinition() {
-    return rapture.object().keys({
-        schema: rapture.object().keys({
-            name: rapture.string().define('artifactType', 'artifactContext'),
-            version: rapture.version(),
+    return Rapture.object().keys({
+        schema: Rapture.object().keys({
+            name: Rapture.string().define('artifactType', 'artifactContext'),
+            version: Rapture.version(),
         }).required('name', 'version'),
-        id: rapture.string().define('fullArtifactID', 'artifact', (setupContext) => {
+        id: Rapture.string().define('fullArtifactID', 'artifact', (setupContext) => {
             setupContext.require('artifactType');
             setupContext.onRun((runContext, propertyValue) => {
                 return `${runContext.params.artifactType}/${propertyValue}`
             });
         }),
-        version: rapture.version()
+        version: Rapture.version()
     }).required('schema', 'id', 'version')
     .if('artifactType', (type) => { return type === 'application'; }, buildApplicationRule())
     .elseIf('artifactType', (type) => { return type === 'workflow'; }, buildWorkflowRule())

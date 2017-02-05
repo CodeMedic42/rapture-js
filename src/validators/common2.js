@@ -36,7 +36,7 @@ function requiredSetup(commands, rule) {
 
     commands.required = function required(severity) {
         const sev = validateSeverity(severity);
-        
+
         logicDef.enable(sev);
     };
 

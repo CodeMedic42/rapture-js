@@ -1,5 +1,8 @@
+const Rapture = require('rapture');
+
 function buildApplication() {
-    return rapture.object().keys({
+    return Rapture.object().keys({
+
     });
 }
 

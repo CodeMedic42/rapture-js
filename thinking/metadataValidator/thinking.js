@@ -1,8 +1,9 @@
-const _ = require('lodash');
-const ObservableList = require('observableList');
-
-const standardPropertyPattern = /^[-\w\d]+$/;
-const specialPropertyPattern = /^[-\w\d:]+$/;
+const Rapture = require('rapture');
+// const _ = require('lodash');
+// const ObservableList = require('observableList');
+//
+// const standardPropertyPattern = /^[-\w\d]+$/;
+// const specialPropertyPattern = /^[-\w\d:]+$/;
 
 // When defining a value
 //      If it passed validation then it is marked as ready
@@ -455,6 +456,10 @@ const specialPropertyPattern = /^[-\w\d:]+$/;
 
 // Atom Linter
 
+const metadataRuleDefinition = require('./metadataRuleDefinition.js');
+
+const artifactRule = metadataRuleDefinition();
+
 const testData = {
     id: 'foo',
     schema: {
@@ -467,7 +472,7 @@ const testData = {
 
 const artifactA = JSON.parse(testData);
 
-const sessionContext = rapture.createSession(); // Need to add rules here
+const sessionContext = Rapture.createSession(); // Need to add rules here
 
 const artifactContext = sessionContext.createArtifactContext('artifactID', artifactRule, artifactA);
 
