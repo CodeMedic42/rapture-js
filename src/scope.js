@@ -1,5 +1,6 @@
-const EventEmmiter = require('event');
+const EventEmitter = require('events');
 const Util = require('util');
+const _ = require('lodash');
 
 function internalSet(id, value, ready, owner) {
     let target = this.data[id];
@@ -40,7 +41,7 @@ function internalSet(id, value, ready, owner) {
     }
 
     // we changed something
-    _.forEach((this.watch[id], (watch) => {
+    _.forEach(this.watch[id], (watch) => {
         watch(target.status, target.value);
     });
 
@@ -81,7 +82,7 @@ function internalRemove(id, owner) {
         return null;
     }
 
-    _.forEach((this.watch[id], (watch) => {
+    _.forEach(this.watch[id], (watch) => {
         watch(target.status, target.value);
     });
 
@@ -122,22 +123,24 @@ function Scope(id, parentScope) {
     this.parentScope = parentScope;
     this.watches = {};
 
-    EventEmmiter.call(this);
+    EventEmitter.call(this);
 
-    this.parentScope.on('update', (updatedData) => {
-        updateFromParent.call(this, updatedData);
-    });
+    if (!_.isNil(this.parentScope)) {
+        this.parentScope.on('update', (updatedData) => {
+            updateFromParent.call(this, updatedData);
+        });
 
-    updateFromParent.call(this, this.parentScope.data);
+        updateFromParent.call(this, this.parentScope.data);
+    }
 }
 
 Util.inherits(Scope, EventEmitter);
 
 Scope.prototype.createChildScope = function createChildScope(id) {
     return Scope(id, this);
-}
+};
 
-functon internalInitalSet() {
+function internalInitalSet() {
     if (scopeID !== this.id) {
         if (_.isNil(this.parentScope)) {
             throw new Error(`Scope "${scopeID}" does not exist.`);
@@ -158,7 +161,7 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (!_.isNil(scopeID) {
+    if (!_.isNil(scopeID)) {
         if (!_.isString(scopeID)) {
             throw new Error('scopeID must be a string when used');
         }
@@ -169,7 +172,7 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
     internalInitalSet.call(this, scopeID, id, value, ready, owner);
 };
 
-functon internalInitalRemove(scopeID, id, owner) {
+function internalInitalRemove(scopeID, id, owner) {
     if (scopeID !== this.id) {
         if (_.isNil(this.parentScope)) {
             throw new Error(`Scope "${scopeID}" does not exist.`);
@@ -190,7 +193,7 @@ Scope.prototype.remove = function remove(scopeID, id, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (!_.isNil(scopeID) {
+    if (!_.isNil(scopeID)) {
         if (!_.isString(scopeID)) {
             throw new Error('scopeID must be a string when used');
         }

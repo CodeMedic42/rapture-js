@@ -11,6 +11,9 @@
   "license": "ISC",
   "devDependencies": {
     "chai": "^3.5.0",
+    "dirty-chai": "^1.2.2",
+    "gulp": "^3.9.1",
+    "gulp-mocha": "^3.0.1",
     "mocha": "^3.2.0"
   },
   "dependencies": {

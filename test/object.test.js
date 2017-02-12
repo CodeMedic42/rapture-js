@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const chai = require('chai');
-const rapture = require('../src');
+const Rapture = require('../src');
 
 const expect = chai.expect;
 
@@ -10,13 +10,13 @@ describe('Object Tests', function mainTest() {
         const testObject = {};
         const testData = JSON.stringify(testObject);
 
-        const ruleDefinition = rapture.object();
-        expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
+        const rule = Rapture.object();
+        expect(rule, 'Rule Definition is created').to.be.exist;
 
-        const session = rapture.createSession(ruleDefinition);
+        const session = Rapture.createSessionContext();
         expect(session, 'Session is created').to.be.exist;
 
-        const context = session.createContext(testData);
+        const context = session.createArtifactContext('artifactID', rule, testData);
         expect(context, 'context is created').to.be.exist;
 
         const issues = context.issues();
@@ -25,34 +25,34 @@ describe('Object Tests', function mainTest() {
         expect(issues.length, 'No issues found.').to.be.equal(0);
     });
 
-    // it('is an array', () => {
-    //     const testObject = [];
-    //     const testData = JSON.stringify(testObject);
-    //
-    //     const rule = rapture.object();
-    //     expect(rule, 'Rule is created').to.be.exist;
-    //
-    //     const session = rapture.createSession(rule);
-    //     expect(session, 'Session is created').to.be.exist;
-    //
-    //     const context = session.createContext(testData);
-    //     expect(context, 'context is created').to.be.exist;
-    //
-    //     const issues = context.issues();
-    //
-    //     expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-    //     expect(issues.length, 'One issue found.').to.be.equal(1);
-    //
-    //     expect(issues[0].type, 'Issue type').to.be.equal('schema');
-    //     expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
-    //     expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
-    //     expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(0);
-    //     expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(0);
-    //     expect(issues[0].message, 'Issue Message').to.be.equal('When defined this field must be a plain object');
-    //     expect(issues[0].cause, 'Issue cause').to.be.equal('');
-    //     expect(issues[0].severity, 'Issue severity').to.be.equal('error');
-    // });
-    //
+    it('is an array', () => {
+        const testObject = [];
+        const testData = JSON.stringify(testObject);
+
+        const rule = Rapture.object();
+        expect(rule, 'Rule is created').to.be.exist;
+
+        const session = Rapture.createSessionContext();
+        expect(session, 'Session is created').to.be.exist;
+
+        const context = session.createArtifactContext('artifactID', rule, testData);
+        expect(context, 'context is created').to.be.exist;
+
+        const issues = context.issues();
+
+        expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+        expect(issues.length, 'One issue found.').to.be.equal(1);
+
+        expect(issues[0].type, 'Issue type').to.be.equal('schema');
+        expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
+        expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
+        expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(0);
+        expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(0);
+        expect(issues[0].message, 'Issue Message').to.be.equal('When defined this field must be a plain object');
+        expect(issues[0].cause, 'Issue cause').to.be.equal('');
+        expect(issues[0].severity, 'Issue severity').to.be.equal('error');
+    });
+
     // it('is null', () => {
     //     const testObject = null;
     //     const testData = JSON.stringify(testObject);

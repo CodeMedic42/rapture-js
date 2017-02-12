@@ -5,13 +5,14 @@ const ArtifactLexor = require('./artifactLexing/artifactLexer.js');
 const RuleContext = require('./ruleContext.js');
 const Scope = require('./scope.js');
 
-function ArtifactContext(sessionScope, ruleDefinition, artifact) {
+function ArtifactContext(id, rule, artifact, sessionScope) {
     if (!(this instanceof ArtifactContext)) {
-        return new ArtifactContext(sessionScope, ruleDefinition, artifact);
+        return new ArtifactContext(id, rule, artifact, sessionScope);
     }
 
+    this.id = id;
     this.scope = Scope('artifact', sessionScope);
-    this.ruleDefinition = ruleDefinition;
+    this.rule = rule;
     this.update(artifact);
 
     EventEmitter.call(this);
@@ -19,7 +20,7 @@ function ArtifactContext(sessionScope, ruleDefinition, artifact) {
 
 Util.inherits(ArtifactContext, EventEmitter);
 
-RuleContext.prototype.issues = function issues() {
+ArtifactContext.prototype.issues = function issues() {
     return this.ruleContext.issues();
 };
 
@@ -30,7 +31,14 @@ ArtifactContext.prototype.update = function update(artifact) {
         throw new Error('Artifact must be a string');
     }
 
-    this.ruleContext = RuleContext(this.scope, this.ruleDefinition, ArtifactLexor(artifact));
+    if (!_.isNil(this.ruleContext)) {
+        this.ruleContext.destroy();
+    }
+
+    const initalRuleScope = Scope(null, this.scope);
+
+    this.ruleContext = RuleContext(this.rule, initalRuleScope, ArtifactLexor(artifact));
+    //this.ruleContext = this.rule.createContext(initalRuleScope, ArtifactLexor(artifact));
 
     this.ruleContext.on('update', (issues) => {
         this.emit('update', issues);

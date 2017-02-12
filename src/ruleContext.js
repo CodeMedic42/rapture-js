@@ -1,18 +1,20 @@
 const EventEmitter = require('events');
 const Util = require('util');
 const _ = require('lodash');
-const Scope = require('scope.js');
+const Issue = require('./issue.js');
+const Scope = require('./scope.js');
 
-function RuleContext(sessionScope, sessionContextScope, ruleScope, ruleDefinition, tokenContext, enabled) {
+function RuleContext(rule, scope, tokenContext) {
     if (!(this instanceof RuleContext)) {
-        return new RuleContext(sessionScope, sessionContextScope, ruleScope, ruleDefinition, tokenContext, enabled);
+        return new RuleContext(rule, scope, tokenContext);
     }
 
-    this.sessionScope = sessionScope;
-    this.sessionContextScope = sessionContextScope;
-    this.ruleScope = ruleScope || Scope();
-    this.rule = ruleDefinition.rule();
-    this.enabled = !!enabled;
+    if (_.isNil(tokenContext)) {
+        throw new Error('Must provide a tokenContext');
+    }
+
+    this.scope = scope;
+    this.rule = rule;
 
     RuleContext.prototype.update.call(this, tokenContext);
 
@@ -20,22 +22,6 @@ function RuleContext(sessionScope, sessionContextScope, ruleScope, ruleDefinitio
 }
 
 Util.inherits(RuleContext, EventEmitter);
-
-RuleContext.prototype.enabled = function enabled(enable) {
-    const old = this.isEnabled;
-
-    this.isEnabled = !!enable;
-
-    if (this.isEnabled === old) {
-        return;
-    }
-
-    if (this.isEnabled) {
-        this.ruleControl.start();
-    } else {
-        this.ruleControl.pause();
-    }
-}
 
 RuleContext.prototype.issues = function issues() {
     if (_.isNil(this.compacted)) {
@@ -55,32 +41,64 @@ RuleContext.prototype.issues = function issues() {
     return this.compacted;
 };
 
+RuleContext.prototype.raise = function raise(runId, type, message, severity) {
+    this.compacted = null;
+
+    this.livingIssues[runId] = Issue(type, this.tokenContext.from, this.tokenContext.location, message, severity);
+
+    // if (issue instanceof RuleContext) {
+    //     issue.on('update', () => {
+    //         this.emitUpdate();
+    //     });
+    // }
+
+    this.emitUpdate();
+}
+
+RuleContext.prototype.clear = function clear(runId) {
+    this.compacted = null;
+
+    delete this.livingIssues[runId];
+
+    // if (issue instanceof RuleContext) {
+    //     issue.on('update', () => {
+    //         this.emitUpdate();
+    //     });
+    // }
+
+    this.emitUpdate();
+}
+
 RuleContext.prototype.update = function update(tokenContext) {
     this.livingIssues = {};
     this.compacted = null;
-
     this.tokenContext = tokenContext;
 
-    this.ruleControl = this.rule.init(this, this.tokenContext);
+    // const runContext = this.rule.logicDefinition.createRunContext(this.scope, tokenContext);
 
-    if (this.isEnabled) {
-        this.ruleControl.start();
-    }
+    this.rule.build(this);
+
+    this.emit('start');
+
+    // this.ruleControl.start();
+    // if (this.isEnabled) {
+    //     this.ruleControl.start();
+    // }
 };
-
-RuleContext.prototype.set = function set(issueId, issue) {
-    this.compacted = null;
-
-    this.livingIssues[issueId] = issue;
-
-    if (issue instanceof RuleContext) {
-        issue.on('update', () => {
-            this.emitUpdate();
-        });
-    }
-
-    this.emitUpdate();
-};
+//
+// RuleContext.prototype.set = function set(issueId, issue) {
+//     this.compacted = null;
+//
+//     this.livingIssues[issueId] = issue;
+//
+//     if (issue instanceof RuleContext) {
+//         issue.on('update', () => {
+//             this.emitUpdate();
+//         });
+//     }
+//
+//     this.emitUpdate();
+// };
 
 RuleContext.prototype.emitUpdate = _.debounce(function emitUpdate() {
     this.emit('update', this.issues());
