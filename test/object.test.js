@@ -53,56 +53,56 @@ describe('Object Tests', function mainTest() {
         expect(issues[0].severity, 'Issue severity').to.be.equal('error');
     });
 
-    // it('is null', () => {
-    //     const testObject = null;
-    //     const testData = JSON.stringify(testObject);
-    //
-    //     const ruleDefinition = rapture.object();
-    //     expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
-    //
-    //     const session = rapture.createSession(ruleDefinition);
-    //     expect(session, 'Session is created').to.be.exist;
-    //
-    //     const context = session.createContext(testData);
-    //     expect(context, 'context is created').to.be.exist;
-    //
-    //     const issues = context.issues();
-    //
-    //     expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-    //     expect(issues.length, 'No issues found.').to.be.equal(0);
-    // });
-    //
-    // it('is not an object,... at first', (done) => {
-    //     const testObject = [];
-    //     const testData = JSON.stringify(testObject);
-    //
-    //     const rule = rapture.object();
-    //     expect(rule, 'Rule is created').to.be.exist;
-    //
-    //     const session = rapture.createSession(rule);
-    //     expect(session, 'Session is created').to.be.exist;
-    //
-    //     const context = session.createContext(testData);
-    //     expect(context, 'context is created').to.be.exist;
-    //
-    //     const issues = context.issues();
-    //
-    //     expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-    //     expect(issues.length, 'One issue found.').to.be.equal(1);
-    //
-    //     context.on('update', (newIssues) => {
-    //         expect(newIssues, 'Issues is an array').to.be.instanceOf(Array);
-    //         expect(newIssues.length, 'Zero issues found.').to.be.equal(0);
-    //
-    //         done();
-    //     });
-    //
-    //     const testObjectUpdate = {};
-    //     const testDataUpdate = JSON.stringify(testObjectUpdate);
-    //
-    //     context.update(testDataUpdate);
-    // });
-    //
+    it('is null', () => {
+        const testObject = null;
+        const testData = JSON.stringify(testObject);
+
+        const rule = Rapture.object();
+        expect(rule, 'Rule Definition is created').to.be.exist;
+
+        const session = Rapture.createSessionContext();
+        expect(session, 'Session is created').to.be.exist;
+
+        const context = session.createArtifactContext('artifactID', rule, testData);
+        expect(context, 'context is created').to.be.exist;
+
+        const issues = context.issues();
+
+        expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+        expect(issues.length, 'No issues found.').to.be.equal(0);
+    });
+
+    it('is not an object,... at first', (done) => {
+        const testObject = [];
+        const testData = JSON.stringify(testObject);
+
+        const rule = Rapture.object();
+        expect(rule, 'Rule is created').to.be.exist;
+
+        const session = Rapture.createSessionContext();
+        expect(session, 'Session is created').to.be.exist;
+
+        const context = session.createArtifactContext('artifactID', rule, testData);
+        expect(context, 'context is created').to.be.exist;
+
+        const issues = context.issues();
+
+        expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+        expect(issues.length, 'One issue found.').to.be.equal(1);
+
+        context.on('update', (newIssues) => {
+            expect(newIssues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(newIssues.length, 'Zero issues found.').to.be.equal(0);
+
+            done();
+        });
+
+        const testObjectUpdate = {};
+        const testDataUpdate = JSON.stringify(testObjectUpdate);
+
+        context.update(testDataUpdate);
+    });
+
     // describe('required', () => {
     //     it('exists', () => {
     //         const testObject = {};
@@ -151,21 +151,21 @@ describe('Object Tests', function mainTest() {
     //         expect(issues[0].severity, 'Issue severity').to.be.equal('error');
     //     });
     // });
-    //
+
     // describe('keys', () => {
     //     it('no keys - pass', () => {
     //         const testObject = {};
     //         const testData = JSON.stringify(testObject);
     //
     //         const ruleDefinition =
-    //         rapture.object().keys({});
+    //         Rapture.object().keys({});
     //
     //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = rapture.createSession(ruleDefinition);
+    //         const session = Rapture.createSessionContext();
     //         expect(session, 'Session is created').to.be.exist;
     //
-    //         const context = session.createContext(testData);
+    //         const context = session.createArtifactContext('artifactID', rule, testData);
     //         expect(context, 'context is created').to.be.exist;
     //
     //         const issues = context.issues();
@@ -180,15 +180,14 @@ describe('Object Tests', function mainTest() {
     //         };
     //         const testData = JSON.stringify(testObject);
     //
-    //         const ruleDefinition =
-    //         rapture.object().keys({});
+    //         const rule = Rapture.object().keys({});
     //
-    //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
+    //         expect(rule, 'Rule Definition is created').to.be.exist;
     //
-    //         const session = rapture.createSession(ruleDefinition);
+    //         const session = Rapture.createSessionContext();
     //         expect(session, 'Session is created').to.be.exist;
     //
-    //         const context = session.createContext(testData);
+    //         const context = session.createArtifactContext('artifactID', rule, testData);
     //         expect(context, 'context is created').to.be.exist;
     //
     //         const issues = context.issues();
@@ -205,7 +204,7 @@ describe('Object Tests', function mainTest() {
     //         expect(issues[0].cause, 'Issue cause').to.be.equal('notAllowed');
     //         expect(issues[0].severity, 'Issue severity').to.be.equal('error');
     //     });
-    //
+
     //     it('specfic key - does not exist - not required', () => {
     //         const testObject = {};
     //         const testData = JSON.stringify(testObject);
@@ -261,7 +260,7 @@ describe('Object Tests', function mainTest() {
     //         expect(issues[0].severity, 'Issue severity').to.be.equal('error');
     //     });
     // });
-    //
+
     // describe('register', () => {
     //     it('should register', () => {
     //         const testObject = {

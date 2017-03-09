@@ -106,4 +106,8 @@ RuleContext.prototype.emitUpdate = _.debounce(function emitUpdate() {
     maxWait: 100
 });
 
+RuleContext.prototype.destroy = function destroy() {
+    this.emit('destroy');
+};
+
 module.exports = RuleContext;
