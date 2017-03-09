@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "mocha",
-    "test-debug": "mocha --debug-brk"
+    "test-debug": "mocha --inspect --debug-brk"
   },
   "author": "",
   "license": "ISC",

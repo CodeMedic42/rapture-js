@@ -20,7 +20,8 @@ function LogicDefinition(onStart, onStop) {
 LogicDefinition.prototype.createRunContext = function createRunContext(ruleContext) {
     const runContext = {
         raise: ruleContext.raise.bind(ruleContext, this),
-        clear: ruleContext.clear.bind(ruleContext, this)
+        clear: ruleContext.clear.bind(ruleContext, this),
+        link: ruleContext.link.bind(ruleContext, this),
     };
 
     ruleContext.on('start', this.onStart.bind(null, runContext, ruleContext.tokenContext.contents));

@@ -5,108 +5,72 @@ const LogicDefinition = require('../logicDefinition.js');
 const RuleContext = require('../ruleContext.js');
 const TokenContext = require('../artifactLexing/tokenContext.js');
 
-// function keysAction(expectedKeys) {
-//     const rule = this;
+// Can take a plain object of keys
+//     THis object can have regular key names or reg-exs as well
 //
-//     if (!_.isPlainObject(expectedKeys)) {
-//         throw new Error('must specify an object');
-//     }
-//
-//     const allowedKeyNames = [];
-//
-//     _.forOwn(expectedKeys, (expectedKeyRuleDefinition, expectedKeyName) => {
-//         allowedKeyNames.push(expectedKeyName);
-//
-//         rule.addLogicDefinition(LogicDefinition(`key_${expectedKeyName}`, function onRun(tokenContext) {
-//             const logicContext = this;
-//             const ruleContext = logicContext.ruleContext;
-//
-//             let observerdKeyValue = tokenContext.contents[expectedKeyName];
-//
-//             if (_.isNil(observerdKeyValue)) {
-//                 observerdKeyValue = TokenContext(undefined, tokenContext.location, tokenContext.from);
-//             }
-//
-//             logicContext.set(RuleContext(Scope(ruleContext.scope('artifact')), expectedKeyRuleDefinition, observerdKeyValue));
-//         }));
-//     });
-//
-//     rule.addLogicDefinition(LogicDefinition(`defineAllowedKeys`, function onRun(tokenContext) {
-//         const logicContext = this;
-//         const ruleContext = logicContext.ruleContext;
-//
-//         ruleContext.scope.
-//         ruleContext.scope('rule').scope('keys').set(ruleContext, allowedKeyNames);
-//     }), function onPause() {
-//         ruleContext.scope('rule').scope('keys').remove(ruleContext);
-//     });
-// }
+//     Can also take a loadFunction
+function keysAction(parentRule, keyData) {
+    if (!_.isPlainObject(keyData)) {
+        throw new Error('Keys must be plain object');
+    }
+
+    const staticKeys = {};
+    let regKeys = {};
+
+    _.forOwn(keyData, (keyRule, keyPattern) => {
+        if (_.isString(keyPattern)) {
+            staticKeys[keyPattern] = keyRule;
+        } else if (_.isRegExp(keyPattern)) {
+            regKeys[keyPattern] = keyRule;
+        } else {
+            throw new Error('Key name must be a string or a regular expression');
+        }
+    });
+
+    if (_.keys(regKeys).length == 0) {
+        regKeys = null;
+    }
+
+    const logicDefinition = LogicDefinition((runContext, value) => {
+        if (_.isNil(value) || !_.isPlainObject(value)) {
+            // Do nothing
+            return;
+        }
+
+        _.forOwn(value, (propValue, propName) => {
+            let keyRule = staticKeys[propName];
+
+            if (_.isNil(keyRule) && !_.isNil(regKeys)) {
+                _.forOwn(regKeys, (regRule, regKey) => {
+                    if (propName.matches(regKey)) {
+                        keyRule = regRule;
+                    }
+                });
+            }
+
+            if (_.isNil(keyRule)) {
+                runContext.raise('schema', `The property "${propName}" is not allowed to exist.`, 'error', propValue.from, propValue.location);
+
+                return;
+                // TODO: Register key as unfound? Create a rule to handle unfound keys. This keys could show up later.
+            }
+
+            const ruleContext = RuleContext(keyRule, runContext.scope, propValue);
+
+            runContext.link(ruleContext);
+        });
+    });
+
+    const objectActions = {};
+
+    const rule = Rule(logicDefinition, objectActions, parentRule);
+
+    rule.keys = keysAction.bind(null, rule);
+
+    return rule;
+}
 
 function objectDefinition() {
-
-    // const objLogicDef = LogicDefinition('object', function objectLogicOnRun(tokenContext) {
-    //     const logicContext = this;
-    //
-    //     const value = tokenContext.contents;
-    //
-    //     if (!_.isNil(value) && !_.isPlainObject(value)) {
-    //         logicContext.set(Issue('schema', tokenContext.from, tokenContext.location, 'When defined this field must be a plain object', 'error')));
-    //     } else {
-    //         logicContext.set(null);
-    //     }
-    // });
-
-    // const allowedKeysLogicDef = LogicDefinition('allowedKeys', function allowedKeysLogic(tokenContext) {
-    //     const logicContext = this;
-    //     const ruleContext = logicContext.ruleContext;
-    //
-    //     const value = tokenContext.contents;
-    //
-    //     const keysScope = ruleContext.scope('rule').scope('keys');
-    //
-    //     let execute;
-    //
-    //     keysScope.on('update', () => {
-    //         execute();
-    //     });
-    //
-    //     execute = () => {
-    //         let allowedKeys;
-    //
-    //         keysScope.forEach((keys) => {
-    //             if (_.isNil(allowedKeys)) {
-    //                 allowedKeys = [];
-    //             }
-    //
-    //             _.forEach(keys, (key) => {
-    //                 allowedKeys.push(key);
-    //             });
-    //         }));
-    //
-    //         const issues = [];
-    //
-    //         _.forOwn(value, (childTokenContext, observedKey) => {
-    //             const index = _.findIndex(allowedKeys, (expectedKey) => {
-    //                 if (_.isRegExp(expectedKey)) {
-    //                     return expectedKey.test(observedKey);
-    //                 } else {
-    //                     return expectedKey === observedKey;
-    //                 }
-    //             });
-    //
-    //             if (index >= 0) {
-    //                 issues.push(Issue('schema', childTokenContext.from, childTokenContext.location, 'This property is not allowed to exist.', 'error')));
-    //             }
-    //         });
-    //
-    //         logicContext.set(issues);
-    //     };
-    // });
-
-    const objectActions = {
-        //keys: keysAction
-    };
-
     const logicDefinition = LogicDefinition((runContext, value) => {
         if (!_.isNil(value) && !_.isPlainObject(value)) {
             runContext.raise('schema', 'When defined this field must be a plain object', 'error');
@@ -115,10 +79,11 @@ function objectDefinition() {
         }
     });
 
+    const objectActions = {};
+
     const rule = Rule(logicDefinition, objectActions);
 
-    // rule.addLogicDefinition(objLogicDef);
-    // rule.addLogicDefinition(allowedKeysLogicDef);
+    rule.keys = keysAction.bind(null, rule);
 
     return rule;
 }

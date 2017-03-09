@@ -152,58 +152,57 @@ describe('Object Tests', function mainTest() {
     //     });
     // });
 
-    // describe('keys', () => {
-    //     it('no keys - pass', () => {
-    //         const testObject = {};
-    //         const testData = JSON.stringify(testObject);
-    //
-    //         const ruleDefinition =
-    //         Rapture.object().keys({});
-    //
-    //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
-    //
-    //         const session = Rapture.createSessionContext();
-    //         expect(session, 'Session is created').to.be.exist;
-    //
-    //         const context = session.createArtifactContext('artifactID', rule, testData);
-    //         expect(context, 'context is created').to.be.exist;
-    //
-    //         const issues = context.issues();
-    //
-    //         expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-    //         expect(issues.length, 'No issues found.').to.be.equal(0);
-    //     });
-    //
-    //     it('no keys - fail', () => {
-    //         const testObject = {
-    //             'notAllowed': 'foo'
-    //         };
-    //         const testData = JSON.stringify(testObject);
-    //
-    //         const rule = Rapture.object().keys({});
-    //
-    //         expect(rule, 'Rule Definition is created').to.be.exist;
-    //
-    //         const session = Rapture.createSessionContext();
-    //         expect(session, 'Session is created').to.be.exist;
-    //
-    //         const context = session.createArtifactContext('artifactID', rule, testData);
-    //         expect(context, 'context is created').to.be.exist;
-    //
-    //         const issues = context.issues();
-    //
-    //         expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-    //         expect(issues.length, 'One issue found.').to.be.equal(1);
-    //
-    //         expect(issues[0].type, 'Issue type').to.be.equal('schema');
-    //         expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
-    //         expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
-    //         expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(1);
-    //         expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(13);
-    //         expect(issues[0].message, 'Issue Message').to.be.equal('This property is not allowed to exist.');
-    //         expect(issues[0].cause, 'Issue cause').to.be.equal('notAllowed');
-    //         expect(issues[0].severity, 'Issue severity').to.be.equal('error');
-    //     });
+    describe('keys', () => {
+        it('no keys - pass', () => {
+            const testObject = {};
+            const testData = JSON.stringify(testObject);
+
+            const rule = Rapture.object().keys({});
+
+            expect(rule, 'Rule Definition is created').to.be.exist;
+
+            const session = Rapture.createSessionContext();
+            expect(session, 'Session is created').to.be.exist;
+
+            const context = session.createArtifactContext('artifactID', rule, testData);
+            expect(context, 'context is created').to.be.exist;
+
+            const issues = context.issues();
+
+            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(issues.length, 'No issues found.').to.be.equal(0);
+        });
+
+        it('no keys - fail', () => {
+            const testObject = {
+                'notAllowed': 'foo'
+            };
+            const testData = JSON.stringify(testObject, null, 2);
+
+            const rule = Rapture.object().keys({});
+
+            expect(rule, 'Rule Definition is created').to.be.exist;
+
+            const session = Rapture.createSessionContext();
+            expect(session, 'Session is created').to.be.exist;
+
+            const context = session.createArtifactContext('artifactID', rule, testData);
+            expect(context, 'context is created').to.be.exist;
+
+            const issues = context.issues();
+
+            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(issues.length, 'One issue found.').to.be.equal(1);
+
+            expect(issues[0].type, 'Issue type').to.be.equal('schema');
+            expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(1);
+            expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(1);
+            expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(2);
+            expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(14);
+            expect(issues[0].message, 'Issue Message').to.be.equal('The property "notAllowed" is not allowed to exist.');
+            expect(issues[0].cause, 'Issue cause').to.be.equal('notAllowed');
+            expect(issues[0].severity, 'Issue severity').to.be.equal('error');
+        });
 
     //     it('specfic key - does not exist - not required', () => {
     //         const testObject = {};
@@ -259,7 +258,7 @@ describe('Object Tests', function mainTest() {
     //         expect(issues[0].cause, 'Issue cause').to.be.equal('');
     //         expect(issues[0].severity, 'Issue severity').to.be.equal('error');
     //     });
-    // });
+    });
 
     // describe('register', () => {
     //     it('should register', () => {

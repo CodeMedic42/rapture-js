@@ -36,7 +36,7 @@ ArtifactContext.prototype.update = function update(artifact) {
     }
 
     const initalRuleScope = Scope(null, this.scope);
-
+    
     this.ruleContext = RuleContext(this.rule, initalRuleScope, ArtifactLexor(artifact));
     //this.ruleContext = this.rule.createContext(initalRuleScope, ArtifactLexor(artifact));
 
