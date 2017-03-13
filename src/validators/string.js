@@ -1,118 +1,118 @@
 const _ = require('lodash');
-const Common = require('./common.js');
 const Rule = require('../rule.js');
 const Issue = require('../issue.js');
 const LogicDefinition = require('../logicDefinition.js');
+const RunDataContext = require('../runDataContext.js');
 
-// function keys(continueWith, keys, severity) {
-//     const sev = Common.validateSeverity(severity);
-//
-//     const allowedKeysParameter = this.getLogic('allowedKey').getParameter('allowedKeys');
-//
-//     _.forOwn(keys, (value, keyName) => {
-//         allowedKeysParameter.push(keyName);
-//
-//         this.addLogic('onRun', LogicDefinition(`key_${keyName}`, function objectLogic(id, tokenContext) {
-//             const value = tokenContext.contents;
-//             let message = null;
-//
-//             this.set(id, null);
-//         }));
-//     });
-//
-//     return continueWith;
-// }
-//
-// function min(continueWith, minVal, severity) {
-//     this.removeLogic('length');
-//
-//     const sev = validateSeverity(severity);
-//
-//     this.addLogic('onRun', LogicDefinition('min', function minLogic(id, tokenContext) {
-//         const value = tokenContext.contents;
-//
-//         if (_.isNil(value)) {
-//             this.set(id, null);
-//         } else {
-//             if(_.keys(value).length >= minVal) {
-//                 this.set(id, null);
-//             } else {
-//                 this.set(id, Issue('schema', tokenContext.from, tokenContext.location, `${minVal} or more properties must exist.`, sev));
-//             }
-//         }
-//     }));
-//
-//     return continueWith;
-// }
-//
-// function max(continueWith, maxVal, severity) {
-//     this.removeLogic('length');
-//
-//     const sev = validateSeverity(severity);
-//
-//     this.addLogic('onRun', LogicDefinition('max', function maxLogic(id, tokenContext) {
-//         const value = tokenContext.contents;
-//
-//         if (_.isNil(value)) {
-//             this.set(id, null);
-//         } else {
-//             if(_.keys(value).length <= maxVal) {
-//                 this.set(id, null);
-//             } else {
-//                 this.set(id, Issue('schema', tokenContext.from, tokenContext.location, `${maxVal} or less properties must exist.`, sev));
-//             }
-//         }
-//     }));
-//
-//     return continueWith;
-// }
-//
-// function length(continueWith, lengthVal, severity) {
-//     this.removeLogic('min');
-//     this.removeLogic('max');
-//
-//     const sev = validateSeverity(severity);
-//
-//     this.addLogic('onRun', LogicDefinition('length', function lengthLogic(id, tokenContext) {
-//         const value = tokenContext.contents;
-//
-//         if (_.isNil(value)) {
-//             this.set(id, null);
-//         } else {
-//             if(_.keys(value).length === lengthVal) {
-//                 this.set(id, null);
-//             } else {
-//                 this.set(id, Issue('schema', tokenContext.from, tokenContext.location, `${lengthVal} properties must exist.`, sev));
-//             }
-//         }
-//     }));
-//
-//     return continueWith;
-// }
+function minAction(parentRule, actions, minData) {
+    if (!_.isFinite(minData) && !_.isFunction(minData)) {
+        throw new Error('Must be a finite value or a setup function');
+    }
 
-function _string(severity) {
-    const sev = Common.validateSeverity(severity);
+    const logicDefinition = LogicDefinition((setupContext) => {
+        setupContext.define('testData', minData);
 
-    const rule = Rule();
+        setupContext.onRun((runContext, value) => {
+            if (_.isNil(value) || !_.isString(value)) {
+                runContext.clear();
+            }
 
-    const avaliableCommands = {};
+            const minValue = runContext.params.testData;
 
-    avaliableCommands.rule = Common.rule.bind(rule);
-    avaliableCommands.required = Common.required.bind(rule, avaliableCommands);
-    avaliableCommands.optional = Common.optional.bind(rule, avaliableCommands);
-    avaliableCommands.register = Common.register.bind(rule, avaliableCommands);
+            if (value.length < minData) {
+                runContext.raise('schema', `Must be ${minData} or more characters long.`, 'error');
+            } else {
+                runContext.clear();
+            }
+        });
+    });
 
-    rule.addLogic('onRun', LogicDefinition('string', function objectLogic(id, tokenContext) {
-        const value = tokenContext.contents;
+    delete actions.min;
+    delete actions.length;
 
-        if (!_.isNil(value) && !_.isString(value)) {
-            this.set(id, Issue('schema', tokenContext.from, tokenContext.location, 'When defined this field must be a plain object', sev));
-        } else {
-            this.set(id, null);
-        }
-    }));
-
-    return avaliableCommands;
+    return Rule(logicDefinition, actions, parentRule);
 }
 
-module.exports = _string;
+// function maxActionStatic(maxData, setupContext) {
+//     setupContext.onRun((runContext, value) => {
+//         if (_.isNil(value) || !_.isString(value)) {
+//             runContext.clear();
+//         }
+//
+//         if (value.length > maxData) {
+//             runContext.raise('schema', `Must be less than ${maxData} or more characters long.`, 'error');
+//         } else {
+//             runContext.clear();
+//         }
+//     });
+// }
+//
+// function maxAction(parentRule, actions, maxData) {
+//     let cb;
+//
+//     if (_.isFunction(maxData)) {
+//         logicDefinition = LogicDefinition(maxData);
+//     } else if (_.isFinite(maxData)) {
+//         logicDefinition = LogicDefinition(maxActionStatic.bind(null, maxData));
+//     } else {
+//         throw new Error('Must be a finite value or a setup function');
+//     }
+//
+//     delete actions.max;
+//     delete actions.length;
+//
+//     return Rule(logicDefinition, actions, parentRule);
+// }
+//
+// function lengthActionStatic(lengthData, setupContext) {
+//     setupContext.onRun((runContext, value) => {
+//         if (_.isNil(value) || !_.isString(value)) {
+//             runContext.clear();
+//         }
+//
+//         if (value.length === lengthData) {
+//             runContext.raise('schema', `Must be exactly ${lengthData} characters long.`, 'error');
+//         } else {
+//             runContext.clear();
+//         }
+//     });
+// }
+//
+// function lengthAction(parentRule, actions, lengthData) {
+//     let cb;
+//
+//     if (_.isFunction(lengthData)) {
+//         logicDefinition = LogicDefinition(lengthData);
+//     } else if (_.isFinite(lengthData)) {
+//         logicDefinition = LogicDefinition(lengthActionStatic.bind(null, lengthData));
+//     } else {
+//         throw new Error('Must be a finite value or a setup function');
+//     }
+//
+//     delete actions.max;
+//     delete actions.length;
+//
+//     return Rule(logicDefinition, actions, parentRule);
+// }
+
+function stringDefinition() {
+    const logicDefinition = LogicDefinition((setupContext) => {
+        setupContext.onRun((runContext, value) => {
+            if (!_.isNil(value) && !_.isString(value)) {
+                runContext.raise('schema', 'When defined this field must be a string.', 'error');
+            } else {
+                runContext.clear();
+            }
+        });
+    });
+
+    const actions = {
+        min: minAction,
+        // max: maxAction,
+        // length: lengthAction
+    };
+
+    return Rule(logicDefinition, actions);
+}
+
+module.exports = stringDefinition;

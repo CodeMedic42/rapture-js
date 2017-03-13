@@ -1,34 +1,34 @@
 const standardPropertyPattern = /^[-\w\d]+$/;
 const specialPropertyPattern = /^[-\w\d:]+$/;
 
-function checkForCircularReference(parentRefs) {
+function checkForCircularReference(runContext, parentRefs) {
     // Check Circular dependancy.
     const index = _.findIndex(parentRefs, by => by === this.params.lookingFor);
 
     if (index >= 0) {
-        this.raise('circularReference', 'Cannot have a circular reference.');
+        runContext.raise('circularReference', 'Cannot have a circular reference.');
 
-        this.params.targetRefs.merge(parentRefs);
+        runContext.params.targetRefs.merge(parentRefs);
     } else {
-        this.clear();
+        runContext.clear();
 
         // This probably will not work could conflict with others.
         // Need to splend some time to think about this.
-        this.params.targetRefs.remove(parentRefs);
+        runContext.params.targetRefs.remove(parentRefs);
     }
 }
 
-function circOnRun(componentId) {
-    this.params.lookingFor = `${this.params.componentType}/${componentId}`;
+function circOnRun(runContext, componentId) {
+    runContext.params.lookingFor = `${runContext.params.componentType}/${componentId}`;
 
-    this.params.references.off('change', checkForCircularReference, this);
-    this.params.references.on('change', checkForCircularReference, this);
+    runContext.params.references.off('change', checkForCircularReference, runContext);
+    runContext.params.references.on('change', checkForCircularReference, runContext);
 
-    checkForCircularReference.call(this, this.params.references);
+    checkForCircularReference(runContext, runContext.params.references);
 }
 
-function circOnPause() {
-    this.referencedBy.off('change', refByOnChange, this);
+function circOnPause(runContext) {
+    runContext.referencedBy.off('change', refByOnChange, this);
 }
 
 function buildRulesRule(conditionRequired) {
@@ -103,34 +103,34 @@ function buildAssetRule(commandsAllowed, routesAllowed, assetBindingTypeRule)
         id: rapture.string().define('bindingID', 'asset'),
         component: rapture.object().keys({
             id: rapture.string()
-                .custom(function circularSetup() {
-                    this.require('fullArtifactID');
-                    this.require('references');
-                    this.require('componentType');
-                    this.require('targetRefs', function targetRefsSetup() {
-                        this.require('componentType');
-                        this.onRun(function targetRefsOnRun(componentId) {
+                .custom((setupContext) => {
+                    setupContext.require('fullArtifactID');
+                    setupContext.require('references');
+                    setupContext.require('componentType');
+                    setupContext.require('targetRefs', (refsetupContext) => {
+                        refsetupContext.require('componentType');
+                        refsetupContext.onRun(function targetRefsOnRun(componentId) {
                             return `${this.params.componentType}/${componentId}.referencedBy`;
                         });
                     });
                     //this.require('targetRefs', '${componentType}/${this}.referencedBy');
 
-                    this.onRun(circOnRun);
-                    this.onPause(circOnPause);
+                    setupContext.onRun(circOnRun);
+                    setupContext.onPause(circOnPause);
                 })
                 .define('componentId', 'asset')
             type: assetBindingTypeRule.define('componentType', 'asset'),
             version: rapture.version()
         }).required('id', 'type', 'version'),
         input: Joi.object()
-        .custom(function bindingSetup() {
-            this.require('destionationModel', '${componentType}/${componentId}.model');
-            this.require('sourceModel', 'artifactModel');
+        .custom((setupContext) => {
+            setupContext.require('destionationModel', '${componentType}/${componentId}.model');
+            setupContext.require('sourceModel', 'artifactModel');
 
-            this.onRun(function bindingOnRun(tokenContext) {
+            setupContext.onRun(function bindingOnRun(tokenContext) {
             });
 
-            this.onPause(function bindingOnPause() {
+            setupContext.onPause(function bindingOnPause() {
             });
         });
         handlers: buildHandlersSchema(commandsAllowed, routesAllowed);

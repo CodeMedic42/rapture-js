@@ -13,7 +13,8 @@ function RuleContext(rule, scope, tokenContext) {
         throw new Error('Must provide a tokenContext');
     }
 
-    this.scope = scope;
+    this.workingScope = scope;
+    this.ruleScope = Scope(null);
     this.rule = rule;
     this.children = [];
 
@@ -40,7 +41,7 @@ RuleContext.prototype.issues = function issues() {
     }
 
     const finalIssues = _.reduce(this.children, (current, child) => {
-        current.push(...child.issues);
+        current.push(...child.issues());
 
         return current;
     }, []);
@@ -71,6 +72,8 @@ RuleContext.prototype.clear = function clear(runId) {
 
 RuleContext.prototype.link = function link(ruleContext) {
     this.children.push(ruleContext);
+
+    debugger;
 
     ruleContext.on('update', () => {
         this.emitUpdate();

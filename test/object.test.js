@@ -204,29 +204,29 @@ describe('Object Tests', function mainTest() {
             expect(issues[0].severity, 'Issue severity').to.be.equal('error');
         });
 
-    //     it('specfic key - does not exist - not required', () => {
-    //         const testObject = {};
-    //         const testData = JSON.stringify(testObject);
-    //
-    //         const ruleDefinition =
-    //         rapture.object().keys({
-    //             'allowed': rapture.string()
-    //         });
-    //
-    //         expect(ruleDefinition, 'Rule Definition is created').to.be.exist;
-    //
-    //         const session = rapture.createSession(ruleDefinition);
-    //         expect(session, 'Session is created').to.be.exist;
-    //
-    //         const context = session.createContext(testData);
-    //         expect(context, 'context is created').to.be.exist;
-    //
-    //         const issues = context.issues();
-    //
-    //         expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-    //         expect(issues.length, 'No issues found.').to.be.equal(0);
-    //     });
-    //
+        it('specfic key - does not exist - not required', () => {
+            const testObject = {};
+            const testData = JSON.stringify(testObject);
+
+            const rule =
+            Rapture.object().keys({
+                'allowed': Rapture.string()
+            });
+
+            expect(rule, 'Rule has been created').to.be.exist;
+
+            const session = Rapture.createSessionContext();
+            expect(session, 'Session is created').to.be.exist;
+
+            const context = session.createArtifactContext('artifactID', rule, testData);
+            expect(context, 'context is created').to.be.exist;
+
+            const issues = context.issues();
+
+            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(issues.length, 'No issues found.').to.be.equal(0);
+        });
+
     //     it('specfic key - does not exist - required', () => {
     //         const testObject = {};
     //         const testData = JSON.stringify(testObject);

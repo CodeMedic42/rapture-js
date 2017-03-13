@@ -4,9 +4,7 @@ const LogicDefinition = require('../logicDefinition.js');
 function anyDefinition() {
     const anyActions = {};
 
-    const logicDefinition = LogicDefinition((runContext, value) => {
-        // There is no possible test which can be done here.
-    });
+    const logicDefinition = LogicDefinition(() => {});
 
     return Rule(logicDefinition, anyActions);
 }
