@@ -1,15 +1,12 @@
 const _ = require('lodash');
 const Rule = require('../rule.js');
-const Issue = require('../issue.js');
 const LogicDefinition = require('../logicDefinition.js');
-const RuleContext = require('../ruleContext.js');
-const TokenContext = require('../artifactLexing/tokenContext.js');
 
 // Can take a plain object of keys
 //     THis object can have regular key names or reg-exs as well
 //
 //     Can also take a loadFunction
-function keysAction(parentRule, keyData) {
+function keysAction(parentRule, actions, keyData) {
     if (!_.isPlainObject(keyData)) {
         throw new Error('Keys must be plain object');
     }
@@ -27,65 +24,75 @@ function keysAction(parentRule, keyData) {
         }
     });
 
-    if (_.keys(regKeys).length == 0) {
+    if (_.keys(regKeys).length === 0) {
         regKeys = null;
     }
 
-    const logicDefinition = LogicDefinition((runContext, value) => {
-        if (_.isNil(value) || !_.isPlainObject(value)) {
-            // Do nothing
-            return;
-        }
+    const logicDefinition = LogicDefinition((setupContext) => {
+        setupContext.onSetup((runContext, value) => {
+            runContext.propContexts = {}; // eslint-disable-line no-param-reassign
 
-        _.forOwn(value, (propValue, propName) => {
-            let keyRule = staticKeys[propName];
-
-            if (_.isNil(keyRule) && !_.isNil(regKeys)) {
-                _.forOwn(regKeys, (regRule, regKey) => {
-                    if (propName.matches(regKey)) {
-                        keyRule = regRule;
-                    }
-                });
-            }
-
-            if (_.isNil(keyRule)) {
-                runContext.raise('schema', `The property "${propName}" is not allowed to exist.`, 'error', propValue.from, propValue.location);
-
+            if (_.isNil(value) || !_.isPlainObject(value)) {
+                // Do nothing
                 return;
-                // TODO: Register key as unfound? Create a rule to handle unfound keys. This keys could show up later.
             }
 
-            const ruleContext = RuleContext(keyRule, runContext.scope, propValue);
+            _.forOwn(value, (propValue, propName) => {
+                let keyRule = staticKeys[propName];
 
-            runContext.link(ruleContext);
+                if (_.isNil(keyRule) && !_.isNil(regKeys)) {
+                    _.forOwn(regKeys, (regRule, regKey) => {
+                        if (propName.matches(regKey)) {
+                            keyRule = regRule;
+                        }
+                    });
+                }
+
+                if (_.isNil(keyRule)) {
+                    runContext.raise('schema', `The property "${propName}" is not allowed to exist.`, 'error', propValue.from, propValue.location);
+
+                    return;
+                    // TODO: Register key as unfound? Create a rule to handle unfound keys. This keys could show up later.
+                }
+
+                const context = runContext.propContexts[propName] = keyRule.buildContext(runContext.scope, propValue); // eslint-disable-line no-param-reassign
+
+                runContext.link(context);
+            });
         });
-    });
 
-    const objectActions = {};
+        setupContext.onRun((runContext) => {
+            _.forOwn(runContext.propContexts, (context) => {
+                context.start();
+            });
+        });
 
-    const rule = Rule(logicDefinition, objectActions, parentRule);
+        setupContext.onPause((runContext) => {
+            _.forOwn(runContext.propContexts, (context) => {
+                context.stop();
+            });
+        });
+    }, true, true);
 
-    rule.keys = keysAction.bind(null, rule);
-
-    return rule;
+    return Rule(logicDefinition, actions, parentRule);
 }
 
 function objectDefinition() {
-    const logicDefinition = LogicDefinition((runContext, value) => {
-        if (!_.isNil(value) && !_.isPlainObject(value)) {
-            runContext.raise('schema', 'When defined this field must be a plain object', 'error');
-        } else {
-            runContext.clear();
-        }
-    });
+    const logicDefinition = LogicDefinition((setupContext) => {
+        setupContext.onRun((runContext, value) => {
+            if (!_.isNil(value) && !_.isPlainObject(value)) {
+                runContext.raise('schema', 'When defined this field must be a plain object', 'error');
+            } else {
+                runContext.clear();
+            }
+        });
+    }, true);
 
-    const objectActions = {};
+    const objectActions = {
+        keys: keysAction
+    };
 
-    const rule = Rule(logicDefinition, objectActions);
-
-    rule.keys = keysAction.bind(null, rule);
-
-    return rule;
+    return Rule(logicDefinition, objectActions);
 }
 
 module.exports = objectDefinition;

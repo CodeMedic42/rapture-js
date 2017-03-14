@@ -4,6 +4,12 @@ const _ = require('lodash');
 const Issue = require('./issue.js');
 const Scope = require('./scope.js');
 
+function run(force) {
+    if (this.runStatus === 'started' || force) {
+        this.emit('update', this.issues());
+    }
+}
+
 function RuleContext(rule, scope, tokenContext) {
     if (!(this instanceof RuleContext)) {
         return new RuleContext(rule, scope, tokenContext);
@@ -13,11 +19,15 @@ function RuleContext(rule, scope, tokenContext) {
         throw new Error('Must provide a tokenContext');
     }
 
-    this.scope = scope;
+    this.workingScope = scope;
+    this.ruleScope = Scope(null);
     this.rule = rule;
     this.children = [];
-
-    RuleContext.prototype.update.call(this, tokenContext);
+    this.logicContexts = [];
+    this.livingIssues = {};
+    this.compacted = null;
+    this.tokenContext = tokenContext;
+    this.runStatus = 'stopped';
 
     EventEmitter.call(this);
 }
@@ -40,7 +50,7 @@ RuleContext.prototype.issues = function issues() {
     }
 
     const finalIssues = _.reduce(this.children, (current, child) => {
-        current.push(...child.issues);
+        current.push(...child.issues());
 
         return current;
     }, []);
@@ -53,50 +63,60 @@ RuleContext.prototype.issues = function issues() {
 RuleContext.prototype.raise = function raise(runId, type, message, severity, from, location) {
     this.compacted = null;
 
-    let targetFrom = _.isNil(from) ? this.tokenContext.from : from;
-    let targetLocation = _.isNil(location) ? this.tokenContext.location : location;
+    const targetFrom = _.isNil(from) ? this.tokenContext.from : from;
+    const targetLocation = _.isNil(location) ? this.tokenContext.location : location;
 
     this.livingIssues[runId] = Issue(type, targetFrom, targetLocation, message, severity);
 
-    this.emitUpdate();
-}
+    run.call(this);
+};
 
 RuleContext.prototype.clear = function clear(runId) {
     this.compacted = null;
 
     delete this.livingIssues[runId];
 
-    this.emitUpdate();
-}
+    run.call(this);
+};
 
 RuleContext.prototype.link = function link(ruleContext) {
     this.children.push(ruleContext);
 
     ruleContext.on('update', () => {
-        this.emitUpdate();
+        run.call(this);
     });
-
-    this.emitUpdate();
-}
-
-RuleContext.prototype.update = function update(tokenContext) {
-    this.livingIssues = {};
-    this.compacted = null;
-    this.tokenContext = tokenContext;
-
-    this.rule.build(this);
-
-    this.emit('start');
 };
-
-RuleContext.prototype.emitUpdate = _.debounce(function emitUpdate() {
-    this.emit('update', this.issues());
-}, 50, {
-    maxWait: 100
-});
 
 RuleContext.prototype.destroy = function destroy() {
     this.emit('destroy');
+};
+
+RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
+    this.logicContexts.push(logicContext);
+};
+
+RuleContext.prototype.start = function start() {
+    this.runStatus = 'starting';
+
+    _.forEach(this.logicContexts, (logicContext) => {
+        logicContext.start();
+    });
+
+    run.call(this, true);
+
+    this.runStatus = 'started';
+};
+
+RuleContext.prototype.stop = function stop() {
+    this.runStatus = 'stopping';
+
+    _.foreach(this.logicContexts, (logicContext) => {
+        logicContext.stop();
+    });
+
+    run.call(this, true);
+
+    this.runStatus = 'stopped';
 };
 
 module.exports = RuleContext;

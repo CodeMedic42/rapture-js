@@ -1,5 +1,5 @@
 const object = require('./validators/object.js');
-// const string = require('./validators/string.js');
+const string = require('./validators/string.js');
 const any = require('./validators/any.js');
 const SessionContext = require('./sessionContext.js');
 
@@ -11,6 +11,5 @@ module.exports = {
     createSessionContext,
     any,
     object,
-    // string,
-
+    string,
 };

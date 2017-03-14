@@ -18,20 +18,15 @@ function internalSet(id, value, ready, owner) {
             // origial was set by parent, we can override this value no matter what
             target.value = value;
             target.status = status;
-        } else {
-            if (!_.isNil(owner)) {
-                if (owner === target.owner) {
-                    // The owner is changing this value
-                    target.value = value;
-                    target.status = status;
-                } else {
-                    // This value is being updated by someone else and this cannot be allowed.
-                    throw new Error(`Cannot set duplicate value for ${id}`);
-                }
+        } else if (!_.isNil(owner)) {
+            if (owner === target.owner) {
+                // The owner is changing this value
+                target.value = value;
+                target.status = status;
+            } else {
+                // This value is being updated by someone else and this cannot be allowed.
+                throw new Error(`Cannot set duplicate value for ${id}`);
             }
-            // else {
-            //     update is coming from parent but we already have a direct set here. we must ignore this update.
-            // }
         }
 
         if ((oldValue === target.value) && (oldStatus === target.status)) {
@@ -52,7 +47,7 @@ function internalRemove(id, owner) {
     let target = this.data[id];
 
     if (_.isNil(target)) {
-        return;
+        return null;
     }
 
     if (_.isNil(target.owner)) {
@@ -91,7 +86,7 @@ function internalRemove(id, owner) {
 
 function updateFromParent(parentData) {
     const updatedData = {};
-    const updateAvaliable = false;
+    let updateAvaliable = false;
 
     _.forOwn(parentData, (data, dataId) => {
         let target;
@@ -102,8 +97,8 @@ function updateFromParent(parentData) {
             target = internalSet.call(this, dataId, data.value, data.ready, null);
         }
 
-        if (!_.isNil(newValue)) {
-            updatedData[dataId] = newValue;
+        if (!_.isNil(target)) {
+            updatedData[dataId] = target;
             updateAvaliable = true;
         }
     });
@@ -140,19 +135,21 @@ Scope.prototype.createChildScope = function createChildScope(id) {
     return Scope(id, this);
 };
 
-function internalInitalSet() {
+function internalInitalSet(scopeID, id, value, ready, owner) {
     if (scopeID !== this.id) {
         if (_.isNil(this.parentScope)) {
             throw new Error(`Scope "${scopeID}" does not exist.`);
         }
 
-        return internalInitalSet.call(this.parentScope, scopeID, id, value, ready, owner);
+        internalInitalSet.call(this.parentScope, scopeID, id, value, ready, owner);
+
+        return;
     }
 
     const newValue = internalSet.call(this, id, value, ready, owner);
 
     if (!_.isNil(newValue)) {
-        this.emit('update', { [id]: newValue});
+        this.emit('update', { [id]: newValue });
     }
 }
 
@@ -166,7 +163,7 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
             throw new Error('scopeID must be a string when used');
         }
     } else {
-        scopeID = this.id;
+        scopeID = this.id; // eslint-disable-line no-param-reassign
     }
 
     internalInitalSet.call(this, scopeID, id, value, ready, owner);
@@ -178,13 +175,15 @@ function internalInitalRemove(scopeID, id, owner) {
             throw new Error(`Scope "${scopeID}" does not exist.`);
         }
 
-        return internalRemove.call(this.parentScope, scopeID, id, value, owner);
+        internalRemove.call(this.parentScope, scopeID, id, owner);
+
+        return;
     }
 
     const removedValue = internalRemove.call(this, id, owner);
 
     if (!_.isNil(removedValue)) {
-        this.emit('update', { [id]: removedValue});
+        this.emit('update', { [id]: removedValue });
     }
 }
 
@@ -198,7 +197,7 @@ Scope.prototype.remove = function remove(scopeID, id, owner) {
             throw new Error('scopeID must be a string when used');
         }
     } else {
-        scopeID = this.id;
+        scopeID = this.id; // eslint-disable-line no-param-reassign
     }
 
     internalInitalRemove.call(this, scopeID, id, owner);
@@ -223,50 +222,5 @@ Scope.prototype.watch = function watch(id, onUpdate) {
         _.pull(watches, watchCallback);
     };
 };
-
-// Scope.prototype.watchGroup = function watchGroup(items, onReady, onUnReady) {
-//     args = [];
-//
-//     const evaluate = _.debounce(() => {
-//         const result = [];
-//         const ready = true;
-//
-//         _.forEach(args, (arg) => {
-//             result.push(arg.value);
-//
-//             ready = ready && arg.ready;
-//
-//             return ready;
-//         });
-//
-//         ready ? onReady(result) : onUnReady();
-//     });
-//
-//     _.forEach(items, (item, index) => {
-//         args[index] = {
-//             ready: false,
-//             listener: this.watch(item, (paramValue) => {
-//                 args[index].ready = true;
-//                 args[index].value = paramValue;
-//
-//                 evaluate();
-//             }, () => {
-//                 .args[item].ready = false;
-//                 delete args[index].value;
-//
-//                 evaluate();
-//             });
-//         };
-//     });
-//
-//     return () => {
-//         _.forEach(args, (arg) => {
-//             arg();
-//         });
-//     };
-// }
-
-
-
 
 module.exports = Scope;

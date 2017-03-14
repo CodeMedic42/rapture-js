@@ -1,42 +1,102 @@
 const _ = require('lodash');
 
-function LogicDefinition(onStart, onStop) {
-    if (!(this instanceof LogicDefinition)) {
-        return new LogicDefinition(onStart, onStop);
-    }
+const ParametersContext = require('./parametersContext');
+const LogicContext = require('./logicContext');
 
-    if (!_.isFunction(onStart)) {
-        throw new Error('onStart function required.');
-    }
+let currentId = 0;
 
-    this.onStart = onStart;
-    this.onStop = onStop;
+function getId() {
+    currentId = currentId += 1;
+
+    return currentId;
 }
 
-// LogicDefinition.prototype.createContext = function createContext(context, tokenContext) {
-//     return LogicContext(this.id, context, tokenContext, this.onRun, this.onPause);
-// };
+function noop() {}
 
-LogicDefinition.prototype.createRunContext = function createRunContext(ruleContext) {
-    const runContext = {
-        raise: ruleContext.raise.bind(ruleContext, this),
-        clear: ruleContext.clear.bind(ruleContext, this),
-        link: ruleContext.link.bind(ruleContext, this),
+function LogicDefinition(setupCallback, allowRaise, allowLink) {
+    if (!(this instanceof LogicDefinition)) {
+        return new LogicDefinition(setupCallback, allowRaise, allowLink);
+    }
+
+    if (!_.isFunction(setupCallback)) {
+        throw new Error('setupCallback must be a function');
+    }
+
+    this.onSetup = noop;
+    this.onRun = noop;
+    this.onPause = noop;
+    this.params = {};
+    this.allowRaise = allowRaise;
+    this.allowLink = allowLink;
+
+    const setupContext = {
+        require: (id) => {
+            if (!_.isNil(this.params[id])) {
+                throw new Error('required property apready defined.');
+            }
+        },
+        define: (id, builder) => {
+            if (!_.isNil(this.params[id])) {
+                throw new Error('required property apready defined.');
+            }
+
+            if (_.isFunction(builder)) {
+                this.params[id] = LogicDefinition(builder);
+            } else {
+                this.params[id] = builder;
+            }
+        },
+        onSetup: (cb) => {
+            if (!_.isFunction(cb)) {
+                throw new Error('onSetup must be a function.');
+            }
+
+            this.onSetup = cb;
+        },
+        onRun: (cb) => {
+            if (!_.isFunction(cb)) {
+                throw new Error('onRun must be a function.');
+            }
+
+            this.onRun = cb;
+        },
+        onPause: (cb) => {
+            if (!_.isFunction(cb)) {
+                throw new Error('onPause must be a function.');
+            }
+
+            this.onPause = cb;
+        },
     };
 
-    ruleContext.on('start', this.onStart.bind(null, runContext, ruleContext.tokenContext.contents));
-    ruleContext.on('stop', () => {
-        if (!_.isNil(this.onStop)) {
-            this.onStop(runContext, contents);
-        }
+    setupCallback(setupContext);
+}
+
+LogicDefinition.prototype.buildContext = function buildContext(ruleContext) {
+    const runContext = {};
+
+    if (this.allowLink) {
+        runContext.link = ruleContext.link.bind(ruleContext);
+    }
+
+    const owenerId = getId();
+
+    if (this.allowRaise) {
+        runContext.raise = ruleContext.raise.bind(ruleContext, owenerId);
+        runContext.clear = ruleContext.clear.bind(ruleContext, owenerId);
+    }
+
+    const onSetup = this.onSetup.bind(null, runContext, ruleContext.tokenContext.contents);
+    const onRun = this.onRun.bind(null, runContext, ruleContext.tokenContext.contents);
+    const onPause = () => {
+        this.onPause.call(null);
 
         runContext.clear();
-    });
-    ruleContext.on('destroy', () => {
-        runContext.clear();
-    });
+    };
+
+    const parametersContext = ParametersContext(ruleContext, this.params);
+
+    return LogicContext(onSetup, onRun, onPause, parametersContext);
 };
-
-
 
 module.exports = LogicDefinition;
