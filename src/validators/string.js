@@ -1,8 +1,6 @@
 const _ = require('lodash');
 const Rule = require('../rule.js');
-const Issue = require('../issue.js');
 const LogicDefinition = require('../logicDefinition.js');
-const RunDataContext = require('../runDataContext.js');
 
 function minAction(parentRule, actions, minData) {
     if (!_.isFinite(minData) && !_.isFunction(minData)) {
@@ -10,90 +8,81 @@ function minAction(parentRule, actions, minData) {
     }
 
     const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.define('testData', minData);
+        setupContext.define('minData', minData);
 
-        setupContext.onRun((runContext, value) => {
+        setupContext.onRun((runContext, value, params) => {
             if (_.isNil(value) || !_.isString(value)) {
                 runContext.clear();
             }
 
-            const minValue = runContext.params.testData;
-
-            if (value.length < minData) {
-                runContext.raise('schema', `Must be ${minData} or more characters long.`, 'error');
+            if (value.length < params.minData) {
+                runContext.raise('schema', `Must be greater than ${params.minData - 1} characters long.`, 'error');
             } else {
                 runContext.clear();
             }
         });
-    });
+    }, true);
 
-    delete actions.min;
-    delete actions.length;
+    delete actions.min; // eslint-disable-line no-param-reassign
+    delete actions.length; // eslint-disable-line no-param-reassign
 
     return Rule(logicDefinition, actions, parentRule);
 }
 
-// function maxActionStatic(maxData, setupContext) {
-//     setupContext.onRun((runContext, value) => {
-//         if (_.isNil(value) || !_.isString(value)) {
-//             runContext.clear();
-//         }
-//
-//         if (value.length > maxData) {
-//             runContext.raise('schema', `Must be less than ${maxData} or more characters long.`, 'error');
-//         } else {
-//             runContext.clear();
-//         }
-//     });
-// }
-//
-// function maxAction(parentRule, actions, maxData) {
-//     let cb;
-//
-//     if (_.isFunction(maxData)) {
-//         logicDefinition = LogicDefinition(maxData);
-//     } else if (_.isFinite(maxData)) {
-//         logicDefinition = LogicDefinition(maxActionStatic.bind(null, maxData));
-//     } else {
-//         throw new Error('Must be a finite value or a setup function');
-//     }
-//
-//     delete actions.max;
-//     delete actions.length;
-//
-//     return Rule(logicDefinition, actions, parentRule);
-// }
-//
-// function lengthActionStatic(lengthData, setupContext) {
-//     setupContext.onRun((runContext, value) => {
-//         if (_.isNil(value) || !_.isString(value)) {
-//             runContext.clear();
-//         }
-//
-//         if (value.length === lengthData) {
-//             runContext.raise('schema', `Must be exactly ${lengthData} characters long.`, 'error');
-//         } else {
-//             runContext.clear();
-//         }
-//     });
-// }
-//
-// function lengthAction(parentRule, actions, lengthData) {
-//     let cb;
-//
-//     if (_.isFunction(lengthData)) {
-//         logicDefinition = LogicDefinition(lengthData);
-//     } else if (_.isFinite(lengthData)) {
-//         logicDefinition = LogicDefinition(lengthActionStatic.bind(null, lengthData));
-//     } else {
-//         throw new Error('Must be a finite value or a setup function');
-//     }
-//
-//     delete actions.max;
-//     delete actions.length;
-//
-//     return Rule(logicDefinition, actions, parentRule);
-// }
+function maxAction(parentRule, actions, maxData) {
+    if (!_.isFinite(maxData) && !_.isFunction(maxData)) {
+        throw new Error('Must be a finite value or a setup function');
+    }
+
+    const logicDefinition = LogicDefinition((setupContext) => {
+        setupContext.define('maxData', maxData);
+
+        setupContext.onRun((runContext, value, params) => {
+            if (_.isNil(value) || !_.isString(value)) {
+                runContext.clear();
+            }
+
+            if (value.length > params.maxData) {
+                runContext.raise('schema', `Must be less than ${params.maxData + 1} characters long.`, 'error');
+            } else {
+                runContext.clear();
+            }
+        });
+    }, true);
+
+    delete actions.max; // eslint-disable-line no-param-reassign
+    delete actions.length; // eslint-disable-line no-param-reassign
+
+    return Rule(logicDefinition, actions, parentRule);
+}
+
+function lengthAction(parentRule, actions, lengthData) {
+    if (!_.isFinite(lengthData) && !_.isFunction(lengthData)) {
+        throw new Error('Must be a finite value or a setup function');
+    }
+
+    const logicDefinition = LogicDefinition((setupContext) => {
+        setupContext.define('lengthData', lengthData);
+
+        setupContext.onRun((runContext, value, params) => {
+            if (_.isNil(value) || !_.isString(value)) {
+                runContext.clear();
+            }
+
+            if (value.length !== params.lengthData) {
+                runContext.raise('schema', `Must be ${params.lengthData} characters long.`, 'error');
+            } else {
+                runContext.clear();
+            }
+        });
+    }, true);
+
+    delete actions.min; // eslint-disable-line no-param-reassign
+    delete actions.max; // eslint-disable-line no-param-reassign
+    delete actions.length; // eslint-disable-line no-param-reassign
+
+    return Rule(logicDefinition, actions, parentRule);
+}
 
 function stringDefinition() {
     const logicDefinition = LogicDefinition((setupContext) => {
@@ -104,12 +93,12 @@ function stringDefinition() {
                 runContext.clear();
             }
         });
-    });
+    }, true);
 
     const actions = {
         min: minAction,
-        // max: maxAction,
-        // length: lengthAction
+        max: maxAction,
+        length: lengthAction
     };
 
     return Rule(logicDefinition, actions);

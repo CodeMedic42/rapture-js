@@ -1,37 +1,57 @@
 const _ = require('lodash');
 
+const ParametersContext = require('./parametersContext');
 const LogicContext = require('./logicContext');
+
+let currentId = 0;
+
+function getId() {
+    currentId = currentId += 1;
+
+    return currentId;
+}
 
 function noop() {}
 
-function LogicDefinition(setupCallback) {
+function LogicDefinition(setupCallback, allowRaise, allowLink) {
     if (!(this instanceof LogicDefinition)) {
-        return new LogicDefinition(setupCallback);
+        return new LogicDefinition(setupCallback, allowRaise, allowLink);
     }
 
     if (!_.isFunction(setupCallback)) {
         throw new Error('setupCallback must be a function');
     }
 
-    this.needsLoaded = {};
+    this.onSetup = noop;
     this.onRun = noop;
     this.onPause = noop;
+    this.params = {};
+    this.allowRaise = allowRaise;
+    this.allowLink = allowLink;
 
     const setupContext = {
         require: (id) => {
-            throw new Error('setupContext.require not implemented yet.');
+            if (!_.isNil(this.params[id])) {
+                throw new Error('required property apready defined.');
+            }
         },
         define: (id, builder) => {
-            if (!_.isNil(this.needsLoaded[id]) || !_.isNil(this.params[id])) {
+            if (!_.isNil(this.params[id])) {
                 throw new Error('required property apready defined.');
             }
 
             if (_.isFunction(builder)) {
-                this.needsLoaded[id] = LogicDefinition(builder);
+                this.params[id] = LogicDefinition(builder);
             } else {
                 this.params[id] = builder;
             }
+        },
+        onSetup: (cb) => {
+            if (!_.isFunction(cb)) {
+                throw new Error('onSetup must be a function.');
+            }
 
+            this.onSetup = cb;
         },
         onRun: (cb) => {
             if (!_.isFunction(cb)) {
@@ -53,53 +73,30 @@ function LogicDefinition(setupCallback) {
 }
 
 LogicDefinition.prototype.buildContext = function buildContext(ruleContext) {
-    const runContext = {
-        link: ruleContext.link.bind(ruleContext)
-    };
+    const runContext = {};
 
-    if (allowRaise) {
-        this.runContext.raise = ruleContext.raise.bind(ruleContext, this);
-        this.runContext.clear = ruleContext.clear.bind(ruleContext, this);
+    if (this.allowLink) {
+        runContext.link = ruleContext.link.bind(ruleContext);
     }
 
-    const logicContext = LogicContext({
-        
-    }, this.onRun, this.onPause, this.params, false);
+    const owenerId = getId();
 
-    ruleContext.on('start', () => {
-        logicContext.start();
-    });
+    if (this.allowRaise) {
+        runContext.raise = ruleContext.raise.bind(ruleContext, owenerId);
+        runContext.clear = ruleContext.clear.bind(ruleContext, owenerId);
+    }
 
-    ruleContext.on('stop', () => {
-        logicContext.stop();
-    });
+    const onSetup = this.onSetup.bind(null, runContext, ruleContext.tokenContext.contents);
+    const onRun = this.onRun.bind(null, runContext, ruleContext.tokenContext.contents);
+    const onPause = () => {
+        this.onPause.call(null);
+
+        runContext.clear();
+    };
+
+    const parametersContext = ParametersContext(ruleContext, this.params);
+
+    return LogicContext(onSetup, onRun, onPause, parametersContext);
 };
-
-// LogicDefinition.prototype.createRunContext = function createRunContext(ruleContext) {
-//     const logicContext
-//
-//     _.forOwn(this.needsLoaded, (ned) => {
-//         ned.createRunContext(ruleContext);
-//     });
-//
-//     const runContext = {
-//         raise: ruleContext.raise.bind(ruleContext, this),
-//         clear: ruleContext.clear.bind(ruleContext, this),
-//         link: ruleContext.link.bind(ruleContext),
-//         params: this.params
-//     };
-//
-//     ruleContext.on('start', () => {
-//         const ret = this.onRun.call(null, runContext, ruleContext.tokenContext.contents);
-//     });
-//     ruleContext.on('stop', () => {
-//         this.onPause(runContext, contents);
-//
-//         runContext.clear();
-//     });
-//     ruleContext.on('destroy', () => {
-//         runContext.clear();
-//     });
-// };
 
 module.exports = LogicDefinition;

@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "test": "mocha",
-    "test-debug": "mocha --inspect --debug-brk"
+    "test-debug": "mocha --inspect --debug-brk",
+    "lint": "eslint ./src"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +18,12 @@
     "mocha": "^3.2.0"
   },
   "dependencies": {
+    "babel-eslint": "^7.1.1",
+    "bluebird": "^3.5.0",
+    "eslint": "^3.17.1",
+    "eslint-config-airbnb": "^14.1.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-mocha": "^4.8.0",
     "json-lexer": "^1.1.1",
     "lodash": "^4.17.4"
   }

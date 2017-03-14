@@ -9,7 +9,6 @@ function TokenContext(contents, location, from) {
     this.contents = contents;
     this.location = location;
     this.from = from;
-    this.normalized;
 }
 
 TokenContext.prototype.get = function get(path) {
@@ -51,12 +50,12 @@ TokenContext.prototype.normalize = function normalize() {
     }
 
     this.normalized = _.reduce(this.contents, (current, item, name) => {
-        current[name] = item.normalize();
+        current[name] = item.normalize(); // eslint-disable-line no-param-reassign
 
         return current;
     }, type);
 
     return this.normalized;
-}
+};
 
 module.exports = TokenContext;

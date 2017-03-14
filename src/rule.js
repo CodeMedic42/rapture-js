@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const LogicDefinition = require('./logicDefinition');
+const RuleContext = require('./ruleContext');
 
 function addActions(actions) {
     _.forEach(actions, (action, actionName) => {
@@ -21,23 +22,22 @@ function Rule(logicDefinition, actions, parentRule) {
     this.parentRule = parentRule;
 }
 
-Rule.prototype.build = function build(ruleContext) {
+function _buildContext(ruleContext) {
     if (!_.isNil(this.parentRule)) {
-        this.parentRule.build(ruleContext);
+        _buildContext.call(this.parentRule, ruleContext);
     }
 
-    const 
+    const logicContext = this.logicDefinition.buildContext(ruleContext);
 
-    const logicContext = this.logicDefinition.build(ruleContext);
+    ruleContext.addLogicContext(logicContext);
+}
 
-    ruleContext.on('start', () => {
-        logicContext.start();
-    });
+Rule.prototype.buildContext = function buildContext(initalRuleScope, tokenContext) {
+    const ruleContext = RuleContext(this, initalRuleScope, tokenContext);
 
-    ruleContext.on('stop', () => {
-        logicContext.stop();
-    });
+    _buildContext.call(this, ruleContext);
+
+    return ruleContext;
 };
-
 
 module.exports = Rule;

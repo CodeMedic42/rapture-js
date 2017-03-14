@@ -1,9 +1,6 @@
 const _ = require('lodash');
 const Rule = require('../rule.js');
-const Issue = require('../issue.js');
 const LogicDefinition = require('../logicDefinition.js');
-const RuleContext = require('../ruleContext.js');
-const TokenContext = require('../artifactLexing/tokenContext.js');
 
 // Can take a plain object of keys
 //     THis object can have regular key names or reg-exs as well
@@ -27,12 +24,14 @@ function keysAction(parentRule, actions, keyData) {
         }
     });
 
-    if (_.keys(regKeys).length == 0) {
+    if (_.keys(regKeys).length === 0) {
         regKeys = null;
     }
 
     const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.onRun((runContext, value) => {
+        setupContext.onSetup((runContext, value) => {
+            runContext.propContexts = {}; // eslint-disable-line no-param-reassign
+
             if (_.isNil(value) || !_.isPlainObject(value)) {
                 // Do nothing
                 return;
@@ -56,12 +55,24 @@ function keysAction(parentRule, actions, keyData) {
                     // TODO: Register key as unfound? Create a rule to handle unfound keys. This keys could show up later.
                 }
 
-                const ruleContext = RuleContext(keyRule, runContext.scope, propValue);
+                const context = runContext.propContexts[propName] = keyRule.buildContext(runContext.scope, propValue); // eslint-disable-line no-param-reassign
 
-                runContext.link(ruleContext);
+                runContext.link(context);
             });
         });
-    });
+
+        setupContext.onRun((runContext) => {
+            _.forOwn(runContext.propContexts, (context) => {
+                context.start();
+            });
+        });
+
+        setupContext.onPause((runContext) => {
+            _.forOwn(runContext.propContexts, (context) => {
+                context.stop();
+            });
+        });
+    }, true, true);
 
     return Rule(logicDefinition, actions, parentRule);
 }
@@ -75,7 +86,7 @@ function objectDefinition() {
                 runContext.clear();
             }
         });
-    });
+    }, true);
 
     const objectActions = {
         keys: keysAction

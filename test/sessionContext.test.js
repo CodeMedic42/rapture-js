@@ -1,15 +1,16 @@
 /* eslint-disable import/no-extraneous-dependencies */
-const chai = require('chai');
-var dirtyChai = require('dirty-chai');
+const Chai = require('chai');
+const DirtyChai = require('dirty-chai');
+
 const Rapture = require('../src');
 const SessionContext = require('../src/sessionContext.js');
 const ArtifactContext = require('../src/sessionContext.js');
 
-chai.use(dirtyChai);
+Chai.use(DirtyChai);
 
-const expect = chai.expect;
+const expect = Chai.expect;
 
-describe('SessionContext Tests', function mainTest() {
+describe('SessionContext Tests', () => {
     it('createSessionContext exists in Rapture', () => {
         expect(Rapture.createSessionContext, 'Must exist').to.exist();
         expect(Rapture.createSessionContext, 'Must be a function').to.be.instanceOf(Function);
