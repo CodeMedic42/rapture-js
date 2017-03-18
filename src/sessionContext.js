@@ -7,7 +7,7 @@ function SessionContext() {
         return new SessionContext();
     }
 
-    this.scope = Scope('session');
+    this.scope = Scope('__session');
     this.contexts = {};
 }
 

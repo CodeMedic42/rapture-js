@@ -40,7 +40,7 @@ function ArtifactContext(id, rule, artifact, sessionScope) {
     }
 
     this.id = id;
-    this.scope = Scope('artifact', sessionScope);
+    this.scope = Scope('__artifact', sessionScope);
     this.rule = rule;
     setArtifact.call(this, artifact);
 

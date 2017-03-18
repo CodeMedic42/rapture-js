@@ -51,7 +51,7 @@ function ParametersContext(ruleContext, params) {
     this.params = {};
     this.contexts = [];
 
-    const LogicDefinition = require('./logicDefinition');
+    const LogicDefinition = require('./logicDefinition'); // eslint-disable-line
 
     _.forOwn(params, (value, name) => {
         if (value instanceof LogicDefinition) {
@@ -67,7 +67,7 @@ function ParametersContext(ruleContext, params) {
         } else {
             this.paramStatus[name] = 'undefined';
 
-            ruleContext.workingScope(name, updateParam.bind(this));
+            ruleContext.scope.watch(name, updateParam.bind(this, name));
         }
     });
 

@@ -36,7 +36,7 @@ function internalSet(id, value, ready, owner) {
     }
 
     // we changed something
-    _.forEach(this.watch[id], (watch) => {
+    _.forEach(this.watches[id], (watch) => {
         watch(target.status, target.value);
     });
 
@@ -77,7 +77,7 @@ function internalRemove(id, owner) {
         return null;
     }
 
-    _.forEach(this.watch[id], (watch) => {
+    _.forEach(this.watches[id], (watch) => {
         watch(target.status, target.value);
     });
 
@@ -158,15 +158,17 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (!_.isNil(scopeID)) {
-        if (!_.isString(scopeID)) {
-            throw new Error('scopeID must be a string when used');
-        }
-    } else {
+    if (_.isNil(scopeID)) {
         scopeID = this.id; // eslint-disable-line no-param-reassign
+    } else if (!_.isString(scopeID)) {
+        throw new Error('scopeID must be a string when used');
     }
 
     internalInitalSet.call(this, scopeID, id, value, ready, owner);
+};
+
+Scope.prototype.get = function get(id) {
+    return this.data[id];
 };
 
 function internalInitalRemove(scopeID, id, owner) {
@@ -206,7 +208,8 @@ Scope.prototype.remove = function remove(scopeID, id, owner) {
 Scope.prototype.watch = function watch(id, onUpdate) {
     const watches = this.watches[id] = this.watches[id] || [];
 
-    const watchCallback = _.debounce(onUpdate);
+    // const watchCallback = _.debounce(onUpdate);
+    const watchCallback = onUpdate;
 
     watches.push(watchCallback);
 

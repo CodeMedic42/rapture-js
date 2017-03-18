@@ -1,20 +1,29 @@
 const EventEmitter = require('events');
 const Util = require('util');
+const _ = require('lodash');
+
+function _emitUndefied() {
+    if (this.lastEmited !== 'undefined') {
+        this.lastEmited = 'undefined';
+
+        this.emit('update', 'undefined');
+    }
+}
 
 function _run() {
     if (this.paramsStatus !== 'ready') {
-        if (this.lastEmited !== 'undefined') {
-            this.lastEmited = 'undefined';
-
-            this.emit('update', 'undefined');
-        }
+        _emitUndefied.call(this);
 
         return;
     }
 
-    const ret = this.onRun(this.params);
+    let ret = this.currentValue;
 
-    if (ret === this.currentValue) {
+    if (!_.isNil(this.onRun)) {
+        ret = this.onRun(this.params);
+    }
+
+    if (ret === this.currentValue && this.lastEmited === 'ready') {
         return;
     }
 
@@ -25,9 +34,9 @@ function _run() {
     this.emit('update', 'ready', ret);
 }
 
-function LogicContext(onSetup, onRun, onPause, parametersContext) {
+function LogicContext(onSetup, onRun, onPause, parametersContext, registrationsContext) {
     if (!(this instanceof LogicContext)) {
-        return new LogicContext(onSetup, onRun, onPause, parametersContext);
+        return new LogicContext(onSetup, onRun, onPause, parametersContext, registrationsContext);
     }
 
     this.runStatus = false;
@@ -36,6 +45,8 @@ function LogicContext(onSetup, onRun, onPause, parametersContext) {
     this.onPause = onPause;
     this.parametersContext = parametersContext;
     this.paramsStatus = 'undefined';
+    this.registrationsContext = registrationsContext;
+
     parametersContext.on('update', (status, params) => {
         this.paramsStatus = status;
         this.params = params;
@@ -45,7 +56,9 @@ function LogicContext(onSetup, onRun, onPause, parametersContext) {
         }
     });
 
-    this.onSetup();
+    if (!_.isNil(this.onSetup)) {
+        this.currentValue = this.onSetup();
+    }
 
     EventEmitter.call(this);
 }
@@ -55,6 +68,7 @@ Util.inherits(LogicContext, EventEmitter);
 LogicContext.prototype.start = function start() {
     this.runStatus = 'starting';
 
+    this.registrationsContext.start();
     this.parametersContext.start();
 
     _run.call(this);
@@ -65,9 +79,12 @@ LogicContext.prototype.start = function start() {
 LogicContext.prototype.stop = function start() {
     this.runStatus = 'stopping';
 
+    this.registrationsContext.stop();
     this.parametersContext.stop();
 
-    this.onPause();
+    _emitUndefied();
+
+    this.onPause(this.params);
 
     this.runStatus = 'stopped';
 };

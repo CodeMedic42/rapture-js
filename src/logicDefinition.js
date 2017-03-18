@@ -1,5 +1,6 @@
 const _ = require('lodash');
 
+const RegistrationContext = require('./registrationContext.js');
 const ParametersContext = require('./parametersContext');
 const LogicContext = require('./logicContext');
 
@@ -11,29 +12,31 @@ function getId() {
     return currentId;
 }
 
-function noop() {}
-
-function LogicDefinition(setupCallback, allowRaise, allowLink) {
+function LogicDefinition(setupCallback, allowRaise, allowChildren) {
     if (!(this instanceof LogicDefinition)) {
-        return new LogicDefinition(setupCallback, allowRaise, allowLink);
+        return new LogicDefinition(setupCallback, allowRaise, allowChildren);
     }
 
     if (!_.isFunction(setupCallback)) {
         throw new Error('setupCallback must be a function');
     }
 
-    this.onSetup = noop;
-    this.onRun = noop;
-    this.onPause = noop;
     this.params = {};
+    this.registrations = {};
     this.allowRaise = allowRaise;
-    this.allowLink = allowLink;
+    this.allowChildren = allowChildren;
 
     const setupContext = {
         require: (id) => {
-            if (!_.isNil(this.params[id])) {
-                throw new Error('required property apready defined.');
-            }
+            this.params[id] = null;
+        },
+        register: (id, atScope, builder) => {
+            this.registrations[id] = {
+                atScope,
+                value: _.isFunction(builder) ? LogicDefinition(builder) : builder
+            };
+
+            setupContext.require(id);
         },
         define: (id, builder) => {
             if (!_.isNil(this.params[id])) {
@@ -75,8 +78,8 @@ function LogicDefinition(setupCallback, allowRaise, allowLink) {
 LogicDefinition.prototype.buildContext = function buildContext(ruleContext) {
     const runContext = {};
 
-    if (this.allowLink) {
-        runContext.link = ruleContext.link.bind(ruleContext);
+    if (this.allowChildren) {
+        runContext.buildContext = ruleContext.buildContext.bind(ruleContext);
     }
 
     const owenerId = getId();
@@ -86,17 +89,20 @@ LogicDefinition.prototype.buildContext = function buildContext(ruleContext) {
         runContext.clear = ruleContext.clear.bind(ruleContext, owenerId);
     }
 
-    const onSetup = this.onSetup.bind(null, runContext, ruleContext.tokenContext.contents);
-    const onRun = this.onRun.bind(null, runContext, ruleContext.tokenContext.contents);
-    const onPause = () => {
-        this.onPause.call(null);
+    const onSetup = _.isNil(this.onSetup) ? null : this.onSetup.bind(null, runContext, ruleContext.tokenContext.contents);
+    const onRun = _.isNil(this.onRun) ? null : this.onRun.bind(null, runContext, ruleContext.tokenContext.contents);
+    const onPause = (params) => {
+        if (!_.isNil(this.onPause)) {
+            this.onPause.call(null, runContext, ruleContext.tokenContext.contents, params);
+        }
 
         runContext.clear();
     };
 
+    const registrationContext = RegistrationContext(ruleContext, this.registrations);
     const parametersContext = ParametersContext(ruleContext, this.params);
 
-    return LogicContext(onSetup, onRun, onPause, parametersContext);
+    return LogicContext(onSetup, onRun, onPause, parametersContext, registrationContext);
 };
 
 module.exports = LogicDefinition;

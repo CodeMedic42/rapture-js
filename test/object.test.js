@@ -106,55 +106,6 @@ describe('Object Tests', () => {
         });
     });
 
-    describe('required', () => {
-        xit('exists', () => {
-            const testObject = {};
-            const testData = JSON.stringify(testObject);
-
-            const ruleDefinition = Rapture.object().required();
-            expect(ruleDefinition, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSession(ruleDefinition);
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createContext(testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const issues = context.issues();
-
-            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(issues.length, 'No issues found.').to.be.equal(0);
-        });
-
-        xit('null', () => {
-            const testObject = null;
-            const testData = JSON.stringify(testObject);
-
-            const ruleDefinition = Rapture.object().required();
-            expect(ruleDefinition, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSession(ruleDefinition);
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createContext(testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const issues = context.issues();
-
-            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(issues.length, 'One issue found.').to.be.equal(1);
-
-            expect(issues[0].type, 'Issue type').to.be.equal('schema');
-            expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
-            expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
-            expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(0);
-            expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(0);
-            expect(issues[0].message, 'Issue Message').to.be.equal('A value is required');
-            expect(issues[0].cause, 'Issue cause').to.be.equal('');
-            expect(issues[0].severity, 'Issue severity').to.be.equal('error');
-        });
-    });
-
     describe('keys', () => {
         it('no keys - pass', () => {
             const testObject = {};
@@ -207,7 +158,7 @@ describe('Object Tests', () => {
             expect(issues[0].severity, 'Issue severity').to.be.equal('error');
         });
 
-        xit('no keys - fail', () => {
+        it('double keys - pass', () => {
             const testObject = {
                 notAllowed: 'foo',
                 allowed: 'test'
@@ -231,19 +182,10 @@ describe('Object Tests', () => {
             const issues = context.issues();
 
             expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(issues.length, 'One issue found.').to.be.equal(1);
-
-            expect(issues[0].type, 'Issue type').to.be.equal('schema');
-            expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(1);
-            expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(1);
-            expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(2);
-            expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(14);
-            expect(issues[0].message, 'Issue Message').to.be.equal('The property "notAllowed" is not allowed to exist.');
-            expect(issues[0].cause, 'Issue cause').to.be.equal('notAllowed');
-            expect(issues[0].severity, 'Issue severity').to.be.equal('error');
+            expect(issues.length, 'One issue found.').to.be.equal(0);
         });
 
-        xit('specfic key - does not exist - not required', () => {
+        it('specfic key - does not exist - not required', () => {
             const testObject = {};
             const testData = JSON.stringify(testObject);
 
@@ -266,21 +208,20 @@ describe('Object Tests', () => {
             expect(issues.length, 'No issues found.').to.be.equal(0);
         });
 
-        xit('specfic key - does not exist - required', () => {
+        it('specfic key - does not exist - required', () => {
             const testObject = {};
             const testData = JSON.stringify(testObject);
 
-            const ruleDefinition =
-            Rapture.object().keys({
-                allowed: Rapture.string().required()
-            });
+            const rule = Rapture.object().keys({
+                allowed: Rapture.string()
+            }).required('allowed');
 
-            expect(ruleDefinition, 'Rule Definition is created').to.be.exist();
+            expect(rule, 'Rule Definition is created').to.be.exist();
 
-            const session = Rapture.createSession(ruleDefinition);
+            const session = Rapture.createSessionContext();
             expect(session, 'Session is created').to.be.exist();
 
-            const context = session.createContext(testData);
+            const context = session.createArtifactContext('artifactID', rule, testData);
             expect(context, 'context is created').to.be.exist();
 
             const issues = context.issues();
@@ -300,21 +241,21 @@ describe('Object Tests', () => {
     });
 
     describe('register', () => {
-        xit('should register', () => {
+        it('should register', () => {
             const testObject = {
                 id: 'foo'
             };
             const testData = JSON.stringify(testObject);
 
-            const ruleDefinition = Rapture.object().keys({
-                id: Rapture.string().register('idAlias')
+            const rule = Rapture.object().keys({
+                id: Rapture.string().register('idAlias', '__artifact')
             });
-            expect(ruleDefinition, 'Rule Definition is created').to.be.exist();
+            expect(rule, 'Rule Definition is created').to.be.exist();
 
-            const session = Rapture.createSession(ruleDefinition);
+            const session = Rapture.createSessionContext();
             expect(session, 'Session is created').to.exist();
 
-            const context = session.createContext(testData);
+            const context = session.createArtifactContext('artifactID', rule, testData);
             expect(context, 'context is created').to.exist();
 
             const issues = context.issues();
@@ -322,7 +263,10 @@ describe('Object Tests', () => {
             expect(issues, 'Issues is an array').to.be.instanceOf(Array);
             expect(issues.length, 'No issues found.').to.equal(0);
 
-            expect(context.getAlias('idAlias'), 'IdAlias should exist and be correct').to.equal(testObject.id);
+            const scopeValue = context.scope.get('idAlias');
+
+            expect(scopeValue.value, 'IdAlias should exist and be correct').to.equal(testObject.id);
+            expect(scopeValue.status, 'IdAlias should exist and be correct').to.equal('ready');
         });
     });
 });
