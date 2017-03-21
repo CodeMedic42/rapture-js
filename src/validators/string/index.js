@@ -6,6 +6,7 @@ const minAction = require('./min.js');
 const maxAction = require('./max.js');
 const lengthAction = require('./length.js');
 const registerAction = require('../common/register.js');
+const ifAction = require('../common/if.js');
 
 function stringDefinition() {
     const logicDefinition = LogicDefinition((setupContext) => {
@@ -22,7 +23,8 @@ function stringDefinition() {
         min: minAction,
         max: maxAction,
         length: lengthAction,
-        register: registerAction
+        register: registerAction,
+        if: ifAction
     };
 
     return Rule(logicDefinition, actions);

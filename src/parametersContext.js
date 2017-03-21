@@ -2,10 +2,13 @@ const EventEmitter = require('events');
 const Util = require('util');
 const _ = require('lodash');
 
-function run() {
+function _calcStatus() {
+    if (!_.isNil(this.currentStatus)) {
+        return this.currentStatus;
+    }
+
     let ready = true;
 
-    // Check all the params to make sure we can run
     _.forOwn(this.paramStatus, (paramStatus) => {
         if (paramStatus !== 'ready') {
             ready = false;
@@ -14,7 +17,11 @@ function run() {
         return ready;
     });
 
-    if (!ready) {
+    return ready;
+}
+
+function run() {
+    if (!_calcStatus.call(this)) {
         if (this.lastEmited !== 'undefined') {
             this.lastEmited = 'undefined';
 
@@ -30,6 +37,8 @@ function run() {
 }
 
 function updateParam(name, paramStatus, value) {
+    this.currentStatus = null;
+
     this.paramStatus[name] = paramStatus;
 
     if (paramStatus === 'ready') {
@@ -41,10 +50,14 @@ function updateParam(name, paramStatus, value) {
     }
 }
 
-function ParametersContext(ruleContext, params) {
+function ParametersContext(ruleContext, params, owenerId) {
     if (!(this instanceof ParametersContext)) {
-        return new ParametersContext(ruleContext, params);
+        return new ParametersContext(ruleContext, params, owenerId);
     }
+
+    EventEmitter.call(this);
+
+    this.currentStatus = params.length <= 0 ? true : null;
 
     this.runStatus = 'stopped';
     this.paramStatus = {};
@@ -57,7 +70,10 @@ function ParametersContext(ruleContext, params) {
         if (value instanceof LogicDefinition) {
             this.paramStatus[name] = 'undefined';
 
-            const logicContext = value.buildContext(ruleContext);
+            const logicContext = value.buildContext(ruleContext, owenerId);
+
+            this.paramStatus[name] = logicContext.status();
+            this.params[name] = logicContext.currentValue;
 
             logicContext.on('update', updateParam.bind(this, name));
 
@@ -77,6 +93,10 @@ function ParametersContext(ruleContext, params) {
 Util.inherits(ParametersContext, EventEmitter);
 
 ParametersContext.prototype.start = function start() {
+    if (this.runStatus === 'started' || this.runStatus === 'starting') {
+        return;
+    }
+
     this.runStatus = 'starting';
 
     _.forEach(this.contexts, (context) => {
@@ -89,6 +109,10 @@ ParametersContext.prototype.start = function start() {
 };
 
 ParametersContext.prototype.stop = function start() {
+    if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
+        return;
+    }
+
     this.runStatus = 'stopping';
 
     run.call(this);
@@ -98,6 +122,14 @@ ParametersContext.prototype.stop = function start() {
     });
 
     this.runStatus = 'stopped';
+};
+
+ParametersContext.prototype.status = function status() {
+    if (this.runStatus !== 'started') {
+        return 'undefined';
+    }
+
+    return _calcStatus.call(this) ? 'ready' : 'undefined';
 };
 
 module.exports = ParametersContext;

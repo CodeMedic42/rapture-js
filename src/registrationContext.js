@@ -1,18 +1,24 @@
 const _ = require('lodash');
 
 function setAtScope(ruleContext, targetScope, id, value, paramStatus) {
-    let _targetScope = targetScope;
-
-    if (_targetScope === '__working') {
-        _targetScope = null;
+    if (targetScope === '__working') {
+        ruleContext.scope.parentScope.set(null, id, value, paramStatus, ruleContext);
+    } else {
+        ruleContext.scope.set(targetScope, id, value, paramStatus, ruleContext);
     }
-
-    ruleContext.scope.set(_targetScope, id, value, paramStatus, ruleContext);
 }
 
-function RegistrationContext(ruleContext, registrations) {
+function removeAtScope(ruleContext, targetScope, id) {
+    if (targetScope === '__working') {
+        ruleContext.scope.parentScope.remove(null, id, ruleContext);
+    } else {
+        ruleContext.scope.remove(targetScope, id, ruleContext);
+    }
+}
+
+function RegistrationContext(ruleContext, registrations, owenerId) {
     if (!(this instanceof RegistrationContext)) {
-        return new RegistrationContext(ruleContext, registrations);
+        return new RegistrationContext(ruleContext, registrations, owenerId);
     }
 
     this.runStatus = 'stopped';
@@ -22,10 +28,14 @@ function RegistrationContext(ruleContext, registrations) {
 
     _.forOwn(registrations, (reg, id) => {
         if (reg.value instanceof LogicDefinition) {
-            const logicContext = reg.value.buildContext(ruleContext);
+            const logicContext = reg.value.buildContext(ruleContext, owenerId);
 
             logicContext.on('update', (paramStatus, value) => {
-                setAtScope(ruleContext, reg.atScope, id, value, paramStatus);
+                if (paramStatus === 'ready') {
+                    setAtScope(ruleContext, reg.atScope, id, value, paramStatus);
+                } else {
+                    removeAtScope(ruleContext, reg.atScope, id);
+                }
             });
 
             this.contexts.push(logicContext);
@@ -33,8 +43,12 @@ function RegistrationContext(ruleContext, registrations) {
             setAtScope(ruleContext, reg.atScope, id, reg.value, 'ready');
 
             this.contexts.push({
-                start: () => ruleContext.scope.set.bind(reg.atScope, id, reg.value, 'ready', ruleContext),
-                stop: () => ruleContext.scope.remove.bind(reg.atScope, id, ruleContext)
+                start: () => {
+                    setAtScope(ruleContext, reg.atScope, id, reg.value, 'ready');
+                },
+                stop: () => {
+                    removeAtScope(ruleContext, reg.atScope, id);
+                }
             });
         } else {
             throw new Error('Not implemented');
@@ -43,6 +57,10 @@ function RegistrationContext(ruleContext, registrations) {
 }
 
 RegistrationContext.prototype.start = function start() {
+    if (this.runStatus === 'started' || this.runStatus === 'starting') {
+        return;
+    }
+
     this.runStatus = 'starting';
 
     _.forEach(this.contexts, (context) => {
@@ -53,6 +71,10 @@ RegistrationContext.prototype.start = function start() {
 };
 
 RegistrationContext.prototype.stop = function start() {
+    if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
+        return;
+    }
+
     this.runStatus = 'stopping';
 
     _.forEach(this.contexts, (context) => {

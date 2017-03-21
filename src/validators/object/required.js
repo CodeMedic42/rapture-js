@@ -40,7 +40,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
                 const targetContents = _.isNil(target) ? target : target.contents;
 
                 if (_.isNil(targetContents)) {
-                    const issue = { type: 'schema', message: 'A value is required', severity: 'error' };
+                    const issue = { type: 'schema', message: `The property "${keyName}" is required`, severity: 'error' };
 
                     if (targetContents === null) {
                         issue.from = target.from;

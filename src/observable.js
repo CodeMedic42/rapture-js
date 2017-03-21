@@ -14,11 +14,7 @@ function Observable(initalValue) {
 
     EventEmitter.call(this);
 
-    this.status = 'loading';
-
     _set.call(this, initalValue);
-
-    this.status = 'ready';
 }
 
 Util.inherits(Observable, EventEmitter);
@@ -28,21 +24,27 @@ Util.inherits(Observable, EventEmitter);
 // });
 
 const _emitChangeDub = function _emitChangeDubed() {
-    this.emit('change');
+    this.emit('change', this);
 };
 
 function _emitChange() {
-    if (this.status === 'ready') {
+    if (this.status === 'started') {
         _emitChangeDub.call(this);
+    } else if (this.status === 'updating') {
+        this.status = 'emitRequired';
     }
 }
 
 function _link(observable) {
     observable.on('change', _emitChange, this);
+
+    this.status = 'emitRequired';
 }
 
 function _unlink(observable) {
     observable.removeListener('change', _emitChange, this);
+
+    this.status = 'emitRequired';
 }
 
 function _setAsObject(value) {
@@ -58,7 +60,7 @@ function _setAsObject(value) {
             });
         }
 
-        _emitChange.call(this);
+        this.status = 'emitRequired';
     }
 
     _.forOwn(value, (newChild, key) => {
@@ -116,7 +118,7 @@ function _setAsArray(value) {
             });
         }
 
-        _emitChange.call(this);
+        this.status = 'emitRequired';
     }
 
     _.forEach(value, (newChild, key) => {
@@ -165,17 +167,25 @@ function _setAsSimple(value) {
     if (value !== this[dataSym]) {
         this[dataSym] = value;
 
-        _emitChange.call(this);
+        this.status = 'emitRequired';
     }
 }
 
 _set = function __set(value) {
+    this.status = 'updating';
+
     if (_.isPlainObject(value)) {
         _setAsObject.call(this, value);
     } else if (_.isArray(value)) {
         _setAsArray.call(this, value);
     } else {
         _setAsSimple.call(this, value);
+    }
+
+    if (this.status === 'emitRequired') {
+        this.status = 'started';
+
+        _emitChange.call(this);
     }
 };
 
@@ -280,19 +290,38 @@ Observable.prototype.toJS = function toJS() {
 
 Observable.prototype.manipulate = function manipulate(...args) {
     if (args.length <= 0) {
-        throw new Error('Need a path');
+        throw new Error('Must provide a callback');
     } else if (args.length === 1) {
-        throw new Error('Need a callback');
+        this.manipulate('', args[0]);
+        return;
+    } else if (!_.isString(args[0])) {
+        throw new Error('path must be a string');
+    } else if (!_.isFunction(args[1])) {
+        throw new Error('callback must be a function');
     }
 
     const path = args[0];
     const manipulator = args[1];
 
-    const current = this.get(path).toJS();
+    let current;
+
+    if (path === '') {
+        current = this.toJS();
+    } else {
+        current = this.get(path).toJS();
+    }
 
     const newValue = manipulator(current);
 
     this.set(path, newValue);
+};
+
+Observable.prototype.pause = function pause() {
+    this.status = 'paused';
+};
+
+Observable.prototype.unpause = function unpause() {
+    this.status = 'started';
 };
 
 module.exports = Observable;

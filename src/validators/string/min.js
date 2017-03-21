@@ -19,10 +19,12 @@ function minAction(parentRule, actions, minData) {
         });
     }, true);
 
-    delete actions.min; // eslint-disable-line no-param-reassign
-    delete actions.length; // eslint-disable-line no-param-reassign
+    const nextActions = _.clone(actions);
 
-    return Rule(logicDefinition, actions, parentRule);
+    delete nextActions.min;
+    delete nextActions.length;
+
+    return Rule(logicDefinition, nextActions, parentRule);
 }
 
 module.exports = minAction;

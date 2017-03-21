@@ -2,6 +2,14 @@ const _ = require('lodash');
 const LogicDefinition = require('./logicDefinition');
 const RuleContext = require('./ruleContext');
 
+let currentId = 0;
+
+function getId() {
+    currentId = currentId += 1;
+
+    return currentId;
+}
+
 function addActions(actions) {
     _.forEach(actions, (action, actionName) => {
         this[actionName] = action.bind(null, this, actions);
@@ -20,20 +28,31 @@ function Rule(logicDefinition, actions, parentRule) {
     addActions.call(this, actions);
     this.logicDefinition = logicDefinition;
     this.parentRule = parentRule;
+    this.id = getId();
 }
+
+Rule.prototype.addToContext = function addToContext(ruleContext) {
+    if (!_.isNil(this.parentRule)) {
+        this.parentRule.addToContext(ruleContext);
+    }
+
+    const logicContext = this.logicDefinition.buildContext(ruleContext);
+
+    ruleContext.addLogicContext(logicContext);
+};
 
 function _buildContext(ruleContext) {
     if (!_.isNil(this.parentRule)) {
         _buildContext.call(this.parentRule, ruleContext);
     }
 
-    const logicContext = this.logicDefinition.buildContext(ruleContext);
+    const logicContext = this.logicDefinition.buildContext(ruleContext, this.id);
 
     ruleContext.addLogicContext(logicContext);
 }
 
 Rule.prototype.buildContext = function buildContext(initalRuleScope, tokenContext) {
-    const ruleContext = RuleContext(this, initalRuleScope, tokenContext);
+    const ruleContext = RuleContext(initalRuleScope, tokenContext);
 
     _buildContext.call(this, ruleContext);
 

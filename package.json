@@ -5,7 +5,6 @@
   "main": "src/index.js",
   "scripts": {
     "test": "mocha --recursive",
-    "test-target": "mocha ./target/target-working/index.test.js",
     "test-debug": "mocha --inspect --debug-brk",
     "lint": "eslint ./src"
   },

@@ -6,10 +6,11 @@ const Scope = require('./scope.js');
 
 function setArtifact(artifact) {
     this.runStatus = 'stopped';
+    let _artifact = artifact;
 
-    if (_.isNil(artifact)) {
-        artifact = ''; // eslint-disable-line no-param-reassign
-    } else if (!_.isString(artifact)) {
+    if (_.isNil(_artifact)) {
+        _artifact = ''; // eslint-disable-line no-param-reassign
+    } else if (!_.isString(_artifact)) {
         throw new Error('Artifact must be a string');
     }
 
@@ -19,7 +20,7 @@ function setArtifact(artifact) {
 
     const initalRuleScope = Scope(null, this.scope);
 
-    this.ruleContext = this.rule.buildContext(initalRuleScope, ArtifactLexor(artifact));
+    this.ruleContext = this.rule.buildContext(initalRuleScope, ArtifactLexor(_artifact));
 
     this.ruleContext.on('update', (issues) => {
         if (this.runStatus === 'started') {

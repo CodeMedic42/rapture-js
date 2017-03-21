@@ -3,6 +3,12 @@ const Rule = require('../../rule.js');
 const LogicDefinition = require('../../logicDefinition.js');
 
 function registerAction(parentRule, actions, id, targetScope, value) {
+    let _targetScope = targetScope;
+
+    if (_.isNil(_targetScope)) {
+        _targetScope = '__working';
+    }
+
     const logicDefinition = LogicDefinition((setupContext) => {
         let val = value;
 
@@ -15,7 +21,7 @@ function registerAction(parentRule, actions, id, targetScope, value) {
             };
         }
 
-        setupContext.register(id, targetScope, val);
+        setupContext.register(id, _targetScope, val);
     });
 
     return Rule(logicDefinition, { register: actions.register }, parentRule);

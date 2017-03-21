@@ -19,10 +19,12 @@ function maxAction(parentRule, actions, maxData) {
         });
     }, true);
 
-    delete actions.max; // eslint-disable-line no-param-reassign
-    delete actions.length; // eslint-disable-line no-param-reassign
+    const nextActions = _.clone(actions);
 
-    return Rule(logicDefinition, actions, parentRule);
+    delete nextActions.max;
+    delete nextActions.length;
+
+    return Rule(logicDefinition, nextActions, parentRule);
 }
 
 module.exports = maxAction;

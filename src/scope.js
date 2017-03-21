@@ -94,7 +94,7 @@ function updateFromParent(parentData) {
         if (data.status === 'undefined') {
             target = internalRemove.call(this, dataId, null);
         } else {
-            target = internalSet.call(this, dataId, data.value, data.ready, null);
+            target = internalSet.call(this, dataId, data.value, data.status, null);
         }
 
         if (!_.isNil(target)) {
@@ -208,7 +208,6 @@ Scope.prototype.remove = function remove(scopeID, id, owner) {
 Scope.prototype.watch = function watch(id, onUpdate) {
     const watches = this.watches[id] = this.watches[id] || [];
 
-    // const watchCallback = _.debounce(onUpdate);
     const watchCallback = onUpdate;
 
     watches.push(watchCallback);

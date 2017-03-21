@@ -1,14 +1,15 @@
-const Semver = require('semver');
+const _ = require('lodash');
 const Rule = require('../../rule.js');
 const LogicDefinition = require('../../logicDefinition.js');
+
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
-function versionDefinition() {
+function numberDefinition() {
     const logicDefinition = LogicDefinition((setupContext) => {
         setupContext.onRun((runContext, value) => {
-            if (!Semver.valid(value)) {
-                runContext.raise('schema', 'Must be a valid version string.', 'error');
+            if (!_.isNil(value) && !_.isFinite(value)) {
+                runContext.raise('schema', 'When defined this field must be a number.', 'error');
             } else {
                 runContext.clear();
             }
@@ -23,4 +24,4 @@ function versionDefinition() {
     return Rule(logicDefinition, actions);
 }
 
-module.exports = versionDefinition;
+module.exports = numberDefinition;

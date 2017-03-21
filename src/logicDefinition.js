@@ -4,14 +4,6 @@ const RegistrationContext = require('./registrationContext.js');
 const ParametersContext = require('./parametersContext');
 const LogicContext = require('./logicContext');
 
-let currentId = 0;
-
-function getId() {
-    currentId = currentId += 1;
-
-    return currentId;
-}
-
 function LogicDefinition(setupCallback, allowRaise, allowChildren) {
     if (!(this instanceof LogicDefinition)) {
         return new LogicDefinition(setupCallback, allowRaise, allowChildren);
@@ -35,8 +27,6 @@ function LogicDefinition(setupCallback, allowRaise, allowChildren) {
                 atScope,
                 value: _.isFunction(builder) ? LogicDefinition(builder) : builder
             };
-
-            setupContext.require(id);
         },
         define: (id, builder) => {
             if (!_.isNil(this.params[id])) {
@@ -73,23 +63,25 @@ function LogicDefinition(setupCallback, allowRaise, allowChildren) {
     };
 
     setupCallback(setupContext);
+
+    if (this.params.length <= 0 && _.isNil(this.onRun)) {
+        throw new Error('onRun has not been defined even though parameters have been.');
+    }
 }
 
-LogicDefinition.prototype.buildContext = function buildContext(ruleContext) {
+LogicDefinition.prototype.buildContext = function buildContext(ruleContext, owenerId) {
     const runContext = {};
 
-    if (this.allowChildren) {
-        runContext.buildContext = ruleContext.buildContext.bind(ruleContext);
-    }
+    runContext.buildContext = ruleContext.buildContext.bind(ruleContext);
+    runContext.buildLogicContext = (logicDefinition) => {
+        return logicDefinition.buildContext(ruleContext, owenerId);
+    };
 
-    const owenerId = getId();
-
-    if (this.allowRaise) {
-        runContext.raise = ruleContext.raise.bind(ruleContext, owenerId);
-        runContext.clear = ruleContext.clear.bind(ruleContext, owenerId);
-    }
+    runContext.raise = ruleContext.raise.bind(ruleContext, owenerId);
+    runContext.clear = ruleContext.clear.bind(ruleContext, owenerId);
 
     const onSetup = _.isNil(this.onSetup) ? null : this.onSetup.bind(null, runContext, ruleContext.tokenContext.contents);
+
     const onRun = _.isNil(this.onRun) ? null : this.onRun.bind(null, runContext, ruleContext.tokenContext.contents);
     const onPause = (params) => {
         if (!_.isNil(this.onPause)) {
@@ -99,8 +91,11 @@ LogicDefinition.prototype.buildContext = function buildContext(ruleContext) {
         runContext.clear();
     };
 
-    const registrationContext = RegistrationContext(ruleContext, this.registrations);
-    const parametersContext = ParametersContext(ruleContext, this.params);
+    const registrationContext = _.keys(this.registrations).length > 0 ?
+        RegistrationContext(ruleContext, this.registrations, owenerId) : null;
+
+    const parametersContext = _.keys(this.params).length > 0 ?
+        ParametersContext(ruleContext, this.params, owenerId) : null;
 
     return LogicContext(onSetup, onRun, onPause, parametersContext, registrationContext);
 };

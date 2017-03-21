@@ -19,11 +19,13 @@ function lengthAction(parentRule, actions, lengthData) {
         });
     }, true);
 
-    delete actions.min; // eslint-disable-line no-param-reassign
-    delete actions.max; // eslint-disable-line no-param-reassign
-    delete actions.length; // eslint-disable-line no-param-reassign
+    const nextActions = _.clone(actions);
 
-    return Rule(logicDefinition, actions, parentRule);
+    delete nextActions.min;
+    delete nextActions.max;
+    delete nextActions.length;
+
+    return Rule(logicDefinition, nextActions, parentRule);
 }
 
 module.exports = lengthAction;

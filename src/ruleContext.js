@@ -10,9 +10,9 @@ function run(force) {
     }
 }
 
-function RuleContext(rule, scope, tokenContext) {
+function RuleContext(scope, tokenContext) {
     if (!(this instanceof RuleContext)) {
-        return new RuleContext(rule, scope, tokenContext);
+        return new RuleContext(scope, tokenContext);
     }
 
     if (_.isNil(tokenContext)) {
@@ -20,7 +20,6 @@ function RuleContext(rule, scope, tokenContext) {
     }
 
     this.scope = Scope('__rule', scope);
-    this.rule = rule;
     this.children = [];
     this.logicContexts = [];
     this.livingIssues = {};
@@ -35,14 +34,10 @@ Util.inherits(RuleContext, EventEmitter);
 
 RuleContext.prototype.issues = function issues() {
     if (_.isNil(this.compacted)) {
-        this.compacted = _.reduce(this.livingIssues, (current, issue) => {
-            if (!_.isNil(issue)) {
-                if (issue instanceof RuleContext) {
-                    current.push(...issue.issues());
-                } else {
-                    current.push(issue);
-                }
-            }
+        this.compacted = _.reduce(this.livingIssues, (current, iss) => {
+            _.forEach(iss, (issue) => {
+                current.push(issue);
+            });
 
             return current;
         }, []);
@@ -59,25 +54,36 @@ RuleContext.prototype.issues = function issues() {
     return finalIssues;
 };
 
-function _raise(runId, issueMeta) {
-    const targetFrom = _.isNil(issueMeta.from) ? this.tokenContext.from : issueMeta.from;
-    const targetLocation = _.isNil(issueMeta.location) ? this.tokenContext.location : issueMeta.location;
+function cleanIssue(tokenContext, issueMeta) {
+    const targetFrom = _.isNil(issueMeta.from) ? tokenContext.from : issueMeta.from;
+    const targetLocation = _.isNil(issueMeta.location) ? tokenContext.location : issueMeta.location;
 
-    this.livingIssues[runId] = Issue(issueMeta.type, targetFrom, targetLocation, issueMeta.message, issueMeta.severity);
+    return Issue(issueMeta.type, targetFrom, targetLocation, issueMeta.message, issueMeta.severity);
 }
 
 RuleContext.prototype.raise = function raise(runId, ...issueMeta) {
     this.compacted = null;
+    let target = null;
 
     if (_.isArray(issueMeta[0])) {
-        _.forEach(issueMeta[0], (issueMetaItem) => {
-            _raise.call(this, runId, issueMetaItem);
-        });
+        target = issueMeta[0];
     } else if (_.isPlainObject(issueMeta[0])) {
-        _raise.call(this, runId, issueMeta);
+        target = [issueMeta[0]];
+    } else if (!_.isNil(issueMeta[0]) && _.isString(issueMeta[0])) {
+        target = [{ type: issueMeta[0], message: issueMeta[1], severity: issueMeta[2], from: issueMeta[3], location: issueMeta[4] }];
     } else {
-        _raise.call(this, runId, { type: issueMeta[0], message: issueMeta[1], severity: issueMeta[2], from: issueMeta[3], location: issueMeta[4] });
+        throw new Error('Unknown Issue');
     }
+
+    if (target.length <= 0) {
+        return;
+    }
+
+    this.livingIssues[runId] = _.reduce(target, (current, issue) => {
+        current.push(cleanIssue(this.tokenContext, issue));
+
+        return current;
+    }, []);
 
     run.call(this);
 };
@@ -90,8 +96,18 @@ RuleContext.prototype.clear = function clear(runId) {
     run.call(this);
 };
 
-RuleContext.prototype.buildContext = function buildContext(rule, tokenContext) {
-    const ruleContext = rule.buildContext(this.scope, tokenContext);
+RuleContext.prototype.buildContext = function buildContext(rule, tokenContext, copy) {
+    if (copy) {
+        const duplicate = RuleContext(null, this.tokenContext);
+
+        duplicate.scope = this.scope;
+        rule.addToContext(duplicate);
+        this.children.push(duplicate);
+
+        return duplicate;
+    }
+
+    const ruleContext = rule.buildContext(this.scope.parentScope, tokenContext);
 
     this.children.push(ruleContext);
 
@@ -111,6 +127,10 @@ RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
 };
 
 RuleContext.prototype.start = function start() {
+    if (this.runStatus === 'started' || this.runStatus === 'starting') {
+        return;
+    }
+
     this.runStatus = 'starting';
 
     _.forEach(this.logicContexts, (logicContext) => {
@@ -123,9 +143,13 @@ RuleContext.prototype.start = function start() {
 };
 
 RuleContext.prototype.stop = function stop() {
+    if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
+        return;
+    }
+
     this.runStatus = 'stopping';
 
-    _.foreach(this.logicContexts, (logicContext) => {
+    _.forEach(this.logicContexts, (logicContext) => {
         logicContext.stop();
     });
 
