@@ -1,15 +1,25 @@
-const EventEmitter = require('events');
+const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const ArtifactLexor = require('./artifactLexing/artifactLexer.js');
 const Scope = require('./scope.js');
+const RunContext = require('./runContext.js');
+
+function emitRaise(force) {
+    if (this.runStatus === 'started' || force) {
+        this.emit('raise');
+
+        return;
+    }
+
+    this.runStatus = 'emitNeeded';
+}
 
 function setArtifact(artifact) {
-    this.runStatus = 'stopped';
     let _artifact = artifact;
 
     if (_.isNil(_artifact)) {
-        _artifact = ''; // eslint-disable-line no-param-reassign
+        _artifact = '';
     } else if (!_.isString(_artifact)) {
         throw new Error('Artifact must be a string');
     }
@@ -20,15 +30,17 @@ function setArtifact(artifact) {
 
     const initalRuleScope = Scope(null, this.scope);
 
-    this.ruleContext = this.rule.buildContext(initalRuleScope, ArtifactLexor(_artifact));
-
-    this.ruleContext.on('update', (issues) => {
-        if (this.runStatus === 'started') {
-            this.emit('update', issues);
-        }
-    });
-
     this.runStatus = 'starting';
+
+    this.tokenContext = ArtifactLexor(_artifact);
+
+    this.tokenContext.on('raise', emitRaise, this);
+
+    const runContext = RunContext(initalRuleScope);
+
+    this.tokenContext.addRunContext(runContext);
+
+    this.ruleContext = runContext.createRuleContext(this.rule);
 
     this.ruleContext.start();
 
@@ -43,21 +55,37 @@ function ArtifactContext(id, rule, artifact, sessionScope) {
     this.id = id;
     this.scope = Scope('__artifact', sessionScope);
     this.rule = rule;
-    setArtifact.call(this, artifact);
+    this.runStatus = 'stopped';
 
     EventEmitter.call(this);
+
+    setArtifact.call(this, artifact);
 }
 
 Util.inherits(ArtifactContext, EventEmitter);
 
 ArtifactContext.prototype.issues = function issues() {
-    return this.ruleContext.issues();
+    return this.tokenContext.issues();
 };
 
 ArtifactContext.prototype.update = function update(artifact) {
-    setArtifact.call(this, artifact);
+    this.runStatus = 'updating';
 
-    this.emit('update', this.issues());
+    let _artifact = artifact;
+
+    if (_.isNil(_artifact)) {
+        _artifact = '';
+    } else if (!_.isString(_artifact)) {
+        throw new Error('Artifact must be a string');
+    }
+
+    this.tokenContext.update(ArtifactLexor(artifact));
+
+    if (this.runStatus === 'emitNeeded') {
+        emitRaise.call(this, true);
+    }
+
+    this.runStatus = 'started';
 };
 
 module.exports = ArtifactContext;

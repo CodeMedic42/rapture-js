@@ -29,7 +29,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
         setupContext.onRun((runContext, value, params) => {
             const issues = [];
 
-            runContext.clear();
+            runContext.raise();
 
             if (!_.isPlainObject(value)) {
                 return;
@@ -53,7 +53,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
 
             runContext.raise(issues);
         });
-    }, true);
+    });
 
     return Rule(logicDefinition, actions, parentRule);
 }

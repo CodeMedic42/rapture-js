@@ -7,6 +7,7 @@ const maxAction = require('./max.js');
 const lengthAction = require('./length.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
+const customAction = require('../common/custom.js');
 
 function stringDefinition() {
     const logicDefinition = LogicDefinition((setupContext) => {
@@ -14,7 +15,7 @@ function stringDefinition() {
             if (!_.isNil(value) && !_.isString(value)) {
                 runContext.raise('schema', 'When defined this field must be a string.', 'error');
             } else {
-                runContext.clear();
+                runContext.raise();
             }
         });
     }, true);
@@ -24,7 +25,8 @@ function stringDefinition() {
         max: maxAction,
         length: lengthAction,
         register: registerAction,
-        if: ifAction
+        if: ifAction,
+        custom: customAction
     };
 
     return Rule(logicDefinition, actions);

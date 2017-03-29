@@ -15,7 +15,7 @@ const logicDefinition = LogicDefinition((setupContext) => {
             runContext.raise('schema', 'When defined this field must be an array', 'error');
         }
     });
-}, true);
+});
 
 const actions = {
     items: itemsAction,

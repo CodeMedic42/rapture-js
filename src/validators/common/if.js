@@ -2,28 +2,30 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const LogicDefinition = require('../../logicDefinition.js');
 
-function onRun(runContext, value, params) {
+function onRun(control, value, params, currentValue) {
     if (!_.isNil(params.if) && params.if) {
-        if (!_.isNil(params.nextContext)) {
-            params.nextContext.stop();
+        if (!_.isNil(currentValue.nextContext)) {
+            currentValue.nextContext.stop();
         }
 
-        params.thenContext.start();
+        currentValue.thenContext.start();
     } else {
-        params.thenContext.stop();
+        currentValue.thenContext.stop();
 
-        if (!_.isNil(params.nextContext)) {
-            params.nextContext.start();
+        if (!_.isNil(currentValue.nextContext)) {
+            currentValue.nextContext.start();
         }
     }
+
+    return currentValue;
 }
 
-function onPause(runContext, contents, params) {
-    if (!_.isNil(params.nextContext)) {
-        params.nextContext.stop();
+function onPause(control, contents, currentValue) {
+    if (!_.isNil(currentValue.nextContext)) {
+        currentValue.nextContext.stop();
     }
 
-    params.thenContext.stop();
+    currentValue.thenContext.stop();
 }
 
 function ifLogic(ifCondition, thenLogic, actions, nextIf) {
@@ -46,24 +48,38 @@ function ifLogic(ifCondition, thenLogic, actions, nextIf) {
             setupContext.define('if', ifCondition);
         }
 
-        setupContext.define('thenContext', (buildThenSetup) => {
-            buildThenSetup.onSetup((runContext) => {
-                return runContext.buildContext(thenRule, null, true);
-            });
-        });
+        let logicDef;
 
         if (!_.isNil(nextIf)) {
-            const logicDef = LogicDefinition(nextIf);
-
-            setupContext.define('nextContext', (buildNextSetup) => {
-                buildNextSetup.onSetup((runContext) => {
-                    return runContext.buildLogicContext(logicDef);
-                });
-            });
+            logicDef = LogicDefinition(nextIf);
         }
 
-        setupContext.onRun(onRun);
+        setupContext.onSetup((control) => {
+            return {
+                thenContext: control.createRuleContext(thenRule),
+                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
+            };
+        });
 
+        // setupContext.define('thenContext', (buildThenSetup) => {
+        //     buildThenSetup.onSetup((control) => {
+        //         // Create another RuleContext off of original RunContext
+        //
+        //         return control.createRuleContext(thenRule);
+        //     });
+        // });
+
+        // if (!_.isNil(nextIf)) {
+        //     const logicDef = LogicDefinition(nextIf);
+        //
+        //     setupContext.define('nextContext', (buildNextSetup) => {
+        //         buildNextSetup.onSetup((control) => {
+        //             return control.buildLogicContext(logicDef);
+        //         });
+        //     });
+        // }
+
+        setupContext.onRun(onRun);
         setupContext.onPause(onPause);
     };
 }

@@ -1,4 +1,4 @@
-const EventEmitter = require('events');
+const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 
@@ -94,7 +94,7 @@ function updateFromParent(parentData) {
         if (data.status === 'undefined') {
             target = internalRemove.call(this, dataId, null);
         } else {
-            target = internalSet.call(this, dataId, data.value, data.status, null);
+            target = internalSet.call(this, dataId, data.value, data.status === 'ready', null);
         }
 
         if (!_.isNil(target)) {
@@ -158,13 +158,15 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (_.isNil(scopeID)) {
-        scopeID = this.id; // eslint-disable-line no-param-reassign
-    } else if (!_.isString(scopeID)) {
+    let _scopeID = scopeID;
+
+    if (_.isNil(_scopeID)) {
+        _scopeID = this.id;
+    } else if (!_.isString(_scopeID)) {
         throw new Error('scopeID must be a string when used');
     }
 
-    internalInitalSet.call(this, scopeID, id, value, ready, owner);
+    internalInitalSet.call(this, _scopeID, id, value, ready, owner);
 };
 
 Scope.prototype.get = function get(id) {
@@ -194,15 +196,17 @@ Scope.prototype.remove = function remove(scopeID, id, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (!_.isNil(scopeID)) {
-        if (!_.isString(scopeID)) {
+    let _scopeID = scopeID;
+
+    if (!_.isNil(_scopeID)) {
+        if (!_.isString(_scopeID)) {
             throw new Error('scopeID must be a string when used');
         }
     } else {
-        scopeID = this.id; // eslint-disable-line no-param-reassign
+        _scopeID = this.id;
     }
 
-    internalInitalRemove.call(this, scopeID, id, owner);
+    internalInitalRemove.call(this, _scopeID, id, owner);
 };
 
 Scope.prototype.watch = function watch(id, onUpdate) {

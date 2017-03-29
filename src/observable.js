@@ -1,9 +1,6 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Symbol = require('es6-symbol');
-
-const dataSym = Symbol('data');
 
 let _set;
 
@@ -19,18 +16,14 @@ function Observable(initalValue) {
 
 Util.inherits(Observable, EventEmitter);
 
-// const _emitChangeDub = _.debounce(function _emitChangeDubed() {
-//     this.emit('change');
-// });
-
 const _emitChangeDub = function _emitChangeDubed() {
     this.emit('change', this);
 };
 
-function _emitChange() {
-    if (this.status === 'started') {
+function _emitChange(force) {
+    if (this.status === 'started' || force) {
         _emitChangeDub.call(this);
-    } else if (this.status === 'updating') {
+    } else {
         this.status = 'emitRequired';
     }
 }
@@ -49,13 +42,13 @@ function _unlink(observable) {
 
 function _setAsObject(value) {
     const newData = {};
-    let currentData = this[dataSym];
+    let currentData = this.value;
 
-    if (!_.isPlainObject(this[dataSym])) {
+    if (!_.isPlainObject(this.value)) {
         currentData = newData;
 
-        if (_.isArray(this[dataSym])) {
-            _.forEach(this[dataSym], (item) => {
+        if (_.isArray(this.value)) {
+            _.forEach(this.value, (item) => {
                 _unlink.call(this, item);
             });
         }
@@ -94,26 +87,26 @@ function _setAsObject(value) {
         }
     });
 
-    if (_.isPlainObject(this[dataSym])) {
-        _.forOwn(this[dataSym], (item, name) => {
+    if (_.isPlainObject(this.value)) {
+        _.forOwn(this.value, (item, name) => {
             if (_.isNil(newData[name])) {
                 _unlink.call(this, item);
             }
         });
     }
 
-    this[dataSym] = newData;
+    this.value = newData;
 }
 
 function _setAsArray(value) {
     const newData = [];
-    let currentData = this[dataSym];
+    let currentData = this.value;
 
-    if (!_.isArray(this[dataSym])) {
+    if (!_.isArray(this.value)) {
         currentData = newData;
 
-        if (_.isPlainObject(this[dataSym])) {
-            _.forOwn(this[dataSym], (item) => {
+        if (_.isPlainObject(this.value)) {
+            _.forOwn(this.value, (item) => {
                 _unlink.call(this, item);
             });
         }
@@ -152,20 +145,20 @@ function _setAsArray(value) {
         }
     });
 
-    if (_.isArray(this[dataSym])) {
-        while (this[dataSym].length > newData.length) {
-            const item = this[dataSym].pop();
+    if (_.isArray(this.value)) {
+        while (this.value.length > newData.length) {
+            const item = this.value.pop();
 
             _unlink.call(this, item);
         }
     }
 
-    this[dataSym] = newData;
+    this.value = newData;
 }
 
 function _setAsSimple(value) {
-    if (value !== this[dataSym]) {
-        this[dataSym] = value;
+    if (value !== this.value) {
+        this.value = value;
 
         this.status = 'emitRequired';
     }
@@ -210,30 +203,36 @@ Observable.prototype.set = function set(...args) {
         return;
     }
 
-    let currentTarget = this[dataSym];
+    let currentTarget = this;
     let rebuiltPath = '';
 
     _.forEach(fullPath, (pathPart) => {
         rebuiltPath = `${rebuiltPath}.${pathPart}`;
 
-        currentTarget = currentTarget[pathPart];
+        currentTarget = currentTarget.value[pathPart];
 
         if (_.isNil(currentTarget)) {
             throw new Error(`${rebuiltPath} is null or undefined`);
         }
-
-        currentTarget = currentTarget[dataSym];
     });
 
-    let finalTarget = currentTarget[finalTargetPath];
+    let finalTarget = currentTarget.value[finalTargetPath];
 
     if (_.isNil(finalTarget)) {
+        this.status = 'updating';
+
         finalTarget = new Observable(value);
 
-        currentTarget.set(finalTargetPath, finalTarget);
-    }
+        currentTarget.value[finalTargetPath] = finalTarget;
 
-    _set.call(finalTarget, value);
+        _link(finalTarget);
+
+        _emitChange.call(this, true);
+
+        this.status = 'started';
+    } else {
+        _set.call(finalTarget, value);
+    }
 };
 
 Observable.prototype.get = function get(...args) {
@@ -247,10 +246,10 @@ Observable.prototype.get = function get(...args) {
     const finalTargetPath = fullPath.pop();
 
     if (_.isNil(finalTargetPath)) {
-        return this[dataSym];
+        return this.value;
     }
 
-    let currentTarget = this[dataSym];
+    let currentTarget = this.value;
     let rebuiltPath = '';
 
     _.forEach(fullPath, (pathPart) => {
@@ -262,7 +261,7 @@ Observable.prototype.get = function get(...args) {
             throw new Error(`${rebuiltPath} is null or undefined`);
         }
 
-        currentTarget = currentTarget[dataSym];
+        currentTarget = currentTarget.value;
     });
 
     return currentTarget[finalTargetPath];
@@ -277,7 +276,7 @@ function toJSReducer(current, item, id) {
 }
 
 Observable.prototype.toJS = function toJS() {
-    let data = this[dataSym];
+    let data = this.value;
 
     if (_.isArray(data)) {
         data = _.reduce(data, toJSReducer, []);
@@ -308,7 +307,11 @@ Observable.prototype.manipulate = function manipulate(...args) {
     if (path === '') {
         current = this.toJS();
     } else {
-        current = this.get(path).toJS();
+        current = this.get(path);
+
+        if (!_.isNil(current)) {
+            current = current.toJS();
+        }
     }
 
     const newValue = manipulator(current);

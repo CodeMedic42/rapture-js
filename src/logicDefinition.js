@@ -1,12 +1,10 @@
 const _ = require('lodash');
 
-const RegistrationContext = require('./registrationContext.js');
-const ParametersContext = require('./parametersContext');
-const LogicContext = require('./logicContext');
+const LogicContext = require('./logicContext.js');
 
-function LogicDefinition(setupCallback, allowRaise, allowChildren) {
+function LogicDefinition(setupCallback, controledByPreviousState) {
     if (!(this instanceof LogicDefinition)) {
-        return new LogicDefinition(setupCallback, allowRaise, allowChildren);
+        return new LogicDefinition(setupCallback, controledByPreviousState);
     }
 
     if (!_.isFunction(setupCallback)) {
@@ -15,8 +13,7 @@ function LogicDefinition(setupCallback, allowRaise, allowChildren) {
 
     this.params = {};
     this.registrations = {};
-    this.allowRaise = allowRaise;
-    this.allowChildren = allowChildren;
+    this.controledByPreviousState = controledByPreviousState;
 
     const setupContext = {
         require: (id) => {
@@ -60,6 +57,9 @@ function LogicDefinition(setupCallback, allowRaise, allowChildren) {
 
             this.onPause = cb;
         },
+        options: (options) => {
+            this.options = options;
+        }
     };
 
     setupCallback(setupContext);
@@ -69,35 +69,8 @@ function LogicDefinition(setupCallback, allowRaise, allowChildren) {
     }
 }
 
-LogicDefinition.prototype.buildContext = function buildContext(ruleContext, owenerId) {
-    const runContext = {};
-
-    runContext.buildContext = ruleContext.buildContext.bind(ruleContext);
-    runContext.buildLogicContext = (logicDefinition) => {
-        return logicDefinition.buildContext(ruleContext, owenerId);
-    };
-
-    runContext.raise = ruleContext.raise.bind(ruleContext, owenerId);
-    runContext.clear = ruleContext.clear.bind(ruleContext, owenerId);
-
-    const onSetup = _.isNil(this.onSetup) ? null : this.onSetup.bind(null, runContext, ruleContext.tokenContext.contents);
-
-    const onRun = _.isNil(this.onRun) ? null : this.onRun.bind(null, runContext, ruleContext.tokenContext.contents);
-    const onPause = (params) => {
-        if (!_.isNil(this.onPause)) {
-            this.onPause.call(null, runContext, ruleContext.tokenContext.contents, params);
-        }
-
-        runContext.clear();
-    };
-
-    const registrationContext = _.keys(this.registrations).length > 0 ?
-        RegistrationContext(ruleContext, this.registrations, owenerId) : null;
-
-    const parametersContext = _.keys(this.params).length > 0 ?
-        ParametersContext(ruleContext, this.params, owenerId) : null;
-
-    return LogicContext(onSetup, onRun, onPause, parametersContext, registrationContext);
+LogicDefinition.prototype.buildContext = function buildContext(ruleContext, previousContext) {
+    return LogicContext(ruleContext, this.onSetup, this.onRun, this.onPause, this.onTeardown, this.params, previousContext, this.options);
 };
 
 module.exports = LogicDefinition;

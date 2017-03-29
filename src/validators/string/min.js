@@ -14,7 +14,7 @@ function minAction(parentRule, actions, minData) {
             if (_.isString(value) && value.length < params.minData) {
                 runContext.raise('schema', `Must be greater than ${params.minData - 1} characters long.`, 'error');
             } else {
-                runContext.clear();
+                runContext.raise();
             }
         });
     }, true);

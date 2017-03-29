@@ -8,124 +8,155 @@ Chai.use(DirtyChai);
 
 const expect = Chai.expect;
 
+function pass(testObject, rule) {
+    const testData = JSON.stringify(testObject);
+
+    expect(rule, 'Rule Definition is created').to.be.exist();
+
+    const session = Rapture.createSessionContext();
+    expect(session, 'Session is created').to.be.exist();
+
+    const context = session.createArtifactContext('artifactID', rule, testData);
+    expect(context, 'context is created').to.be.exist();
+
+    const firstIssues = context.issues();
+
+    expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
+    expect(firstIssues.length, 'Zero issues found.').to.be.equal(0);
+}
+
+function fail(testObject, rule, expectedFailItems) {
+    const testData = JSON.stringify(testObject);
+
+    expect(rule, 'Rule is created').to.be.exist();
+
+    const session = Rapture.createSessionContext();
+    expect(session, 'Session is created').to.be.exist();
+
+    const context = session.createArtifactContext('artifactID', rule, testData);
+    expect(context, 'context is created').to.be.exist();
+
+    const issues = context.issues();
+
+    expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+    expect(issues.length, 'One issue found.').to.be.equal(1);
+
+    expect(issues[0].type, 'Issue type').to.be.equal(expectedFailItems.type);
+    expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(expectedFailItems.rowStart);
+    expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(expectedFailItems.rowEnd);
+    expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(expectedFailItems.columnStart);
+    expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(expectedFailItems.columnEnd);
+    expect(issues[0].message, 'Issue Message').to.be.equal(expectedFailItems.message);
+    expect(issues[0].cause, 'Issue cause').to.be.equal(expectedFailItems.cause);
+    expect(issues[0].severity, 'Issue severity').to.be.equal(expectedFailItems.severity);
+}
+
+function failCount(testObject, rule, count) {
+    const testData = JSON.stringify(testObject);
+
+    expect(rule, 'Rule is created').to.be.exist();
+
+    const session = Rapture.createSessionContext();
+    expect(session, 'Session is created').to.be.exist();
+
+    const context = session.createArtifactContext('artifactID', rule, testData);
+    expect(context, 'context is created').to.be.exist();
+
+    const issues = context.issues();
+
+    expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+    expect(issues.length, 'One issue found.').to.be.equal(count);
+}
+
 describe('Object Tests', () => {
-    it('is an object', () => {
-        const testObject = {};
-        const testData = JSON.stringify(testObject);
-
-        const rule = Rapture.object();
-        expect(rule, 'Rule Definition is created').to.be.exist();
-
-        const session = Rapture.createSessionContext();
-        expect(session, 'Session is created').to.be.exist();
-
-        const context = session.createArtifactContext('artifactID', rule, testData);
-        expect(context, 'context is created').to.be.exist();
-
-        const firstIssues = context.issues();
-
-        expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
-        expect(firstIssues.length, 'One issue found.').to.be.equal(0);
-    });
-
-    it('is an array', () => {
-        const testObject = [];
-        const testData = JSON.stringify(testObject);
-
-        const rule = Rapture.object();
-        expect(rule, 'Rule is created').to.be.exist();
-
-        const session = Rapture.createSessionContext();
-        expect(session, 'Session is created').to.be.exist();
-
-        const context = session.createArtifactContext('artifactID', rule, testData);
-        expect(context, 'context is created').to.be.exist();
-
-        const issues = context.issues();
-
-        expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-        expect(issues.length, 'One issue found.').to.be.equal(1);
-
-        expect(issues[0].type, 'Issue type').to.be.equal('schema');
-        expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
-        expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
-        expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(0);
-        expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(0);
-        expect(issues[0].message, 'Issue Message').to.be.equal('When defined this field must be a plain object');
-        expect(issues[0].cause, 'Issue cause').to.be.equal('');
-        expect(issues[0].severity, 'Issue severity').to.be.equal('error');
-    });
-
-    it('is null', () => {
-        const testObject = null;
-        const testData = JSON.stringify(testObject);
-
-        const rule = Rapture.object();
-        expect(rule, 'Rule Definition is created').to.be.exist();
-
-        const session = Rapture.createSessionContext();
-        expect(session, 'Session is created').to.be.exist();
-
-        const context = session.createArtifactContext('artifactID', rule, testData);
-        expect(context, 'context is created').to.be.exist();
-
-        const firstIssues = context.issues();
-
-        expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
-        expect(firstIssues.length, 'One issue found.').to.be.equal(0);
-    });
-
-    it('is not an object,... at first', () => {
-        return new Promise((resolve) => {
-            const testObject = [];
-            const testData = JSON.stringify(testObject);
+    describe('Rule - plain Object', () => {
+        it('is an empty object', () => {
+            const testObject = {};
 
             const rule = Rapture.object();
-            expect(rule, 'Rule is created').to.be.exist();
 
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
+            pass(testObject, rule);
+        });
 
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
+        it('is an object with a property', () => {
+            const testObject = {
+                foo: 'foo'
+            };
 
-            context.on('update', (issues) => {
-                expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-                expect(issues.length, 'Zero issues found.').to.be.equal(0);
+            const rule = Rapture.object();
 
-                resolve();
+            pass(testObject, rule);
+        });
+
+        it('is an array', () => {
+            const testObject = [];
+
+            const rule = Rapture.object();
+
+            fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 0,
+                rowEnd: 0,
+                columnStart: 0,
+                columnEnd: 0,
+                message: 'When defined this field must be a plain object',
+                cause: '',
+                severity: 'error'
             });
+        });
 
-            const firstIssues = context.issues();
+        it('is null', () => {
+            const testObject = null;
 
-            expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(firstIssues.length, 'One issue found.').to.be.equal(1);
+            const rule = Rapture.object();
 
-            const testObjectUpdate = {};
-            const testDataUpdate = JSON.stringify(testObjectUpdate);
-            context.update(testDataUpdate);
+            pass(testObject, rule);
+        });
+    });
+
+    describe('update', () => {
+        it('is not an object,... at first', () => {
+            return new Promise((resolve) => {
+                const testObject = [];
+                const testData = JSON.stringify(testObject);
+
+                const rule = Rapture.object();
+                expect(rule, 'Rule is created').to.be.exist();
+
+                const session = Rapture.createSessionContext();
+                expect(session, 'Session is created').to.be.exist();
+
+                const context = session.createArtifactContext('artifactID', rule, testData);
+                expect(context, 'context is created').to.be.exist();
+
+                context.on('raise', () => {
+                    const issues = context.issues();
+
+                    expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+                    expect(issues.length, 'Zero issues found.').to.be.equal(0);
+
+                    resolve();
+                });
+
+                const firstIssues = context.issues();
+
+                expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
+                expect(firstIssues.length, 'One issue found.').to.be.equal(1);
+
+                const testObjectUpdate = {};
+                const testDataUpdate = JSON.stringify(testObjectUpdate);
+                context.update(testDataUpdate);
+            });
         });
     });
 
     describe('keys', () => {
         it('no keys - pass', () => {
             const testObject = {};
-            const testData = JSON.stringify(testObject);
 
             const rule = Rapture.object().keys({});
 
-            expect(rule, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const firstIssues = context.issues();
-
-            expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(firstIssues.length, 'One issue found.').to.be.equal(0);
+            pass(testObject, rule);
         });
 
         it('no keys - fail', () => {
@@ -164,7 +195,6 @@ describe('Object Tests', () => {
                 notAllowed: 'foo',
                 allowed: 'test'
             };
-            const testData = JSON.stringify(testObject, null, 2);
 
             const rule = Rapture.object().keys({
                 allowed: Rapture.string()
@@ -172,41 +202,17 @@ describe('Object Tests', () => {
                 notAllowed: Rapture.string()
             });
 
-            expect(rule, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const issues = context.issues();
-
-            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(issues.length, 'One issue found.').to.be.equal(0);
+            pass(testObject, rule);
         });
 
         it('specfic key - does not exist - not required', () => {
             const testObject = {};
-            const testData = JSON.stringify(testObject);
 
-            const rule =
-            Rapture.object().keys({
+            const rule = Rapture.object().keys({
                 allowed: Rapture.string()
             });
 
-            expect(rule, 'Rule has been created').to.be.exist();
-
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const issues = context.issues();
-
-            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(issues.length, 'No issues found.').to.be.equal(0);
+            pass(testObject, rule);
         });
 
         it('specfic key - does not exist - required', () => {
@@ -248,7 +254,6 @@ describe('Object Tests', () => {
                     }
                 }
             };
-            const testData = JSON.stringify(testObject, null, 2);
 
             const rule = Rapture.object().keys({
                 objA: Rapture.object().keys({
@@ -258,18 +263,7 @@ describe('Object Tests', () => {
                 })
             });
 
-            expect(rule, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const issues = context.issues();
-
-            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(issues.length, 'One issue found.').to.be.equal(0);
+            pass(testObject, rule);
         });
 
         it('multi-object - fail', () => {
@@ -317,7 +311,6 @@ describe('Object Tests', () => {
                 B: 'bar',
                 C: 'baz'
             };
-            const testData = JSON.stringify(testObject);
 
             const rule = Rapture.object().keys((setupContext) => {
                 setupContext.define('keys', (keysSetupContext) => {
@@ -337,21 +330,10 @@ describe('Object Tests', () => {
                 });
             });
 
-            expect(rule, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const firstIssues = context.issues();
-
-            expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(firstIssues.length, 'One issue found.').to.be.equal(0);
+            pass(testObject, rule);
         });
 
-        it('Dynamic Keys - fail', () => {
+        it('Dynamic Keys - never load', () => {
             const testObject = {
                 A: 'foo',
                 B: 'bar',
@@ -361,6 +343,46 @@ describe('Object Tests', () => {
             const testData = JSON.stringify(testObject);
 
             const rule = Rapture.object().keys((setupContext) => {
+                setupContext.require('keys');
+
+                setupContext.onRun(() => {
+                    // Should not call because "keys" dones not exist
+                    expect().fail();
+                });
+            });
+
+            expect(rule, 'Rule Definition is created').to.be.exist();
+
+            const session = Rapture.createSessionContext();
+            expect(session, 'Session is created').to.be.exist();
+
+            const context = session.createArtifactContext('artifactID', rule, testData);
+            expect(context, 'context is created').to.be.exist();
+
+            const firstIssues = context.issues();
+
+            expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(firstIssues.length, 'One issue found.').to.be.equal(1);
+
+            expect(firstIssues[0].type, 'Issue type').to.be.equal('Rule');
+            expect(firstIssues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
+            expect(firstIssues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
+            expect(firstIssues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(0);
+            expect(firstIssues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(0);
+            expect(firstIssues[0].message, 'Issue Message').to.be.equal('Required rule value "keys" is not defined.');
+            expect(firstIssues[0].cause, 'Issue cause').to.be.equal('');
+            expect(firstIssues[0].severity, 'Issue severity').to.be.equal('warning');
+        });
+
+        it('Dynamic Keys - fail', () => {
+            const testObject = {
+                A: 'foo',
+                B: 'bar',
+                C: 42,
+                D: 'test'
+            };
+
+            const rule = Rapture.object().keys((setupContext) => {
                 setupContext.define('keys', (keysSetupContext) => {
                     keysSetupContext.onRun(() => {
                         return ['A', 'B', 'C'];
@@ -378,18 +400,7 @@ describe('Object Tests', () => {
                 });
             });
 
-            expect(rule, 'Rule Definition is created').to.be.exist();
-
-            const session = Rapture.createSessionContext();
-            expect(session, 'Session is created').to.be.exist();
-
-            const context = session.createArtifactContext('artifactID', rule, testData);
-            expect(context, 'context is created').to.be.exist();
-
-            const firstIssues = context.issues();
-
-            expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
-            expect(firstIssues.length, 'One issue found.').to.be.equal(2);
+            failCount(testObject, rule, 2);
         });
     });
 

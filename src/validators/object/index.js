@@ -9,54 +9,66 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
 function evaluateForInvalidKeys(runContext, value, keyData) {
-    const issues = [];
+    let keyRuleRunning = false;
 
-    runContext.clear();
+    _.forOwn(keyData.get('rules').value, (enabled) => {
+        keyRuleRunning = keyRuleRunning || enabled.value;
 
-    _.forEach(keyData.get(), (propRefCount, propName) => {
-        if (propRefCount.get() <= 0) {
+        return !keyRuleRunning;
+    });
+
+    if (!keyRuleRunning) {
+        runContext.raise();
+
+        return;
+    }
+
+    const finalIssues = _.reduce(keyData.get('keys').value, (issues, propRefCount, propName) => {
+        if (propRefCount.value <= 0) {
             const propValue = value[propName];
 
             issues.push({ type: 'schema', message: `The property "${propName}" is not allowed to exist.`, severity: 'error', from: propValue.from, location: propValue.location });
         }
-    });
 
-    runContext.raise(issues);
+        return issues;
+    }, []);
+
+    runContext.raise(finalIssues);
 }
 
 const logicDefinition = LogicDefinition((setupContext) => {
-    setupContext.register('__keyData', '__rule', (__keyDataSetupContext) => {
-        __keyDataSetupContext.onSetup((runContext, value) => {
-            const keyData = _.reduce(value, (current, childValue, childName) => {
-                const _current = current;
+    setupContext.onSetup((runContext, value) => {
+        const _runContext = runContext;
 
-                _current[childName] = 0;
+        const keys = _.reduce(value, (current, childValue, childName) => {
+            const _current = current;
 
-                return _current;
-            }, {});
+            _current[childName] = 0;
 
-            return Observable(keyData).on('change', evaluateForInvalidKeys.bind(null, runContext, value));
-        });
+            return _current;
+        }, {});
+
+        _runContext.data.__keyData = Observable({
+            rules: {},
+            keys
+        }).on('change', evaluateForInvalidKeys.bind(null, runContext, value));
     });
 
-    setupContext.require('__keyData');
-
-    setupContext.onRun((runContext, value, params) => {
-        runContext.clear();
-
+    setupContext.onRun((runContext, value) => {
         if (!_.isNil(value) && !_.isPlainObject(value)) {
             runContext.raise('schema', 'When defined this field must be a plain object', 'error');
         } else {
-            params.__keyData.unpause();
+            runContext.raise();
+            runContext.data.__keyData.unpause();
 
-            evaluateForInvalidKeys(runContext, value, params.__keyData);
+            evaluateForInvalidKeys(runContext, value, runContext.data.__keyData);
         }
     });
 
-    setupContext.onPause((runContext, value, params) => {
-        params.__keyData.pause();
+    setupContext.onPause((runContext) => {
+        runContext.data.__keyData.pause();
     });
-}, true);
+});
 
 const objectActions = {
     keys: keysAction,

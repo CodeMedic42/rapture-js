@@ -1,31 +1,32 @@
-const EventEmitter = require('events');
+const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Issue = require('./issue.js');
-const Scope = require('./scope.js');
 
-function run(force) {
-    if (this.runStatus === 'started' || force) {
-        this.emit('update', this.issues());
+function emitRaise(force) {
+    if (this.status === 'started' || force) {
+        this.emit('raise', this.issues);
+
+        return;
     }
+
+    this.status = 'emitNeeded';
 }
 
-function RuleContext(scope, tokenContext) {
+function RuleContext(runContext, rule) {
     if (!(this instanceof RuleContext)) {
-        return new RuleContext(scope, tokenContext);
+        return new RuleContext(runContext, rule);
     }
 
-    if (_.isNil(tokenContext)) {
-        throw new Error('Must provide a tokenContext');
-    }
-
-    this.scope = Scope('__rule', scope);
-    this.children = [];
+    this.scope = runContext.scope;
     this.logicContexts = [];
-    this.livingIssues = {};
-    this.compacted = null;
-    this.tokenContext = tokenContext;
-    this.runStatus = 'stopped';
+    this.compacted = [];
+    this.tokenValue = runContext.tokenValue;
+    this.status = 'stopped';
+    this.rule = rule;
+    this.runContext = runContext;
+    this.data = runContext.data;
+
+    rule.applyLogic(this);
 
     EventEmitter.call(this);
 }
@@ -33,129 +34,86 @@ function RuleContext(scope, tokenContext) {
 Util.inherits(RuleContext, EventEmitter);
 
 RuleContext.prototype.issues = function issues() {
-    if (_.isNil(this.compacted)) {
-        this.compacted = _.reduce(this.livingIssues, (current, iss) => {
-            _.forEach(iss, (issue) => {
-                current.push(issue);
-            });
+    return this.compacted;
+};
 
-            return current;
-        }, []);
-    }
-
-    const finalIssues = _.reduce(this.children, (current, child) => {
-        current.push(...child.issues());
+function onUpdate() {
+    const issues = _.reduce(this.logicContexts, (current, context) => {
+        current.push(...context.issues());
 
         return current;
     }, []);
 
-    finalIssues.unshift(...this.compacted);
-
-    return finalIssues;
-};
-
-function cleanIssue(tokenContext, issueMeta) {
-    const targetFrom = _.isNil(issueMeta.from) ? tokenContext.from : issueMeta.from;
-    const targetLocation = _.isNil(issueMeta.location) ? tokenContext.location : issueMeta.location;
-
-    return Issue(issueMeta.type, targetFrom, targetLocation, issueMeta.message, issueMeta.severity);
-}
-
-RuleContext.prototype.raise = function raise(runId, ...issueMeta) {
-    this.compacted = null;
-    let target = null;
-
-    if (_.isArray(issueMeta[0])) {
-        target = issueMeta[0];
-    } else if (_.isPlainObject(issueMeta[0])) {
-        target = [issueMeta[0]];
-    } else if (!_.isNil(issueMeta[0]) && _.isString(issueMeta[0])) {
-        target = [{ type: issueMeta[0], message: issueMeta[1], severity: issueMeta[2], from: issueMeta[3], location: issueMeta[4] }];
-    } else {
-        throw new Error('Unknown Issue');
-    }
-
-    if (target.length <= 0) {
+    if (issues.length === 0 && this.compacted.length === 0) {
+        // raise nothing
         return;
     }
 
-    this.livingIssues[runId] = _.reduce(target, (current, issue) => {
-        current.push(cleanIssue(this.tokenContext, issue));
+    this.compacted = issues;
 
-        return current;
-    }, []);
-
-    run.call(this);
-};
-
-RuleContext.prototype.clear = function clear(runId) {
-    this.compacted = null;
-
-    delete this.livingIssues[runId];
-
-    run.call(this);
-};
-
-RuleContext.prototype.buildContext = function buildContext(rule, tokenContext, copy) {
-    if (copy) {
-        const duplicate = RuleContext(null, this.tokenContext);
-
-        duplicate.scope = this.scope;
-        rule.addToContext(duplicate);
-        this.children.push(duplicate);
-
-        return duplicate;
-    }
-
-    const ruleContext = rule.buildContext(this.scope.parentScope, tokenContext);
-
-    this.children.push(ruleContext);
-
-    ruleContext.on('update', () => {
-        run.call(this);
-    });
-
-    return ruleContext;
-};
-
-RuleContext.prototype.destroy = function destroy() {
-    this.emit('destroy');
-};
+    emitRaise.call(this);
+}
 
 RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
     this.logicContexts.push(logicContext);
+
+    logicContext.on('update', onUpdate, this);
 };
 
 RuleContext.prototype.start = function start() {
-    if (this.runStatus === 'started' || this.runStatus === 'starting') {
+    if (this.status === 'started' || this.status === 'starting') {
         return;
     }
 
-    this.runStatus = 'starting';
+    this.status = 'starting';
 
     _.forEach(this.logicContexts, (logicContext) => {
         logicContext.start();
     });
 
-    run.call(this, true);
+    if (this.status === 'emitNeeded') {
+        emitRaise.call(this, true);
+    }
 
-    this.runStatus = 'started';
+    this.status = 'started';
 };
 
 RuleContext.prototype.stop = function stop() {
-    if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
+    if (this.status === 'stopped' || this.status === 'stopping') {
         return;
     }
 
-    this.runStatus = 'stopping';
+    this.status = 'stopping';
 
     _.forEach(this.logicContexts, (logicContext) => {
         logicContext.stop();
     });
 
-    run.call(this, true);
+    if (this.status === 'emitNeeded') {
+        emitRaise.call(this, true);
+    }
 
-    this.runStatus = 'stopped';
+    this.status = 'stopped';
+};
+
+RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue) {
+    const oldStatus = this.status;
+
+    this.status = 'updating';
+
+    this.tokenValue = newTokenValue;
+
+    _.forEach(this.logicContexts, (logicContext) => {
+        logicContext.destroy();
+    });
+
+    this.logicContexts = [];
+
+    this.rule.applyLogic(this);
+
+    if (oldStatus === 'started') {
+        this.start();
+    }
 };
 
 module.exports = RuleContext;

@@ -8,61 +8,75 @@ function keysAction(parentRule, actions, keyData) {
     }
 
     const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.define('keyContexts', (buildKeysSetup) => {
-            buildKeysSetup.define('keys', keyData);
+        setupContext.define('keys', keyData);
 
-            buildKeysSetup.onRun((runContext, value, params) => {
-                if (_.isNil(value) || !_.isPlainObject(value)) {
-                    // Do nothing
-                    return null;
+        setupContext.onRun((control, targetObject, params, currentContexts) => {
+            // TODO: const transaction = params.__keyData.startTransaction();
+
+            if (_.isNil(targetObject) || !_.isPlainObject(targetObject)) {
+                // Do nothing
+                return null;
+            }
+
+            _.forEach(currentContexts, (context, propertyName) => {
+                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
+                    return keyCount - 1;
+                });
+
+                context.destroy();
+            });
+
+            if (_.isNil(params.keys)) {
+                control.data.__keyData.set(`rules.${control.id}`, false);
+                // If nothing is provided then all keys are allowed, as far as this instance of this rule is concerned.
+                return [];
+            } else if (!_.isPlainObject(params.keys)) {
+                this.raise('rule', 'Keys must either be undefined, null, or a plain object.', 'fatal');
+
+                return null;
+            }
+
+            control.data.__keyData.set(`rules.${control.id}`, true);
+
+            return _.reduce(targetObject, (current, propValue, propertyName) => {
+                const keyRule = params.keys[propertyName];
+
+                if (_.isNil(keyRule)) {
+                    return current;
                 }
 
-                return _.reduce(value, (current, propValue, propName) => {
-                    const keyRule = params.keys[propName];
-
-                    if (_.isNil(keyRule)) {
-                        return current;
-                    }
-
-                    const _current = current;
-
-                    _current[propName] = runContext.buildContext(keyRule, propValue); // eslint-disable-line
-
-                    return _current;
-                }, {});
-            });
-        });
-
-        setupContext.require('__keyData');
-
-        setupContext.onRun((runContext, contents, params) => {
-            params.__keyData.manipulate((currentValue) => {
-                const _currentValue = currentValue;
-
-                _.forOwn(params.keyContexts, (context, keyName) => {
-                    _currentValue[keyName] += 1;
-
-                    context.start();
+                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
+                    return keyCount + 1;
                 });
 
-                return _currentValue;
-            });
+                const _current = current;
+
+                const ruleContext = _current[propertyName] = control.createRuleContext(keyRule, propValue);
+
+                ruleContext.start();
+
+                return _current;
+            }, {});
+
+            // TODO: transaction.commitTransaction();
         });
 
-        setupContext.onPause((runContext, contents, params) => {
-            params.__keyData.manipulate((currentValue) => {
-                const _currentValue = currentValue;
+        setupContext.onPause((control, contents, params, currentContexts) => {
+            // TODO: const transaction = params.__keyData.startTransaction();
 
-                _.forOwn(params.keyContexts, (context, keyName) => {
-                    _currentValue[keyName] -= 1;
+            control.data.__keyData.set(`rules.${control.id}`, false);
 
-                    context.stop();
+            _.forEach(currentContexts, (context, propertyName) => {
+                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
+                    return keyCount - 1;
                 });
 
-                return _currentValue;
+                context.stop();
             });
+
+            // TODO: transaction.commitTransaction();
         });
-    }, true, true);
+    });
 
     return Rule(logicDefinition, actions, parentRule);
 }

@@ -4,6 +4,9 @@ const TokenContext = require('./tokenContext.js');
 const TokenLocation = require('./tokenLocation.js');
 const Issue = require('../issue.js');
 
+let _processObject;
+let _processArray;
+
 function processProperty(lexingContext, from, complexOnly) {
     const token = lexingContext.next();
 
@@ -11,9 +14,9 @@ function processProperty(lexingContext, from, complexOnly) {
 
     if (token.type === 'punctuator') {
         if (token.raw === '{') {
-            contents = processObject(lexingContext, from); // eslint-disable-line
+            contents = _processObject(lexingContext, from); // eslint-disable-line
         } else if (token.raw === '[') {
-            contents = processArray(lexingContext, from); // eslint-disable-line
+            contents = _processArray(lexingContext, from); // eslint-disable-line
         } else {
             throw Issue('parsing', token.type, token.location, 'Invalid start punctuator');
         }
@@ -34,7 +37,7 @@ function processProperty(lexingContext, from, complexOnly) {
     return contents;
 }
 
-function processObject(lexingContext, from) {
+_processObject = function processObject(lexingContext, from) {
     const target = {};
 
     let propertyNameToken = lexingContext.next();
@@ -85,9 +88,9 @@ function processObject(lexingContext, from) {
     }
 
     return target;
-}
+};
 
-function processArray(lexingContext, from) {
+_processArray = function processArray(lexingContext, from) {
     const target = [];
 
     let currentToken = lexingContext.next();
@@ -126,7 +129,7 @@ function processArray(lexingContext, from) {
     }
 
     return target;
-}
+};
 
 module.exports = function ArtifactLexer(artifact) {
     const contents = processProperty(LexingContext(artifact), '', false);

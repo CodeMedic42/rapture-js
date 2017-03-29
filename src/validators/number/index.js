@@ -11,10 +11,10 @@ function numberDefinition() {
             if (!_.isNil(value) && !_.isFinite(value)) {
                 runContext.raise('schema', 'When defined this field must be a number.', 'error');
             } else {
-                runContext.clear();
+                runContext.raise();
             }
         });
-    }, true);
+    });
 
     const actions = {
         register: registerAction,

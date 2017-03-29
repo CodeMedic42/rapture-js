@@ -38,7 +38,7 @@ function itemsAction(parentRule, actions, itemRule) {
                 context.stop();
             });
         });
-    }, true, true);
+    });
 
     const nextActions = _.clone(actions);
 

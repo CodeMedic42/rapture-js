@@ -14,7 +14,7 @@ function maxAction(parentRule, actions, maxData) {
             if (_.isString(value) && value.length > params.maxData) {
                 runContext.raise('schema', `Must be less than ${params.maxData + 1} characters long.`, 'error');
             } else {
-                runContext.clear();
+                runContext.raise();
             }
         });
     }, true);

@@ -14,7 +14,7 @@ function lengthAction(parentRule, actions, lengthData) {
             if (_.isString(value) && value.length !== params.lengthData) {
                 runContext.raise('schema', `Must be ${params.lengthData} characters long.`, 'error');
             } else {
-                runContext.clear();
+                runContext.raise();
             }
         });
     }, true);
