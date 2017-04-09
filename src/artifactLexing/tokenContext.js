@@ -188,7 +188,7 @@ TokenContext.prototype.update = function update(newTokenContext) {
     this.status = 'updating';
 
     updateContents.call(this, newTokenContext);
-    const locationUpdated = this.location.update(newTokenContext);
+    const locationUpdated = this.location.update(newTokenContext.location);
 
     if (this.status === 'emitPending' || locationUpdated) {
         emitPersonalIssues.call(this, true);

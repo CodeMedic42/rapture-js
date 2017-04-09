@@ -121,15 +121,40 @@ function Scope(id, parentScope) {
     EventEmitter.call(this);
 
     if (!_.isNil(this.parentScope)) {
-        this.parentScope.on('update', (updatedData) => {
+        const parentCB = (updatedData) => {
             updateFromParent.call(this, updatedData);
-        });
+        };
+
+        this.parentScope.on('update', parentCB);
+
+        this.destroyParentConnection = () => {
+            this.parentScope.removeListener('update', parentCB);
+
+            this.parentScope = null;
+        };
 
         updateFromParent.call(this, this.parentScope.data);
     }
 }
 
 Util.inherits(Scope, EventEmitter);
+
+Scope.prototype.destroy = function destroy() {
+    _.forOwn(this.data, (item, name) => {
+        this.data[name] = null;
+    });
+
+    _.forOwn(this.watches, (item, name) => {
+        this.watches[name] = null;
+    });
+
+    if (!_.isNil(this.parentScope)) {
+        this.destroyParentConnection();
+    }
+
+    this.data = null;
+    this.watches = null;
+};
 
 Scope.prototype.createChildScope = function createChildScope(id) {
     return Scope(id, this);
@@ -141,9 +166,7 @@ function internalInitalSet(scopeID, id, value, ready, owner) {
             throw new Error(`Scope "${scopeID}" does not exist.`);
         }
 
-        internalInitalSet.call(this.parentScope, scopeID, id, value, ready, owner);
-
-        return;
+        return internalInitalSet.call(this.parentScope, scopeID, id, value, ready, owner);
     }
 
     const newValue = internalSet.call(this, id, value, ready, owner);
@@ -151,6 +174,8 @@ function internalInitalSet(scopeID, id, value, ready, owner) {
     if (!_.isNil(newValue)) {
         this.emit('update', { [id]: newValue });
     }
+
+    return newValue;
 }
 
 Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
@@ -166,7 +191,7 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
         throw new Error('scopeID must be a string when used');
     }
 
-    internalInitalSet.call(this, _scopeID, id, value, ready, owner);
+    return internalInitalSet.call(this, _scopeID, id, value, ready, owner).value;
 };
 
 Scope.prototype.get = function get(id) {

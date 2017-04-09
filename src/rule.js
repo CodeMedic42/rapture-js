@@ -1,6 +1,7 @@
 const _ = require('lodash');
-const LogicDefinition = require('./logicDefinition');
 const ShortId = require('shortid');
+const LogicDefinition = require('./logicDefinition');
+const RuleGroup = require('./ruleGroup.js');
 
 function addActions(actions) {
     _.forEach(actions, (action, actionName) => {
@@ -8,9 +9,9 @@ function addActions(actions) {
     });
 }
 
-function Rule(logicDefinition, actions, parentRule) {
+function Rule(name, logicDefinition, actions, parentRule) {
     if (!(this instanceof Rule)) {
-        return new Rule(logicDefinition, actions, parentRule);
+        return new Rule(name, logicDefinition, actions, parentRule);
     }
 
     if (!(logicDefinition instanceof LogicDefinition)) {
@@ -20,7 +21,9 @@ function Rule(logicDefinition, actions, parentRule) {
     addActions.call(this, actions);
     this.logicDefinition = logicDefinition;
     this.parentRule = parentRule;
+    this.name = name;
     this.id = ShortId.generate();
+    this.ruleGroup = _.isNil(parentRule) ? RuleGroup() : parentRule.ruleGroup;
 }
 
 Rule.prototype.applyLogic = function applyLogic(ruleContext) {

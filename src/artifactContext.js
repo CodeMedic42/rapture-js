@@ -88,4 +88,10 @@ ArtifactContext.prototype.update = function update(artifact) {
     this.runStatus = 'started';
 };
 
+ArtifactContext.prototype.destroy = function destroy() {
+    this.scope.destroy();
+
+    this.emit('destroy');
+};
+
 module.exports = ArtifactContext;

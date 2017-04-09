@@ -2,17 +2,17 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const LogicDefinition = require('../../logicDefinition.js');
 
-function lengthAction(parentRule, actions, lengthData) {
-    if (!_.isFinite(lengthData) && !_.isFunction(lengthData)) {
+function minAction(parentRule, actions, minData) {
+    if (!_.isFinite(minData) && !_.isFunction(minData)) {
         throw new Error('Must be a finite value or a setup function');
     }
 
     const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.define('lengthData', lengthData);
+        setupContext.define('minData', minData);
 
         setupContext.onRun((runContext, value, params) => {
-            if (_.isString(value) && value.length !== params.lengthData) {
-                runContext.raise('schema', `Must be ${params.lengthData} characters long.`, 'error');
+            if (_.isArray(value) && value.length < params.minData) {
+                runContext.raise('schema', `Must be greater than ${params.minData - 1} items long.`, 'error');
             } else {
                 runContext.raise();
             }
@@ -21,7 +21,7 @@ function lengthAction(parentRule, actions, lengthData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-length', logicDefinition, nextActions, parentRule);
+    return Rule('array-min', logicDefinition, nextActions, parentRule);
 }
 
-module.exports = lengthAction;
+module.exports = minAction;

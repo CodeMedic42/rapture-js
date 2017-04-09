@@ -96,7 +96,7 @@ function _run() {
         if (this.parameters.meta[name].required) {
             if (paramStatus === 'undefined') {
                 // The required value has never been defined and this is an issue.
-                issues.push(Issue('Rule', null, null, `Required rule value "${name}" is not defined.`, 'warning'));
+                issues.push(Issue('rule', null, null, `Required rule value "${name}" is not defined.`, 'warning'));
 
                 ready = false;
             } else if (paramStatus === 'failed') {

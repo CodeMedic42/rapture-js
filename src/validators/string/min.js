@@ -17,14 +17,11 @@ function minAction(parentRule, actions, minData) {
                 runContext.raise();
             }
         });
-    }, true);
+    });
 
     const nextActions = _.clone(actions);
 
-    delete nextActions.min;
-    delete nextActions.length;
-
-    return Rule(logicDefinition, nextActions, parentRule);
+    return Rule('string-min', logicDefinition, nextActions, parentRule);
 }
 
 module.exports = minAction;

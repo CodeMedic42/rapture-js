@@ -93,19 +93,20 @@ _processObject = function processObject(lexingContext, from) {
 _processArray = function processArray(lexingContext, from) {
     const target = [];
 
-    let currentToken = lexingContext.next();
+    let nextToken = lexingContext.peak();
 
-    if (currentToken.type === 'punctuator') {
-        if (currentToken.raw === ']') {
+    if (nextToken.type === 'punctuator') {
+        if (nextToken.raw === ']') {
+            lexingContext.next();
             return target;
+        } else if (nextToken.raw !== '{') {
+            throw Issue('parsing', nextToken.type, nextToken.location, 'Must be a valid array item or an end tag for the array.');
         }
-
-        throw Issue('parsing', currentToken.type, currentToken.location, 'Must be a valid array item or an end tag for the array.');
     }
 
     while (true) { // eslint-disable-line no-constant-condition
-        const tokenRowStart = currentToken.location.rowStart;
-        const tokenColumnStart = currentToken.location.columnStart;
+        const tokenRowStart = nextToken.location.rowStart;
+        const tokenColumnStart = nextToken.location.columnStart;
 
         const indexLocation = TokenLocation(tokenRowStart, tokenRowStart, tokenColumnStart, tokenColumnStart);
 
@@ -125,7 +126,7 @@ _processArray = function processArray(lexingContext, from) {
             }
         }
 
-        currentToken = lexingContext.next();
+        nextToken = lexingContext.peak();
     }
 
     return target;

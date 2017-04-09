@@ -77,8 +77,8 @@ const objectActions = {
     if: ifAction
 };
 
-function objectDefinition() {
-    return Rule(logicDefinition, objectActions);
+function objectDefinition(parentRule) {
+    return Rule('object', logicDefinition, objectActions, parentRule);
 }
 
 module.exports = objectDefinition;

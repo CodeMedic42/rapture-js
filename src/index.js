@@ -7,9 +7,9 @@ const any = require('./validators/any');
 const version = require('./validators/version');
 const SessionContext = require('./sessionContext.js');
 const ifAction = require('./validators/common/if.js');
+const ScopeRule = require('./scopeRule.js');
 
 const initialActions = {
-    createSessionContext: SessionContext,
     any,
     object,
     array,
@@ -22,5 +22,6 @@ const initialActions = {
 };
 
 module.exports = _.merge({
+    scope: ScopeRule.bind(null, initialActions),
     createSessionContext: SessionContext,
 }, initialActions);

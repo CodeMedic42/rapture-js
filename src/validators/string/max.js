@@ -17,14 +17,11 @@ function maxAction(parentRule, actions, maxData) {
                 runContext.raise();
             }
         });
-    }, true);
+    });
 
     const nextActions = _.clone(actions);
 
-    delete nextActions.max;
-    delete nextActions.length;
-
-    return Rule(logicDefinition, nextActions, parentRule);
+    return Rule('string-max', logicDefinition, nextActions, parentRule);
 }
 
 module.exports = maxAction;

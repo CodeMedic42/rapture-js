@@ -145,6 +145,7 @@ describe('Object Tests', () => {
 
                 const testObjectUpdate = {};
                 const testDataUpdate = JSON.stringify(testObjectUpdate);
+
                 context.update(testDataUpdate);
             });
         });
@@ -364,7 +365,7 @@ describe('Object Tests', () => {
             expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
             expect(firstIssues.length, 'One issue found.').to.be.equal(1);
 
-            expect(firstIssues[0].type, 'Issue type').to.be.equal('Rule');
+            expect(firstIssues[0].type, 'Issue type').to.be.equal('rule');
             expect(firstIssues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(0);
             expect(firstIssues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(0);
             expect(firstIssues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(0);

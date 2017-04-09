@@ -5,7 +5,7 @@ const LogicDefinition = require('../../logicDefinition.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
-function numberDefinition() {
+function numberDefinition(parentRule) {
     const logicDefinition = LogicDefinition((setupContext) => {
         setupContext.onRun((runContext, value) => {
             if (!_.isNil(value) && !_.isFinite(value)) {
@@ -21,7 +21,7 @@ function numberDefinition() {
         if: ifAction
     };
 
-    return Rule(logicDefinition, actions);
+    return Rule('number', logicDefinition, actions, parentRule);
 }
 
 module.exports = numberDefinition;

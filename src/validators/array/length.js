@@ -11,8 +11,8 @@ function lengthAction(parentRule, actions, lengthData) {
         setupContext.define('lengthData', lengthData);
 
         setupContext.onRun((runContext, value, params) => {
-            if (_.isString(value) && value.length !== params.lengthData) {
-                runContext.raise('schema', `Must be ${params.lengthData} characters long.`, 'error');
+            if (_.isArray(value) && value.length !== params.lengthData) {
+                runContext.raise('schema', `Must be ${params.lengthData} items long.`, 'error');
             } else {
                 runContext.raise();
             }
@@ -21,7 +21,7 @@ function lengthAction(parentRule, actions, lengthData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-length', logicDefinition, nextActions, parentRule);
+    return Rule('array-length', logicDefinition, nextActions, parentRule);
 }
 
 module.exports = lengthAction;

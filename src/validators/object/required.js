@@ -55,7 +55,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
         });
     });
 
-    return Rule(logicDefinition, actions, parentRule);
+    return Rule('object-required', logicDefinition, actions, parentRule);
 }
 
 module.exports = requiredAction;

@@ -61,8 +61,8 @@ function keysAction(parentRule, actions, keyData) {
             // TODO: transaction.commitTransaction();
         });
 
-        setupContext.onPause((control, contents, params, currentContexts) => {
-            // TODO: const transaction = params.__keyData.startTransaction();
+        setupContext.onPause((control, contents, currentContexts) => {
+            // TODO: const transaction = control.data.__keyData.startTransaction();
 
             control.data.__keyData.set(`rules.${control.id}`, false);
 
@@ -78,7 +78,7 @@ function keysAction(parentRule, actions, keyData) {
         });
     });
 
-    return Rule(logicDefinition, actions, parentRule);
+    return Rule('object-keys', logicDefinition, actions, parentRule);
 }
 
 module.exports = keysAction;

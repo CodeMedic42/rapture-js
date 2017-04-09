@@ -9,7 +9,7 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const customAction = require('../common/custom.js');
 
-function stringDefinition() {
+function stringDefinition(parentRule) {
     const logicDefinition = LogicDefinition((setupContext) => {
         setupContext.onRun((runContext, value) => {
             if (!_.isNil(value) && !_.isString(value)) {
@@ -29,7 +29,7 @@ function stringDefinition() {
         custom: customAction
     };
 
-    return Rule(logicDefinition, actions);
+    return Rule('string', logicDefinition, actions, parentRule);
 }
 
 module.exports = stringDefinition;

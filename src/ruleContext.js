@@ -1,6 +1,7 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
+const Scope = require('./scope.js');
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -17,7 +18,12 @@ function RuleContext(runContext, rule) {
         return new RuleContext(runContext, rule);
     }
 
-    this.scope = runContext.scope;
+    if (!_.isUndefined(rule.ruleGroup.scopeId)) {
+        this.scope = Scope(rule.ruleGroup.scopeId, runContext.scope);
+    } else {
+        this.scope = runContext.scope;
+    }
+
     this.logicContexts = [];
     this.compacted = [];
     this.tokenValue = runContext.tokenValue;
@@ -112,8 +118,16 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
     this.rule.applyLogic(this);
 
     if (oldStatus === 'started') {
-        this.start();
+        _.forEach(this.logicContexts, (logicContext) => {
+            logicContext.start();
+        });
     }
+
+    if (this.status === 'emitNeeded') {
+        emitRaise.call(this, true);
+    }
+
+    this.status = oldStatus;
 };
 
 module.exports = RuleContext;

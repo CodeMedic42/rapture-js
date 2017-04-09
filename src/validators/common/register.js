@@ -19,7 +19,11 @@ function registerAction(parentRule, actions, id, targetScope, value) {
         setupContext.define('val', val);
         setupContext.define('id', id);
 
-        setupContext.onRun((runContext, contents, params) => {
+        setupContext.onRun((runContext, contents, params, currentValue) => {
+            if (_.isString(currentValue) && (currentValue !== params.id)) {
+                runContext.unregister(targetScope, currentValue);
+            }
+
             runContext.register(targetScope, params.id, params.val, !runContext.isFaulted);
 
             return params.id;
@@ -30,7 +34,7 @@ function registerAction(parentRule, actions, id, targetScope, value) {
         });
     }, true);
 
-    return Rule(logicDefinition, actions, parentRule);
+    return Rule('register', logicDefinition, actions, parentRule);
 }
 
 module.exports = registerAction;

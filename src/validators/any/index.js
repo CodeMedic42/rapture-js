@@ -3,7 +3,7 @@ const LogicDefinition = require('../../logicDefinition.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
-function anyDefinition() {
+function anyDefinition(parentRule) {
     const anyActions = {
         register: registerAction,
         if: ifAction
@@ -11,7 +11,7 @@ function anyDefinition() {
 
     const logicDefinition = LogicDefinition(() => {});
 
-    return Rule(logicDefinition, anyActions);
+    return Rule('any', logicDefinition, anyActions, parentRule);
 }
 
 module.exports = anyDefinition;

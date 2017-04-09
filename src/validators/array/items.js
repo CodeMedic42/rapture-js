@@ -8,33 +8,31 @@ function itemsAction(parentRule, actions, itemRule) {
     }
 
     const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.define('itemContexts', (buildKeysSetup) => {
-            buildKeysSetup.define('itemRule', itemRule);
+        setupContext.define('itemRule', itemRule);
 
-            buildKeysSetup.onRun((runContext, value, params) => {
-                if (_.isNil(value) || !_.isPlainObject(value)) {
-                    // Do nothing
-                    return null;
-                }
+        setupContext.onRun((control, contents, params, currentContexts) => {
+            if (_.isNil(contents) || !_.isArray(contents)) {
+                // Do nothing
+                return null;
+            }
 
-                return _.reduce(value, (contexts, propValue) => {
-                    const _contexts = contexts;
-
-                    _contexts.push(runContext.buildContext(params.itemRule, propValue));
-
-                    return _contexts;
-                }, []);
+            _.forEach(currentContexts, (context) => {
+                context.destroy();
             });
+
+            return _.reduce(contents, (contexts, propValue) => {
+                const ruleContext = control.createRuleContext(params.itemRule, propValue);
+
+                contexts.push(ruleContext);
+
+                ruleContext.start();
+
+                return contexts;
+            }, []);
         });
 
-        setupContext.onRun((runContext, contents, params) => {
-            _.forOwn(params.itemContexts, (context) => {
-                context.start();
-            });
-        });
-
-        setupContext.onPause((runContext, contents, params) => {
-            _.forOwn(params.keyContexts, (context) => {
+        setupContext.onPause((control, contents, currentContexts) => {
+            _.forEach(currentContexts, (context) => {
                 context.stop();
             });
         });
@@ -44,7 +42,7 @@ function itemsAction(parentRule, actions, itemRule) {
 
     delete nextActions.items;
 
-    return Rule(logicDefinition, nextActions, parentRule);
+    return Rule('array-items', logicDefinition, nextActions, parentRule);
 }
 
 module.exports = itemsAction;

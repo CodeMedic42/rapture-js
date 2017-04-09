@@ -33,40 +33,95 @@ describe('String Tests', () => {
         expect(firstIssues.length, 'One issue found.').to.be.equal(0);
     });
 
-    it('is not a string', () => {
-        const testObject = {
-            strValue: 42
-        };
-        const testData = JSON.stringify(testObject, null, 4);
+    describe('is not a string', () => {
+        it('base', () => {
+            const testObject = {
+                strValue: 42
+            };
+            const testData = JSON.stringify(testObject, null, 4);
 
-        const rule =
-        Rapture.object().keys({
-            strValue: Rapture.string()
+            const rule =
+            Rapture.object().keys({
+                strValue: Rapture.string()
+            });
+
+            expect(rule, 'Rule has been created').to.be.exist();
+
+            const session = Rapture.createSessionContext();
+            expect(session, 'Session is created').to.be.exist();
+
+            const context = session.createArtifactContext('artifactID', rule, testData);
+            expect(context, 'context is created').to.be.exist();
+
+            const issues = context.issues();
+
+            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(issues.length, 'One issue found.').to.be.equal(1);
+
+            expect(issues[0].type, 'Issue type').to.be.equal('schema');
+            expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(1);
+            expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(1);
+            expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(4);
+            expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(14);
+            expect(issues[0].message, 'Issue Message').to.be.equal('When defined this field must be a string.');
+            expect(issues[0].cause, 'Issue cause').to.be.equal('strValue');
+            expect(issues[0].severity, 'Issue severity').to.be.equal('error');
         });
 
-        expect(rule, 'Rule has been created').to.be.exist();
+        it('then becomes a string', () => {
+            const testObject = {
+                strValue: 42
+            };
+            const testData = JSON.stringify(testObject, null, 4);
 
-        const session = Rapture.createSessionContext();
-        expect(session, 'Session is created').to.be.exist();
+            const rule =
+            Rapture.object().keys({
+                strValue: Rapture.string()
+            });
 
-        const context = session.createArtifactContext('artifactID', rule, testData);
-        expect(context, 'context is created').to.be.exist();
+            expect(rule, 'Rule has been created').to.be.exist();
 
-        const issues = context.issues();
+            const session = Rapture.createSessionContext();
+            expect(session, 'Session is created').to.be.exist();
 
-        expect(issues, 'Issues is an array').to.be.instanceOf(Array);
-        expect(issues.length, 'One issue found.').to.be.equal(1);
+            const context = session.createArtifactContext('artifactID', rule, testData);
+            expect(context, 'context is created').to.be.exist();
 
-        expect(issues[0].type, 'Issue type').to.be.equal('schema');
-        expect(issues[0].location.rowStart, 'Issue location.rowStart.').to.be.equal(1);
-        expect(issues[0].location.rowEnd, 'Issue location.rowEnd').to.be.equal(1);
-        expect(issues[0].location.columnStart, 'Issue location.columnStart').to.be.equal(4);
-        expect(issues[0].location.columnEnd, 'Issue location.columnEnd').to.be.equal(14);
-        expect(issues[0].message, 'Issue Message').to.be.equal('When defined this field must be a string.');
-        expect(issues[0].cause, 'Issue cause').to.be.equal('strValue');
-        expect(issues[0].severity, 'Issue severity').to.be.equal('error');
+            let called = false;
+
+            context.on('raise', () => {
+                const currentIssues = context.issues();
+
+                expect(currentIssues, 'Issues is an array').to.be.instanceOf(Array);
+                expect(currentIssues.length, 'No issues found.').to.be.equal(0);
+
+                called = true;
+            });
+
+            expect(called).to.be.false();
+
+            let issues = context.issues();
+
+            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(issues.length, 'One issue found.').to.be.equal(1);
+
+            const newTestObject = {
+                strValue: 'valid'
+            };
+            const newTestData = JSON.stringify(newTestObject, null, 4);
+
+            called = false;
+
+            context.update(newTestData);
+
+            issues = context.issues();
+
+            expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+            expect(issues.length, 'Zero issues found.').to.be.equal(0);
+
+            expect(called).to.be.true();
+        });
     });
-
     it('is a string with min', () => {
         const testObject = {
             strValue: 'four'

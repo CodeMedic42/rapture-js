@@ -107,7 +107,7 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
 
             const logicDefinition = LogicDefinition(finalLogic);
 
-            return Rule(logicDefinition, {}, parentRule);
+            return Rule('if', logicDefinition, {}, parentRule);
         }
     };
 

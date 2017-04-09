@@ -245,4 +245,67 @@ describe('Registration Tests', () => {
         expect(sessionValue2.value, 'sessionValue2 value should exist and be correct').to.equal(testObject.reg);
         expect(sessionValue2.status, 'sessionValue2 status should exist and be correct').to.equal('failed');
     });
+
+    describe('register at different scope', () => {
+        it('test', () => {
+            const testObject = {
+                highReg: 'foo',
+                highPeak: 'bar',
+                subObj: {
+                    lowReg: 'faz',
+                    lowPeak: 'baz',
+                }
+            };
+
+            let highPeakCalled = false;
+            let lowPeakCalled = false;
+
+            const rule = Rapture.object().keys({
+                highReg: Rapture.string().register('testRegHigh'),
+                highPeak: Rapture.string().custom((setup) => {
+                    setup.require('testRegHigh');
+                    setup.require('testRegLow');
+                    setup.onRun((control, contents, params) => {
+                        highPeakCalled = true;
+
+                        expect(params.testRegHigh).to.equal(testObject.highReg);
+                        expect(params.testRegLow).to.equal(testObject.lowReg);
+                    });
+                }),
+                subObj: Rapture.scope('scopeA').object().keys({
+                    lowReg: Rapture.string().register('testRegLow'),
+                    lowPeak: Rapture.string().custom((setup) => {
+                        setup.require('testRegHigh');
+                        setup.require('testRegLow');
+                        setup.onRun((control, contents, params) => {
+                            lowPeakCalled = true;
+
+                            expect(params.testRegHigh).to.equal(testObject.highReg);
+                            expect(params.testRegLow).to.equal(testObject.subObj.lowReg);
+                        });
+                    })
+                })
+            });
+
+            const context = fail(testObject, rule, {
+                type: 'rule',
+                rowStart: 2,
+                rowEnd: 2,
+                columnStart: 2,
+                columnEnd: 12,
+                message: 'Required rule value "testRegLow" is not defined.',
+                cause: 'highPeak',
+                severity: 'warning'
+            });
+
+            expect(highPeakCalled).to.be.false();
+            expect(lowPeakCalled).to.be.true();
+
+            const artifactValue = context.scope.get('testReg');
+            expect(artifactValue, 'artifactValue should not exist').to.not.exist();
+
+            const sessionValue = context.scope.parentScope.get('testReg');
+            expect(sessionValue, 'sessionValue should not exist').to.not.exist();
+        });
+    });
 });
