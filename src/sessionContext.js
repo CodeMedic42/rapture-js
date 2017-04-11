@@ -18,6 +18,10 @@ SessionContext.prototype.createArtifactContext = function createArtifactContext(
 
     this.contexts[id] = ArtifactContext(id, ruleDefinition, artifact, this.scope);
 
+    this.contexts[id].on('destroy', () => {
+        delete this.contexts[id];
+    });
+
     return this.contexts[id];
 };
 
@@ -34,10 +38,8 @@ SessionContext.prototype.issues = function issues() {
 };
 
 SessionContext.prototype.destroy = function destroy() {
-    _.forEach(this.contexts, (context, index) => {
+    _.forEach(this.contexts, (context) => {
         context.destroy();
-
-        this.contexts[index] = null;
     }, []);
 
     this.contexts = null;
