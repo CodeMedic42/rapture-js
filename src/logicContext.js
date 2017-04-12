@@ -1,8 +1,21 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
+const Console = require('console');
 const Issue = require('./issue');
 const ShortId = require('shortid');
+
+function checkDisposed(asWarning) {
+    if (this.status === 'disposed') {
+        const message = 'This object has been disposed.';
+
+        if (asWarning) {
+            Console.warn(message);
+        } else {
+            throw new Error(message);
+        }
+    }
+}
 
 function updateValueStatus(newStatus) {
     if (this.valueStatus === newStatus) {
@@ -181,7 +194,7 @@ function createRuleContext(rule, tokenContext) {
     } else {
         const RunContext = require('./runContext.js'); // eslint-disable-line
 
-        runContext = RunContext(this.ruleContext.scope.parentScope);
+        runContext = RunContext(this.ruleContext.scope);
 
         tokenContext.addRunContext(runContext);
     }
@@ -201,7 +214,7 @@ function register(targetScope, id, value, status) {
     }
 
     if (_targetScope === '__working') {
-        this.ruleContext.scope.parentScope.set(null, id, value, status, this);
+        this.ruleContext.scope.set(null, id, value, status, this);
     } else {
         this.ruleContext.scope.set(_targetScope, id, value, status, this);
     }
@@ -215,7 +228,7 @@ function unregister(targetScope, id) {
     }
 
     if (_targetScope === '__working') {
-        this.ruleContext.scope.parentScope.remove(null, id, this);
+        this.ruleContext.scope.remove(null, id, this);
     } else {
         this.ruleContext.scope.remove(_targetScope, id, this);
     }
@@ -348,6 +361,8 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
 Util.inherits(LogicContext, EventEmitter);
 
 LogicContext.prototype.faulted = function faulted() {
+    checkDisposed.call(this);
+
     let previousFault = false;
 
     if (!_.isNil(this.previousContext)) {
@@ -358,6 +373,8 @@ LogicContext.prototype.faulted = function faulted() {
 };
 
 LogicContext.prototype.issues = function issues() {
+    checkDisposed.call(this);
+
     if (!_.isNil(this.compactedIssues)) {
         return this.compactedIssues;
     }
@@ -369,6 +386,8 @@ LogicContext.prototype.issues = function issues() {
 };
 
 LogicContext.prototype.start = function start() {
+    checkDisposed.call(this);
+
     // If we are already starting or are started then we should not do anything.
     if (this.runStatus === 'started' || this.runStatus === 'starting') {
         return;
@@ -392,6 +411,8 @@ LogicContext.prototype.start = function start() {
 };
 
 LogicContext.prototype.stop = function start() {
+    checkDisposed.call(this);
+
     // If we are already stopping or are stopped then we should not do anything.
     if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
         return;
@@ -415,11 +436,15 @@ LogicContext.prototype.stop = function start() {
 };
 
 LogicContext.prototype.status = function status() {
+    checkDisposed.call(this);
+
     return this.valueStatus;
 };
 
-LogicContext.prototype.destroy = function destroy() {
-    this.runStatus = 'teardown';
+LogicContext.prototype.dispose = function dispose() {
+    checkDisposed.call(this, true);
+
+    this.runStatus = 'disposing';
 
     _teardown.call(this);
 
@@ -427,7 +452,7 @@ LogicContext.prototype.destroy = function destroy() {
         emitUpdate.call(this, true);
     }
 
-    this.runStatus = 'destroyed';
+    this.runStatus = 'disposed';
 };
 
 module.exports = LogicContext;

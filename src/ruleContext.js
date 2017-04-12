@@ -1,7 +1,20 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
+const Console = require('console');
 const Scope = require('./scope.js');
+
+function checkDisposed(asWarning) {
+    if (this.status === 'disposed') {
+        const message = 'This object has been disposed.';
+
+        if (asWarning) {
+            Console.warn(message);
+        } else {
+            throw new Error(message);
+        }
+    }
+}
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -20,8 +33,10 @@ function RuleContext(runContext, rule) {
 
     if (!_.isUndefined(rule.ruleGroup.scopeId)) {
         this.scope = Scope(rule.ruleGroup.scopeId, runContext.scope);
+        this.ScopeOwner = true;
     } else {
         this.scope = runContext.scope;
+        this.ScopeOwner = false;
     }
 
     this.logicContexts = [];
@@ -61,12 +76,16 @@ function onUpdate() {
 }
 
 RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
+    checkDisposed.call(this);
+
     this.logicContexts.push(logicContext);
 
     logicContext.on('update', onUpdate, this);
 };
 
 RuleContext.prototype.start = function start() {
+    checkDisposed.call(this);
+
     if (this.status === 'started' || this.status === 'starting') {
         return;
     }
@@ -85,7 +104,7 @@ RuleContext.prototype.start = function start() {
 };
 
 RuleContext.prototype.stop = function stop() {
-    if (this.status === 'stopped' || this.status === 'stopping') {
+    if (this.status === 'stopped' || this.status === 'stopping' || this.status === 'disposed') {
         return;
     }
 
@@ -103,6 +122,8 @@ RuleContext.prototype.stop = function stop() {
 };
 
 RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue) {
+    checkDisposed.call(this);
+
     const oldStatus = this.status;
 
     this.status = 'updating';
@@ -110,7 +131,7 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
     this.tokenValue = newTokenValue;
 
     _.forEach(this.logicContexts, (logicContext) => {
-        logicContext.destroy();
+        logicContext.dispose();
     });
 
     this.logicContexts = [];
@@ -128,6 +149,27 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
     }
 
     this.status = oldStatus;
+};
+
+RuleContext.prototype.dispose = function dispose() {
+    checkDisposed.call(this, true);
+
+    this.runStatus = 'disposing';
+
+    _.forEach(this.logicContexts, (logicContext) => {
+        logicContext.dispose();
+    });
+
+    if (this.ScopeOwner) {
+        this.scope.dispose();
+        this.scope = null;
+    }
+
+    this.logicContexts = null;
+
+    this.status = 'disposed';
+
+    this.emit('disposed');
 };
 
 module.exports = RuleContext;

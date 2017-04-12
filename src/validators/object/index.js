@@ -51,7 +51,9 @@ const logicDefinition = LogicDefinition((setupContext) => {
         _runContext.data.__keyData = Observable({
             rules: {},
             keys
-        }).on('change', evaluateForInvalidKeys.bind(null, runContext, value));
+        }).on('change', function onChange() {
+            evaluateForInvalidKeys(runContext, value, this);
+        });
     });
 
     setupContext.onRun((runContext, value) => {

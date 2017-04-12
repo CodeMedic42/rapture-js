@@ -127,7 +127,7 @@ function Scope(id, parentScope) {
 
         this.parentScope.on('update', parentCB);
 
-        this.destroyParentConnection = () => {
+        this.disposeParentConnection = () => {
             this.parentScope.removeListener('update', parentCB);
 
             this.parentScope = null;
@@ -139,7 +139,7 @@ function Scope(id, parentScope) {
 
 Util.inherits(Scope, EventEmitter);
 
-Scope.prototype.destroy = function destroy() {
+Scope.prototype.dispose = function dispose() {
     _.forOwn(this.data, (item, name) => {
         this.data[name] = null;
     });
@@ -149,11 +149,13 @@ Scope.prototype.destroy = function destroy() {
     });
 
     if (!_.isNil(this.parentScope)) {
-        this.destroyParentConnection();
+        this.disposeParentConnection();
     }
 
     this.data = null;
     this.watches = null;
+
+    this.emit('disposed');
 };
 
 Scope.prototype.createChildScope = function createChildScope(id) {

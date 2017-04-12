@@ -6,8 +6,8 @@
   "scripts": {
     "test": "mocha --recursive",
     "test-debug": "mocha --inspect --debug-brk",
-    "test-target": "mocha ./target/target-working/index.test.js",
-    "test-target-debug": "mocha  --inspect --debug-brk ./target/target-working/index.test.js",
+    "test-target": "mocha ./target/package_json/index.test.js",
+    "test-target-debug": "mocha  --inspect --debug-brk ./target/package_json/index.test.js",
     "lint": "eslint ./src"
   },
   "author": "",

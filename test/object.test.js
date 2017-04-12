@@ -149,6 +149,47 @@ describe('Object Tests', () => {
                 context.update(testDataUpdate);
             });
         });
+
+        it('property name change', () => {
+            return new Promise((resolve) => {
+                const testObject = {
+                    foo: 'bar'
+                };
+                const testData = JSON.stringify(testObject);
+
+                const rule = Rapture.object().keys({
+                    foo: Rapture.string()
+                });
+                expect(rule, 'Rule is created').to.be.exist();
+
+                const session = Rapture.createSessionContext();
+                expect(session, 'Session is created').to.be.exist();
+
+                const context = session.createArtifactContext('artifactID', rule, testData);
+                expect(context, 'context is created').to.be.exist();
+
+                context.on('raise', () => {
+                    const issues = context.issues();
+
+                    expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+                    expect(issues.length, 'One issue found.').to.be.equal(1);
+
+                    resolve();
+                });
+
+                const firstIssues = context.issues();
+
+                expect(firstIssues, 'Issues is an array').to.be.instanceOf(Array);
+                expect(firstIssues.length, 'Zero issues found.').to.be.equal(0);
+
+                const testObjectUpdate = {
+                    baz: 'bar'
+                };
+                const testDataUpdate = JSON.stringify(testObjectUpdate);
+
+                context.update(testDataUpdate);
+            });
+        });
     });
 
     describe('keys', () => {

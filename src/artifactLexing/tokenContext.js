@@ -1,7 +1,20 @@
 const _ = require('lodash');
+const Console = require('console');
 const Util = require('util');
 const EventEmitter = require('eventemitter3');
 const _StringToPath = require('lodash/_stringToPath');
+
+function checkDisposed(asWarning) {
+    if (this.status === 'disposed') {
+        const message = 'This object has been disposed.';
+
+        if (asWarning) {
+            Console.warn(message);
+        } else {
+            throw new Error(message);
+        }
+    }
+}
 
 function emitIssues(force) {
     if (this.status === 'started' || force) {
@@ -51,6 +64,8 @@ function TokenContext(contents, location, from) {
 Util.inherits(TokenContext, EventEmitter);
 
 TokenContext.prototype.issues = function issues() {
+    checkDisposed.call(this);
+
     const finalIssues = [];
 
     if (_.isArray(this.contents) || _.isPlainObject(this.contents)) {
@@ -86,6 +101,8 @@ TokenContext.prototype.issues = function issues() {
 };
 
 TokenContext.prototype.addRunContext = function addRunContext(runContext) {
+    checkDisposed.call(this);
+
     runContext.on('raise', emitPersonalIssues, this);
     runContext.on('destroy', () => {
         _.pull(this.runContexts, runContext);
@@ -173,7 +190,7 @@ function updateContents(newTokenContext) {
 
     if (_.isPlainObject(oldContents) || _.isArray(oldContents)) {
         _.forEach(oldContents, (content) => {
-            content.destroy();
+            content.dispose();
         });
     }
 
@@ -185,6 +202,8 @@ function updateContents(newTokenContext) {
 }
 
 TokenContext.prototype.update = function update(newTokenContext) {
+    checkDisposed.call(this);
+
     this.status = 'updating';
 
     updateContents.call(this, newTokenContext);
@@ -198,6 +217,8 @@ TokenContext.prototype.update = function update(newTokenContext) {
 };
 
 TokenContext.prototype.get = function get(path) {
+    checkDisposed.call(this);
+
     if (!_.isString(path)) {
         throw new Error('Path must be a string');
     }
@@ -218,6 +239,8 @@ TokenContext.prototype.get = function get(path) {
 };
 
 TokenContext.prototype.getRaw = function getRaw() {
+    checkDisposed.call(this);
+
     if (!_.isNil(this.raw)) {
         return this.raw;
     }
@@ -241,6 +264,28 @@ TokenContext.prototype.getRaw = function getRaw() {
     }, type);
 
     return this.raw;
+};
+
+TokenContext.prototype.dispose = function dispose() {
+    checkDisposed.call(this, true);
+
+    if (_.isPlainObject(this.contents) || _.isArray(this.contents)) {
+        _.forEach(this.contents, (content) => {
+            content.dispose();
+        });
+    }
+
+    _.forEach(this.runContexts, (runContext) => {
+        runContext.dispose();
+    });
+
+    this.contents = null;
+    this.location = null;
+    this.from = null;
+    this.compactedIssues = null;
+    this.status = 'disposed';
+
+    this.emit('disposed');
 };
 
 module.exports = TokenContext;

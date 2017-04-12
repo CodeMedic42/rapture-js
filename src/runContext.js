@@ -1,8 +1,21 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Scope = require('./scope.js');
+const Console = require('console');
+// const Scope = require('./scope.js');
 const RuleContext = require('./ruleContext.js');
+
+function checkDisposed(asWarning) {
+    if (this.status === 'disposed') {
+        const message = 'This object has been disposed.';
+
+        if (asWarning) {
+            Console.warn(message);
+        } else {
+            throw new Error(message);
+        }
+    }
+}
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -19,7 +32,7 @@ function RunContext(scope) {
         return new RunContext(scope);
     }
 
-    this.scope = Scope('__rule', scope);
+    this.scope = scope; // Scope('__rule', scope);
     this.livingIssues = {};
     this.compacted = null;
     this.tokenValue = undefined;
@@ -33,6 +46,8 @@ function RunContext(scope) {
 Util.inherits(RunContext, EventEmitter);
 
 RunContext.prototype.runWith = function runWith(tokenValue) {
+    checkDisposed.call(this);
+
     this.status = 'updating';
 
     this.tokenValue = tokenValue;
@@ -49,6 +64,8 @@ RunContext.prototype.runWith = function runWith(tokenValue) {
 };
 
 RunContext.prototype.createRuleContext = function createRuleContext(rule) {
+    checkDisposed.call(this);
+
     this.status = 'updating';
 
     const ruleContext = RuleContext(this, rule);
@@ -67,6 +84,8 @@ RunContext.prototype.createRuleContext = function createRuleContext(rule) {
 };
 
 RunContext.prototype.issues = function issues() {
+    checkDisposed.call(this);
+
     const finalIssues = [];
 
     _.forEach(this.ruleContexts, (ruleContext) => {
@@ -92,6 +111,26 @@ RunContext.prototype.issues = function issues() {
     }
 
     return finalIssues;
+};
+
+RunContext.prototype.dispose = function dispose() {
+    checkDisposed.call(this, true);
+
+    this.runStatus = 'disposing';
+
+    _.forEach(this.ruleContexts, (context) => {
+        context.dispose();
+    });
+
+    this.scope = null;
+    this.livingIssues = null;
+    this.compacted = null;
+    this.tokenValue = undefined;
+    this.status = 'disposed';
+    this.ruleContexts = null;
+    this.data = null;
+
+    this.emit('disposed');
 };
 
 module.exports = RunContext;

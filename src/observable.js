@@ -16,13 +16,9 @@ function Observable(initalValue) {
 
 Util.inherits(Observable, EventEmitter);
 
-const _emitChangeDub = function _emitChangeDubed() {
-    this.emit('change', this);
-};
-
 function _emitChange(force) {
     if (this.status === 'started' || force) {
-        _emitChangeDub.call(this);
+        this.emit('change');
     } else {
         this.status = 'emitRequired';
     }

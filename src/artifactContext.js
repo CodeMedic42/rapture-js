@@ -1,9 +1,23 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
+const Console = require('console');
 const ArtifactLexor = require('./artifactLexing/artifactLexer.js');
 const Scope = require('./scope.js');
 const RunContext = require('./runContext.js');
+const Issue = require('./issue.js');
+
+function checkDisposed(asWarning) {
+    if (this.status === 'disposed') {
+        const message = 'This object has been disposed.';
+
+        if (asWarning) {
+            Console.warn(message);
+        } else {
+            throw new Error(message);
+        }
+    }
+}
 
 function emitRaise(force) {
     if (this.runStatus === 'started' || force) {
@@ -15,7 +29,7 @@ function emitRaise(force) {
     this.runStatus = 'emitNeeded';
 }
 
-function setArtifact(artifact) {
+function buildToken(artifact) {
     let _artifact = artifact;
 
     if (_.isNil(_artifact)) {
@@ -24,27 +38,68 @@ function setArtifact(artifact) {
         throw new Error('Artifact must be a string');
     }
 
-    if (!_.isNil(this.ruleContext)) {
-        this.ruleContext.destroy();
+    try {
+        const token = ArtifactLexor(_artifact);
+
+        return token;
+    } catch (error) {
+        if (error instanceof Issue) {
+            this.compacted = [error];
+
+            emitRaise.call(this);
+        } else {
+            throw error;
+        }
     }
 
-    const initalRuleScope = Scope(null, this.scope);
+    return null;
+}
 
-    this.runStatus = 'starting';
+function setToken(artifact) {
+    this.tokenContext = buildToken.call(this, artifact);
 
-    this.tokenContext = ArtifactLexor(_artifact);
+    if (_.isNil(this.tokenContext)) {
+        return;
+    }
 
     this.tokenContext.on('raise', emitRaise, this);
 
-    const runContext = RunContext(initalRuleScope);
+    this.initalRuleScope = Scope(null, this.scope);
+
+    const runContext = RunContext(this.initalRuleScope);
 
     this.tokenContext.addRunContext(runContext);
 
     this.ruleContext = runContext.createRuleContext(this.rule);
 
     this.ruleContext.start();
+}
 
-    this.runStatus = 'started';
+function disposeToken() {
+    if (!_.isNil(this.ruleContext)) {
+        this.ruleContext.dispose();
+        this.ruleContext = null;
+    }
+
+    if (!_.isNil(this.tokenContext)) {
+        this.tokenContext.dispose();
+        this.tokenContext = null;
+    }
+
+    if (!_.isNil(this.initalRuleScope)) {
+        this.initalRuleScope.dispose();
+        this.initalRuleScope = null;
+    }
+}
+
+function updateToken(artifact) {
+    const newToken = buildToken.call(this, artifact);
+
+    if (_.isNil(newToken)) {
+        disposeToken.call(this);
+    } else {
+        this.tokenContext.update(newToken);
+    }
 }
 
 function ArtifactContext(id, rule, artifact, sessionScope) {
@@ -55,31 +110,40 @@ function ArtifactContext(id, rule, artifact, sessionScope) {
     this.id = id;
     this.scope = Scope('__artifact', sessionScope);
     this.rule = rule;
-    this.runStatus = 'stopped';
+    this.runStatus = 'starting';
+    this.compacted = null;
 
     EventEmitter.call(this);
 
-    setArtifact.call(this, artifact);
+    setToken.call(this, artifact);
+
+    this.runStatus = 'started';
 }
 
 Util.inherits(ArtifactContext, EventEmitter);
 
 ArtifactContext.prototype.issues = function issues() {
-    return this.tokenContext.issues();
+    checkDisposed.call(this);
+
+    if (_.isNil(this.compacted)) {
+        this.compacted = this.tokenContext.issues();
+    }
+
+    return this.compacted;
 };
 
 ArtifactContext.prototype.update = function update(artifact) {
+    checkDisposed.call(this);
+
     this.runStatus = 'updating';
 
-    let _artifact = artifact;
+    this.compacted = null;
 
-    if (_.isNil(_artifact)) {
-        _artifact = '';
-    } else if (!_.isString(_artifact)) {
-        throw new Error('Artifact must be a string');
+    if (_.isNil(this.tokenContext)) {
+        setToken.call(this, artifact);
+    } else {
+        updateToken.call(this, artifact);
     }
-
-    this.tokenContext.update(ArtifactLexor(artifact));
 
     if (this.runStatus === 'emitNeeded') {
         emitRaise.call(this, true);
@@ -88,10 +152,23 @@ ArtifactContext.prototype.update = function update(artifact) {
     this.runStatus = 'started';
 };
 
-ArtifactContext.prototype.destroy = function destroy() {
-    this.scope.destroy();
+ArtifactContext.prototype.dispose = function dispose() {
+    this.runStatus = 'disposing';
 
-    this.emit('destroy');
+    checkDisposed.call(this, true);
+
+    disposeToken.call(this);
+
+    if (!_.isNil(this.scope)) {
+        this.scope.dispose();
+        this.scope = null;
+    }
+
+    this.compacted = null;
+
+    this.runStatus = 'disposed';
+
+    this.emit('disposed');
 };
 
 module.exports = ArtifactContext;
