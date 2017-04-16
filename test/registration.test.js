@@ -65,14 +65,14 @@ describe('Registration Tests', () => {
 
         const rule = Rapture.object().keys({
             reg: Rapture.string().register('testReg'),
-            peak: Rapture.string().custom((setup) => {
-                setup.require('testReg');
-                setup.onRun((control, contents, params) => {
+            peak: Rapture.string().custom(Rapture.logic({
+                require: 'testReg',
+                onRun: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
-                });
-            })
+                }
+            }))
         });
 
         const context = pass(testObject, rule);
@@ -96,14 +96,14 @@ describe('Registration Tests', () => {
 
         const rule = Rapture.object().keys({
             reg: Rapture.string().register('testReg', '__artifact'),
-            peak: Rapture.string().custom((setup) => {
-                setup.require('testReg');
-                setup.onRun((control, contents, params) => {
+            peak: Rapture.string().custom(Rapture.logic({
+                require: 'testReg',
+                onRun: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
-                });
-            })
+                }
+            }))
         });
 
         const context = pass(testObject, rule);
@@ -129,14 +129,14 @@ describe('Registration Tests', () => {
 
         const rule = Rapture.object().keys({
             reg: Rapture.string().register('testReg', '__session'),
-            peak: Rapture.string().custom((setup) => {
-                setup.require('testReg');
-                setup.onRun((control, contents, params) => {
+            peak: Rapture.string().custom(Rapture.logic({
+                require: 'testReg',
+                onRun: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
-                });
-            })
+                }
+            }))
         });
 
         const context = pass(testObject, rule);
@@ -162,12 +162,12 @@ describe('Registration Tests', () => {
 
         const rule = Rapture.object().keys({
             reg: Rapture.string().register('testReg', '__session'),
-            peak: Rapture.string().custom((setup) => {
-                setup.require('testReg');
-                setup.onRun(() => {
+            peak: Rapture.string().custom(Rapture.logic({
+                require: 'testReg',
+                onRun: () => {
                     expect.fail();
-                });
-            })
+                }
+            }))
         });
 
         const context = fail(testObject, rule, {
@@ -202,14 +202,14 @@ describe('Registration Tests', () => {
 
         const rule = Rapture.object().keys({
             reg: Rapture.string().register('testReg', '__session').min(5).register('testReg2', '__session'),
-            peak: Rapture.string().custom((setup) => {
-                setup.require('testReg');
-                setup.onRun((control, contents, params) => {
+            peak: Rapture.string().custom(Rapture.logic({
+                require: 'testReg',
+                onRun: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
-                });
-            })
+                }
+            }))
         });
 
         const context = fail(testObject, rule, {
@@ -262,28 +262,26 @@ describe('Registration Tests', () => {
 
             const rule = Rapture.object().keys({
                 highReg: Rapture.string().register('testRegHigh'),
-                highPeak: Rapture.string().custom((setup) => {
-                    setup.require('testRegHigh');
-                    setup.require('testRegLow');
-                    setup.onRun((control, contents, params) => {
+                highPeak: Rapture.string().custom(Rapture.logic({
+                    require: ['testRegHigh', 'testRegLow'],
+                    onRun: (control, contents, params) => {
                         highPeakCalled = true;
 
                         expect(params.testRegHigh).to.equal(testObject.highReg);
                         expect(params.testRegLow).to.equal(testObject.lowReg);
-                    });
-                }),
+                    }
+                })),
                 subObj: Rapture.scope('scopeA').object().keys({
                     lowReg: Rapture.string().register('testRegLow'),
-                    lowPeak: Rapture.string().custom((setup) => {
-                        setup.require('testRegHigh');
-                        setup.require('testRegLow');
-                        setup.onRun((control, contents, params) => {
+                    lowPeak: Rapture.string().custom(Rapture.logic({
+                        require: ['testRegHigh', 'testRegLow'],
+                        onRun: (control, contents, params) => {
                             lowPeakCalled = true;
 
                             expect(params.testRegHigh).to.equal(testObject.highReg);
                             expect(params.testRegLow).to.equal(testObject.subObj.lowReg);
-                        });
-                    })
+                        }
+                    }))
                 })
             });
 

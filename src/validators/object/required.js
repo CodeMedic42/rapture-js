@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
+const Logic = require('../../logic.js');
 
 function requiredAction(parentRule, actions, ...requiredKeys) {
     let keysList = requiredKeys;
@@ -23,10 +23,9 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
         keysList = requiredKeys[0];
     }
 
-    const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.define('requiredKeys', keysList);
-
-        setupContext.onRun((runContext, value, params) => {
+    const logic = Logic({
+        define: { id: 'requiredKeys', value: keysList },
+        onRun: (runContext, value, params) => {
             const issues = [];
 
             runContext.raise();
@@ -52,10 +51,10 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
             });
 
             runContext.raise(issues);
-        });
+        }
     });
 
-    return Rule('object-required', logicDefinition, actions, parentRule);
+    return Rule('object-required', logic, actions, parentRule);
 }
 
 module.exports = requiredAction;

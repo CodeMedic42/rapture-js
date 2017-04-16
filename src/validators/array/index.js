@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
+const Logic = require('../../logic.js');
 
 const itemsAction = require('./items.js');
 
@@ -10,14 +10,14 @@ const lengthAction = require('./length.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
-const logicDefinition = LogicDefinition((setupContext) => {
-    setupContext.onRun((runContext, value) => {
+const arrayLogic = Logic({
+    onRun: (runContext, value) => {
         if (!_.isNil(value) && !_.isArray(value)) {
             runContext.raise('schema', 'When defined this field must be an array', 'error');
         } else {
             runContext.raise();
         }
-    });
+    }
 });
 
 const actions = {
@@ -30,7 +30,7 @@ const actions = {
 };
 
 function arrayDefinition(parentRule) {
-    return Rule('array', logicDefinition, actions, parentRule);
+    return Rule('array', arrayLogic, actions, parentRule);
 }
 
 module.exports = arrayDefinition;

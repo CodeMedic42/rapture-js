@@ -31,7 +31,7 @@ function internalSet(id, value, ready, owner) {
 
         if ((oldValue === target.value) && (oldStatus === target.status)) {
             // Nothing changes
-            return null;
+            return target;
         }
     }
 

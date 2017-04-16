@@ -1,5 +1,5 @@
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
+const Logic = require('../../logic.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
@@ -9,9 +9,9 @@ function anyDefinition(parentRule) {
         if: ifAction
     };
 
-    const logicDefinition = LogicDefinition(() => {});
+    const logic = Logic({});
 
-    return Rule('any', logicDefinition, anyActions, parentRule);
+    return Rule('any', logic, anyActions, parentRule);
 }
 
 module.exports = anyDefinition;

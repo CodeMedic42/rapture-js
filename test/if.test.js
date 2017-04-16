@@ -7,10 +7,12 @@ Chai.use(DirtyChai);
 
 const expect = Chai.expect;
 
-function isType(type, setupcontext) {
-    setupcontext.require('typeValue');
-    setupcontext.onRun((runContext, contents, params) => {
-        return params.typeValue === type;
+function isType(type) {
+    return Rapture.logic({
+        require: 'typeValue',
+        onRun: (runContext, contents, params) => {
+            return params.typeValue === type;
+        }
     });
 }
 
@@ -19,12 +21,12 @@ describe('If Tests', () => {
         const rule = Rapture.object().keys({
             type: Rapture.string().register('typeValue')
         })
-        .if(isType.bind(null, 'foo'), (hook) => {
+        .if(isType('foo'), (hook) => {
             return hook.keys({
                 code: Rapture.string()
             });
         })
-        .elseIf(isType.bind(null, 'bar'), (hook) => {
+        .elseIf(isType('bar'), (hook) => {
             return hook.keys({
                 code: Rapture.number()
             });
@@ -55,12 +57,12 @@ describe('If Tests', () => {
         const rule = Rapture.object().keys({
             type: Rapture.string().register('typeValue')
         })
-        .if(isType.bind(null, 'foo'), (hook) => {
+        .if(isType('foo'), (hook) => {
             return hook.keys({
                 code: Rapture.string()
             });
         })
-        .elseIf(isType.bind(null, 'bar'), (hook) => {
+        .elseIf(isType('bar'), (hook) => {
             return hook.keys({
                 code: Rapture.number()
             });
@@ -100,12 +102,12 @@ describe('If Tests', () => {
         const rule = Rapture.object().keys({
             type: Rapture.string().register('typeValue')
         })
-        .if(isType.bind(null, 'foo'), (hook) => {
+        .if(isType('foo'), (hook) => {
             return hook.keys({
                 code: Rapture.string()
             });
         })
-        .elseIf(isType.bind(null, 'bar'), (hook) => {
+        .elseIf(isType('bar'), (hook) => {
             return hook.keys({
                 code: Rapture.number()
             });
@@ -136,12 +138,12 @@ describe('If Tests', () => {
         const rule = Rapture.object().keys({
             type: Rapture.string().register('typeValue')
         })
-        .if(isType.bind(null, 'foo'), (hook) => {
+        .if(isType('foo'), (hook) => {
             return hook.keys({
                 code: Rapture.string()
             });
         })
-        .elseIf(isType.bind(null, 'bar'), (hook) => {
+        .elseIf(isType('bar'), (hook) => {
             return hook.keys({
                 code: Rapture.number()
             });
@@ -181,12 +183,12 @@ describe('If Tests', () => {
         const rule = Rapture.object().keys({
             type: Rapture.string().register('typeValue')
         })
-        .if(isType.bind(null, 'foo'), (hook) => {
+        .if(isType('foo'), (hook) => {
             return hook.keys({
                 code: Rapture.string()
             });
         })
-        .elseIf(isType.bind(null, 'bar'), (hook) => {
+        .elseIf(isType('bar'), (hook) => {
             return hook.keys({
                 code: Rapture.number()
             });

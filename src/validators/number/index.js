@@ -1,19 +1,19 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
+const Logic = require('../../logic.js');
 
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 
 function numberDefinition(parentRule) {
-    const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.onRun((runContext, value) => {
+    const logic = Logic({
+        onRun: (runContext, value) => {
             if (!_.isNil(value) && !_.isFinite(value)) {
                 runContext.raise('schema', 'When defined this field must be a number.', 'error');
             } else {
                 runContext.raise();
             }
-        });
+        }
     });
 
     const actions = {
@@ -21,7 +21,7 @@ function numberDefinition(parentRule) {
         if: ifAction
     };
 
-    return Rule('number', logicDefinition, actions, parentRule);
+    return Rule('number', logic, actions, parentRule);
 }
 
 module.exports = numberDefinition;

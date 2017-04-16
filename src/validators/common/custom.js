@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
 
 function customAction(parentRule, actions, id, logic) {
     let _id = id;
@@ -11,9 +10,7 @@ function customAction(parentRule, actions, id, logic) {
         _logic = id;
     }
 
-    const logicDefinition = LogicDefinition(_logic);
-
-    return Rule(_id, logicDefinition, actions, parentRule);
+    return Rule(_id, _logic, actions, parentRule);
 }
 
 module.exports = customAction;

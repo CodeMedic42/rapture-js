@@ -23,5 +23,4 @@ classes/
 *.tern-project
 **/.DS_Store
 dump.rdb
-src
 test

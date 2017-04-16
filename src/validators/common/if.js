@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
+const Logic = require('../../logic.js');
 
 function onRun(control, value, params, currentValue) {
     if (!_.isNil(params.if) && params.if) {
@@ -43,23 +43,19 @@ function ifLogic(ifCondition, thenLogic, actions, nextIf) {
         throw new Error('Must provide a rule');
     }
 
-    return (setupContext) => {
-        if (!_.isNil(ifCondition)) {
-            setupContext.define('if', ifCondition);
-        }
+    let logicDef;
 
-        let logicDef;
+    if (!_.isNil(nextIf)) {
+        logicDef = Logic(nextIf);
+    }
 
-        if (!_.isNil(nextIf)) {
-            logicDef = LogicDefinition(nextIf);
-        }
-
-        setupContext.onSetup((control) => {
+    const logicContents = {
+        onSetup: (control) => {
             return {
                 thenContext: control.createRuleContext(thenRule),
                 nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
             };
-        });
+        },
 
         // setupContext.define('thenContext', (buildThenSetup) => {
         //     buildThenSetup.onSetup((control) => {
@@ -79,18 +75,32 @@ function ifLogic(ifCondition, thenLogic, actions, nextIf) {
         //     });
         // }
 
-        setupContext.onRun(onRun);
-        setupContext.onPause(onPause);
+        onRun,
+        onPause
     };
+
+    if (!_.isNil(ifCondition)) {
+        logicContents.define = { id: 'if', value: ifCondition };
+    }
+
+    return logicContents;
 }
 
 function ifAction(parentRule, actions, ifCondition, thenLogic) {
+    if (!(ifCondition instanceof Logic)) {
+        throw new Error('Must provide some logic for the if component');
+    }
+
     const logicList = [];
 
     logicList.unshift(ifLogic.bind(null, ifCondition, thenLogic, actions));
 
     const ifActions = {
         elseIf: (childIfCondition, childThenLogic) => {
+            if (!(childIfCondition instanceof Logic)) {
+                throw new Error('Must provide some logic for the if component');
+            }
+
             logicList.unshift(ifLogic.bind(null, childIfCondition, childThenLogic, actions));
 
             return ifActions;
@@ -105,9 +115,11 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
                 return logicFun(nextIf);
             }, null);
 
-            const logicDefinition = LogicDefinition(finalLogic);
+            const logic = Logic(finalLogic);
 
-            return Rule('if', logicDefinition, {}, parentRule);
+            const nextActions = _.clone(actions);
+
+            return Rule('if', logic, nextActions, parentRule);
         }
     };
 

@@ -8,6 +8,8 @@ const version = require('./validators/version');
 const SessionContext = require('./sessionContext.js');
 const ifAction = require('./validators/common/if.js');
 const ScopeRule = require('./scopeRule.js');
+const Logic = require('./logic.js');
+const Observable = require('./observable.js');
 
 const initialActions = {
     any,
@@ -18,7 +20,9 @@ const initialActions = {
     version,
     if: (ifCondition, thenLogic) => {
         return ifAction(null, initialActions, ifCondition, thenLogic);
-    }
+    },
+    logic: Logic,
+    observable: Observable
 };
 
 module.exports = _.merge({

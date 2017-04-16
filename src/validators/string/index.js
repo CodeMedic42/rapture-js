@@ -1,35 +1,37 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
-const LogicDefinition = require('../../logicDefinition.js');
+const Logic = require('../../logic.js');
 
 const minAction = require('./min.js');
 const maxAction = require('./max.js');
 const lengthAction = require('./length.js');
+const validAction = require('./valid.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const customAction = require('../common/custom.js');
 
 function stringDefinition(parentRule) {
-    const logicDefinition = LogicDefinition((setupContext) => {
-        setupContext.onRun((runContext, value) => {
+    const logic = Logic({
+        onRun: (runContext, value) => {
             if (!_.isNil(value) && !_.isString(value)) {
                 runContext.raise('schema', 'When defined this field must be a string.', 'error');
             } else {
                 runContext.raise();
             }
-        });
-    }, true);
+        }
+    });
 
     const actions = {
         min: minAction,
         max: maxAction,
+        valid: validAction,
         length: lengthAction,
         register: registerAction,
         if: ifAction,
         custom: customAction
     };
 
-    return Rule('string', logicDefinition, actions, parentRule);
+    return Rule('string', logic, actions, parentRule);
 }
 
 module.exports = stringDefinition;

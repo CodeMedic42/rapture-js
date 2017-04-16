@@ -256,10 +256,10 @@ function onDefinedUpdate(name, status, value) {
 }
 
 function processParameters(parameters) {
-    const LogicDefinition = require('./logicDefinition'); // eslint-disable-line
+    const Logic = require('./logic'); // eslint-disable-line
 
     _.forOwn(parameters, (value, name) => {
-        if (value instanceof LogicDefinition) {
+        if (value instanceof Logic) {
             this.parameters.meta[name] = {};
 
             const logicContext = value.buildContext(this.ruleContext);

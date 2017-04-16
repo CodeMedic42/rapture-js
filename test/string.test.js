@@ -122,6 +122,7 @@ describe('String Tests', () => {
             expect(called).to.be.true();
         });
     });
+
     it('is a string with min', () => {
         const testObject = {
             strValue: 'four'
@@ -189,11 +190,11 @@ describe('String Tests', () => {
 
         const rule =
         Rapture.object().keys({
-            strValue: Rapture.string().min((setupContext) => {
-                setupContext.onRun(() => {
+            strValue: Rapture.string().min(Rapture.logic({
+                onRun: () => {
                     return 4;
-                });
-            })
+                }
+            }))
         });
 
         expect(rule, 'Rule has been created').to.be.exist();
@@ -218,11 +219,11 @@ describe('String Tests', () => {
 
         const rule =
         Rapture.object().keys({
-            strValue: Rapture.string().min((setupContext) => {
-                setupContext.onRun(() => {
+            strValue: Rapture.string().min(Rapture.logic({
+                onRun: () => {
                     return 4;
-                });
-            })
+                }
+            }))
         });
 
         expect(rule, 'Rule has been created').to.be.exist();
