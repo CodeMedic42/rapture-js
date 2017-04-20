@@ -1,20 +1,8 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Console = require('console');
+const Common = require('./common.js');
 const Scope = require('./scope.js');
-
-function checkDisposed(asWarning) {
-    if (this.status === 'disposed') {
-        const message = 'This object has been disposed.';
-
-        if (asWarning) {
-            Console.warn(message);
-        } else {
-            throw new Error(message);
-        }
-    }
-}
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -76,7 +64,7 @@ function onUpdate() {
 }
 
 RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     this.logicContexts.push(logicContext);
 
@@ -84,7 +72,7 @@ RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
 };
 
 RuleContext.prototype.start = function start() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     if (this.status === 'started' || this.status === 'starting') {
         return;
@@ -122,7 +110,7 @@ RuleContext.prototype.stop = function stop() {
 };
 
 RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     const oldStatus = this.status;
 
@@ -130,8 +118,14 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
 
     this.tokenValue = newTokenValue;
 
+    const commits = [];
+
     _.forEach(this.logicContexts, (logicContext) => {
-        logicContext.dispose();
+        commits.push(logicContext.dispose().commit);
+    });
+
+    _.forEach(commits, (commit) => {
+        commit();
     });
 
     this.logicContexts = [];
@@ -152,24 +146,38 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
 };
 
 RuleContext.prototype.dispose = function dispose() {
-    checkDisposed.call(this, true);
+    Common.checkDisposed(this, true);
+
+    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+        return { commit: () => {} };
+    }
 
     this.runStatus = 'disposing';
 
+    const commits = [];
+
     _.forEach(this.logicContexts, (logicContext) => {
-        logicContext.dispose();
+        commits.push(logicContext.dispose().commit);
     });
 
-    if (this.ScopeOwner) {
-        this.scope.dispose();
-        this.scope = null;
-    }
+    return {
+        commit: () => {
+            _.forEach(commits, (commit) => {
+                commit();
+            });
 
-    this.logicContexts = null;
+            if (this.scopeOwner) {
+                this.scope.dispose();
+                this.scope = null;
+            }
 
-    this.status = 'disposed';
+            this.logicContexts = null;
 
-    this.emit('disposed');
+            this.status = 'disposed';
+
+            this.emit('disposed');
+        }
+    };
 };
 
 module.exports = RuleContext;

@@ -27,6 +27,8 @@ function processProperty(lexingContext, from, complexOnly) {
             contents = token.value;
         } else if (token.type === 'literal') {
             contents = token.value;
+        } else if (token.type === 'invalid') {
+            throw Issue('parsing', token.type, token.location, 'Invalid character');
         } else {
             throw Error(`No idea what is going on here. Got a toke type of ${token.type}`);
         }
@@ -53,7 +55,6 @@ _processObject = function processObject(lexingContext, from) {
     while (true) { // eslint-disable-line no-constant-condition
         if (propertyNameToken.type !== 'string') {
             // Must be a property which is a string.
-            debugger;
             throw Issue('parsing', propertyNameToken.type, propertyNameToken.location, 'Must be a string if not ending an object');
         }
 

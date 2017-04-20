@@ -50,7 +50,7 @@ function internalRemove(id, owner) {
         return null;
     }
 
-    if (_.isNil(target.owner)) {
+    if (_.isNil(target.owner) && !_.isNil(owner)) {
         // This was set by our parent, we cannot remove it.
         throw new Error('Attempting to remove a value from the wrong scope.');
     } else if (target.owner !== owner) {
@@ -203,10 +203,13 @@ Scope.prototype.get = function get(id) {
 function internalInitalRemove(scopeID, id, owner) {
     if (scopeID !== this.id) {
         if (_.isNil(this.parentScope)) {
-            throw new Error(`Scope "${scopeID}" does not exist.`);
+            // TODO: CHeck and see if returning when does not exist is ok.
+            return;
+
+            // throw new Error(`Scope "${scopeID}" does not exist.`);
         }
 
-        internalRemove.call(this.parentScope, scopeID, id, owner);
+        internalInitalRemove.call(this.parentScope, scopeID, id, owner);
 
         return;
     }

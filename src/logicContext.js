@@ -1,21 +1,9 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Console = require('console');
-const Issue = require('./issue');
 const ShortId = require('shortid');
-
-function checkDisposed(asWarning) {
-    if (this.status === 'disposed') {
-        const message = 'This object has been disposed.';
-
-        if (asWarning) {
-            Console.warn(message);
-        } else {
-            throw new Error(message);
-        }
-    }
-}
+const Issue = require('./issue');
+const Common = require('./common.js');
 
 function updateValueStatus(newStatus) {
     if (this.valueStatus === newStatus) {
@@ -24,9 +12,12 @@ function updateValueStatus(newStatus) {
 
     this.valueStatus = newStatus;
 
-    const fault = this.valueStatus !== 'ready' || (_.isNil(this.previousContext) ? false : this.previousContext.faulted());
+    // HACK Fault change is getting chatty
+    if (this.runStatus === 'running' || this.runStatus === 'started') {
+        const fault = this.valueStatus !== 'ready' || (_.isNil(this.previousContext) ? false : this.previousContext.faulted());
 
-    this.emit('faultChange', fault);
+        this.emit('faultChange', fault);
+    }
 }
 
 function emitUpdate(force) {
@@ -68,45 +59,21 @@ function raise(...issueMeta) {
         updateValueStatus.call(this, 'failed');
     }
 
-    this.compactedIssues = null;
+    // this.compactedIssues = null;
 
     this.livingIssues = newIssues;
 
     emitUpdate.call(this);
 }
 
-function _pause() {
-    if (!_.isNil(this.onPause)) {
-        this.onPause(this.control, this.ruleContext.tokenValue, this.currentValue);
-    }
-
-    // clear any living issues.
-    raise.call(this);
-}
-
-function _teardown() {
-    updateValueStatus.call(this, 'undefined');
-
-    _.forOwn(this.parameters.contexts, (context) => {
-        context.stop();
-    });
-
-    if (!_.isNil(this.onPause)) {
-        this.onPause(this.control, this.ruleContext.tokenValue, this.currentValue);
-    }
-
-    // clear any living issues.
-    raise.call(this);
-}
-
-function _run() {
+function checkParameters(parameters) {
     let ready = true;
     const issues = [];
 
-    _.forOwn(this.parameters.values, (value, name) => {
-        const paramStatus = this.parameters.meta[name].status;
+    _.forOwn(parameters.values, (value, name) => {
+        const paramStatus = parameters.meta[name].status;
 
-        if (this.parameters.meta[name].required) {
+        if (parameters.meta[name].required) {
             if (paramStatus === 'undefined') {
                 // The required value has never been defined and this is an issue.
                 issues.push(Issue('rule', null, null, `Required rule value "${name}" is not defined.`, 'warning'));
@@ -127,12 +94,12 @@ function _run() {
         }
 
         if (paramStatus === 'undefined') {
-            // Then for some reason the definition is no ready yet.
+            // Then for some reason the definition is not ready yet.
             // We can no idea why so we are not going to do anything here.
             ready = false;
         } else if (paramStatus === 'failed') {
             // There is a context with issues here.
-            issues.push(...this.parameters.contexts[name].issues());
+            issues.push(...parameters.contexts[name].issues());
 
             ready = false;
         } else if (paramStatus === 'ready') {
@@ -142,46 +109,57 @@ function _run() {
         }
     });
 
-    if (this.parameters.issues.length !== 0 || issues.length !== 0) {
-        // Something has changed, clear the compactedIssues.
-        this.compactedIssues = null;
-        this.parameters.issues = issues;
-    }
+    return { ready, issues };
+}
 
-    if (issues.length > 0) {
-        // this.currentValue = undefined;
-        updateValueStatus.call(this, 'failed');
-        this.lastEmited = null;
+function _run() {
+    const paramResult = checkParameters(this.parameters);
 
-        _pause.call(this);
-    } else if (!ready) {
-        // this.currentValue = undefined;
-        updateValueStatus.call(this, 'undefined');
-        this.lastEmited = null;
-
-        _pause.call(this);
-    } else {
-        let ret = this.currentValue;
-
-        // Current value could have been set by setup.\
-        // So even if onRun does not exists we will still want to emit the value when we start up..
-        if (!_.isNil(this.onRun)) {
-            ret = this.onRun(this.control, this.ruleContext.tokenValue, this.parameters.values, this.currentValue);
-        }
-
-        if (this.livingIssues.length <= 0) {
-            updateValueStatus.call(this, 'ready');
-
-            // Even if ret and the current value match if we have never emitted it then we should.
-            if (ret === this.currentValue && this.lastEmited === 'ready') {
-                return;
-            }
-        } else {
+    if (!paramResult.ready) {
+        if (paramResult.issues.length > 0) {
             updateValueStatus.call(this, 'failed');
+        } else {
+            updateValueStatus.call(this, 'undefined');
         }
 
-        this.currentValue = ret;
+        this.lastEmited = null;
+
+        if (!_.isNil(this.onPause)) {
+            this.onPause(this.control, this.ruleContext.tokenValue, this.currentValue);
+        }
+
+        // clear any living issues.
+        this.control.raise(paramResult.issues);
+
+        this.parameters.ready = false;
+
+        return;
+    } else if (!this.parameters.ready) {
+        this.control.raise();
     }
+
+    this.parameters.ready = true;
+
+    let ret = this.currentValue;
+
+    // Current value could have been set by setup.
+    // So even if onRun does not exists we will still want to emit the value when we start up..
+    if (!_.isNil(this.onRun)) {
+        ret = this.onRun(this.control, this.ruleContext.tokenValue, this.parameters.values, this.currentValue);
+    }
+
+    if (this.livingIssues.length <= 0) {
+        // Even if ret and the current value match if we have never emitted it then we should.
+        if (ret === this.currentValue && this.lastEmited === 'ready') {
+            return;
+        }
+
+        updateValueStatus.call(this, 'ready');
+    } else {
+        updateValueStatus.call(this, 'failed');
+    }
+
+    this.currentValue = ret;
 
     emitUpdate.call(this);
 }
@@ -210,28 +188,20 @@ function register(targetScope, id, value, status) {
     let _targetScope = targetScope;
 
     if (_.isNil(_targetScope)) {
-        _targetScope = '__working';
+        _targetScope = this.ruleContext.scope.id;
     }
 
-    if (_targetScope === '__working') {
-        this.ruleContext.scope.set(null, id, value, status, this);
-    } else {
-        this.ruleContext.scope.set(_targetScope, id, value, status, this);
-    }
+    this.ruleContext.scope.set(_targetScope, id, value, status, this);
 }
 
 function unregister(targetScope, id) {
     let _targetScope = targetScope;
 
     if (_.isNil(_targetScope)) {
-        _targetScope = '__working';
+        _targetScope = this.ruleContext.scope.id;
     }
 
-    if (_targetScope === '__working') {
-        this.ruleContext.scope.remove(null, id, this);
-    } else {
-        this.ruleContext.scope.remove(_targetScope, id, this);
-    }
+    this.ruleContext.scope.remove(_targetScope, id, this);
 }
 
 function buildControl() {
@@ -242,7 +212,8 @@ function buildControl() {
         createRuleContext: createRuleContext.bind(this),
         buildLogicContext: buildLogicContext.bind(this),
         register: register.bind(this),
-        unregister: unregister.bind(this)
+        unregister: unregister.bind(this),
+        scope: this.ruleContext.scope
     };
 }
 
@@ -327,7 +298,7 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
     this.lastEmited = 'undefined';
 
     this.livingIssues = [];
-    this.compactedIssues = [];
+    // this.compactedIssues = [];
 
     this.onRun = onRun;
     this.onPause = onPause;
@@ -361,7 +332,7 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
 Util.inherits(LogicContext, EventEmitter);
 
 LogicContext.prototype.faulted = function faulted() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     let previousFault = false;
 
@@ -373,20 +344,19 @@ LogicContext.prototype.faulted = function faulted() {
 };
 
 LogicContext.prototype.issues = function issues() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
-    if (!_.isNil(this.compactedIssues)) {
-        return this.compactedIssues;
-    }
+    // if (!_.isNil(this.compactedIssues)) {
+    //     return this.compactedIssues;
+    // }
+    //
+    // this.compactedIssues = [...this.livingIssues];
 
-    this.compactedIssues = [...this.parameters.issues];
-    this.compactedIssues.push(...this.livingIssues);
-
-    return this.compactedIssues;
+    return this.livingIssues;
 };
 
 LogicContext.prototype.start = function start() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     // If we are already starting or are started then we should not do anything.
     if (this.runStatus === 'started' || this.runStatus === 'starting') {
@@ -410,8 +380,9 @@ LogicContext.prototype.start = function start() {
     this.runStatus = 'started';
 };
 
-LogicContext.prototype.stop = function start() {
-    checkDisposed.call(this);
+LogicContext.prototype.stop = function stop() {
+    // Fail because we are already disposed.
+    Common.checkDisposed(this);
 
     // If we are already stopping or are stopped then we should not do anything.
     if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
@@ -426,7 +397,11 @@ LogicContext.prototype.stop = function start() {
         context.stop();
     });
 
-    _pause.call(this);
+    if (!_.isNil(this.onPause)) {
+        this.onPause(this.control, this.ruleContext.tokenValue, this.currentValue);
+    }
+
+    this.control.raise();
 
     if (this.runStatus === 'emitNeeded') {
         emitUpdate.call(this, true);
@@ -436,23 +411,49 @@ LogicContext.prototype.stop = function start() {
 };
 
 LogicContext.prototype.status = function status() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     return this.valueStatus;
 };
 
 LogicContext.prototype.dispose = function dispose() {
-    checkDisposed.call(this, true);
+    // Warn the user that disposed has already been called.
+    Common.checkDisposed(this, true);
+
+    // If we are already disposed or are disposing then we should not do anything.
+    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+        return { commit: () => {} };
+    }
 
     this.runStatus = 'disposing';
 
-    _teardown.call(this);
+    const commits = [];
 
-    if (this.runStatus === 'emitNeeded') {
-        emitUpdate.call(this, true);
-    }
+    _.forOwn(this.parameters.contexts, (context) => {
+        commits.push(context.dispose().commit);
+    });
 
-    this.runStatus = 'disposed';
+    return {
+        commit: () => {
+            _.forEach(commits, (commit) => {
+                commit();
+            });
+
+            updateValueStatus.call(this, 'undefined');
+
+            if (!_.isNil(this.onTeardown)) {
+                this.onTeardown(this.control, this.ruleContext.tokenValue, this.currentValue);
+            }
+
+            this.control.raise();
+
+            if (this.runStatus === 'emitNeeded') {
+                emitUpdate.call(this, true);
+            }
+
+            this.runStatus = 'disposed';
+        }
+    };
 };
 
 module.exports = LogicContext;

@@ -9,6 +9,8 @@ const maxAction = require('./max.js');
 const lengthAction = require('./length.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
+const registeredAction = require('../common/registered.js');
+const customAction = require('../common/custom.js');
 
 const arrayLogic = Logic({
     onRun: (runContext, value) => {
@@ -26,7 +28,9 @@ const actions = {
     length: lengthAction,
     items: itemsAction,
     register: registerAction,
-    if: ifAction
+    if: ifAction,
+    registered: registeredAction,
+    custom: customAction
 };
 
 function arrayDefinition(parentRule) {

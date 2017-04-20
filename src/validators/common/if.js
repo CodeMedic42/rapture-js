@@ -56,25 +56,6 @@ function ifLogic(ifCondition, thenLogic, actions, nextIf) {
                 nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
             };
         },
-
-        // setupContext.define('thenContext', (buildThenSetup) => {
-        //     buildThenSetup.onSetup((control) => {
-        //         // Create another RuleContext off of original RunContext
-        //
-        //         return control.createRuleContext(thenRule);
-        //     });
-        // });
-
-        // if (!_.isNil(nextIf)) {
-        //     const logicDef = LogicDefinition(nextIf);
-        //
-        //     setupContext.define('nextContext', (buildNextSetup) => {
-        //         buildNextSetup.onSetup((control) => {
-        //             return control.buildLogicContext(logicDef);
-        //         });
-        //     });
-        // }
-
         onRun,
         onPause
     };

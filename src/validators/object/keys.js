@@ -114,6 +114,15 @@ function keysAction(parentRule, actions, keyData, options) {
             });
 
             // TODO: transaction.commitTransaction();
+        },
+        onTeardown: (control, contents, currentContexts) => {
+            control.data.__keyData.set(`rules.${control.id}`, false);
+
+            _.forEach(currentContexts, (context, propertyName) => {
+                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
+                    return keyCount - 1;
+                });
+            });
         }
     });
 

@@ -6,8 +6,14 @@ const Observable = require('../../observable.js');
 const keysAction = require('./keys.js');
 const matchAction = require('./match.js');
 const requiredAction = require('./required.js');
+const nandAction = require('./nand.js');
+const xorAction = require('./xor.js');
+const withoutAction = require('./without.js');
+
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
+const registeredAction = require('../common/registered.js');
+const customAction = require('../common/custom.js');
 
 function evaluateForInvalidKeys(runContext, value, keyData) {
     let keyRuleRunning = false;
@@ -73,9 +79,14 @@ const objectLogic = Logic({
 const objectActions = {
     keys: keysAction,
     match: matchAction,
+    nand: nandAction,
+    xor: xorAction,
+    without: withoutAction,
     required: requiredAction,
     register: registerAction,
-    if: ifAction
+    if: ifAction,
+    registered: registeredAction,
+    custom: customAction
 };
 
 function objectDefinition(parentRule) {

@@ -26,6 +26,14 @@ function validateOnPause(onPause) {
     this.onPause = onPause;
 }
 
+function validateOnTeardown(onTeardown) {
+    if (!_.isNil(onTeardown) && !_.isFunction(onTeardown)) {
+        throw new Error('onTeardown must be a function.');
+    }
+
+    this.onTeardown = onTeardown;
+}
+
 function checkForParam(id) {
     if (!_.isNil(this.params[id])) {
         throw new Error('required property apready defined.');
@@ -98,6 +106,7 @@ function Logic(logicComponents) {
     validateOnSetup.call(this, logicComponents.onSetup);
     validateOnRun.call(this, logicComponents.onRun);
     validateOnPause.call(this, logicComponents.onPause);
+    validateOnTeardown.call(this, logicComponents.onTeardown);
 
     validateRequiredItems.call(this, logicComponents.require);
     validateDefinededItems.call(this, logicComponents.define);

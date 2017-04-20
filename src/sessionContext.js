@@ -1,21 +1,9 @@
 const _ = require('lodash');
 const Util = require('util');
 const EventEmitter = require('eventemitter3');
-const Console = require('console');
+const Common = require('./common.js');
 const ArtifactContext = require('./artifactContext.js');
 const Scope = require('./scope.js');
-
-function checkDisposed(asWarning) {
-    if (this.status === 'disposed') {
-        const message = 'This object has been disposed.';
-
-        if (asWarning) {
-            Console.warn(message);
-        } else {
-            throw new Error(message);
-        }
-    }
-}
 
 function SessionContext() {
     if (!(this instanceof SessionContext)) {
@@ -32,7 +20,7 @@ function SessionContext() {
 Util.inherits(SessionContext, EventEmitter);
 
 SessionContext.prototype.createArtifactContext = function createArtifactContext(id, ruleDefinition, artifact) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     if (!_.isNil(this.contexts[id])) {
         throw new Error(`${id} already exists`);
@@ -48,13 +36,13 @@ SessionContext.prototype.createArtifactContext = function createArtifactContext(
 };
 
 SessionContext.prototype.getArtifactContext = function getArtifactContext(id) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     return this.contexts[id];
 };
 
 SessionContext.prototype.issues = function issues() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     return _.reduce(this.contexts, (issueList, context) => {
         issueList.push(...context.issues());
@@ -64,9 +52,9 @@ SessionContext.prototype.issues = function issues() {
 };
 
 SessionContext.prototype.dispose = function dispose() {
-    this.runStatus = 'disposing';
+    Common.checkDisposed(this, true);
 
-    checkDisposed.call(this, true);
+    this.runStatus = 'disposing';
 
     _.forEach(this.contexts, (context) => {
         context.dispose();

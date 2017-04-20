@@ -9,6 +9,7 @@ const validAction = require('./valid.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const customAction = require('../common/custom.js');
+const registeredAction = require('../common/registered.js');
 
 function stringDefinition(parentRule) {
     const logic = Logic({
@@ -28,7 +29,8 @@ function stringDefinition(parentRule) {
         length: lengthAction,
         register: registerAction,
         if: ifAction,
-        custom: customAction
+        custom: customAction,
+        registered: registeredAction
     };
 
     return Rule('string', logic, actions, parentRule);

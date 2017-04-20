@@ -1,30 +1,37 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
+const Common = require('../../common.js');
 
-function validatedValidData(validData, allowLogic) {
-    if (_.isArray(validData)) {
-        _.forEach(validData, (item) => {
-            if (!_.isString(item)) {
-                throw new Error('Must be an array of strings');
-            }
-        });
+function cleanLogicData(logicData, allowLogic) {
+    if (logicData[0] instanceof Logic) {
+        if (!allowLogic) {
+            throw new Error('Rapture logic objects are not allowed.');
+        } else if (logicData.length > 1) {
+            throw new Error('Only one value should be given when using a Rapture logic object.');
+        }
 
-        return validData;
-    } else if (_.isString(validData)) {
-        return [validData];
-    } else if (_.isString(validData instanceof Logic) && allowLogic) {
-        return validData;
+        return logicData[0];
     }
 
-    throw new Error('Must be a string, an array of strings, or a Rapture logic instance');
+    return Common.flattenWith(logicData, (data) => {
+        if (!_.isString(data)) {
+            throw new Error('All static items must be either arrays or strings');
+        }
+
+        return data;
+    });
 }
 
-function validAction(parentRule, actions, validData) {
-    const _validData = validatedValidData(validData, true);
+function validAction(parentRule, actions, ...initalLogicData) {
+    if (_.isNil(initalLogicData)) {
+        return parentRule;
+    }
+
+    const logicData = cleanLogicData(initalLogicData, true);
 
     const logic = Logic({
-        define: { id: 'validData', value: _validData },
+        define: { id: 'logicData', value: logicData },
         onRun: (context, contents, params) => {
             context.raise();
 
@@ -32,7 +39,7 @@ function validAction(parentRule, actions, validData) {
                 return;
             }
 
-            const finalData = validatedValidData(params.validData, false);
+            const finalData = cleanLogicData([params.logicData], false);
 
             let isValid = false;
 

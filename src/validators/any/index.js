@@ -2,11 +2,13 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
+const registeredAction = require('../common/registered.js');
 
 function anyDefinition(parentRule) {
     const anyActions = {
         register: registerAction,
-        if: ifAction
+        if: ifAction,
+        registered: registeredAction
     };
 
     const logic = Logic({});

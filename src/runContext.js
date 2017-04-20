@@ -1,21 +1,9 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Console = require('console');
+const Common = require('./common.js');
 // const Scope = require('./scope.js');
 const RuleContext = require('./ruleContext.js');
-
-function checkDisposed(asWarning) {
-    if (this.status === 'disposed') {
-        const message = 'This object has been disposed.';
-
-        if (asWarning) {
-            Console.warn(message);
-        } else {
-            throw new Error(message);
-        }
-    }
-}
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -46,7 +34,7 @@ function RunContext(scope) {
 Util.inherits(RunContext, EventEmitter);
 
 RunContext.prototype.runWith = function runWith(tokenValue) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     this.status = 'updating';
 
@@ -64,7 +52,7 @@ RunContext.prototype.runWith = function runWith(tokenValue) {
 };
 
 RunContext.prototype.createRuleContext = function createRuleContext(rule) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     this.status = 'updating';
 
@@ -84,7 +72,7 @@ RunContext.prototype.createRuleContext = function createRuleContext(rule) {
 };
 
 RunContext.prototype.issues = function issues() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     const finalIssues = [];
 
@@ -114,23 +102,37 @@ RunContext.prototype.issues = function issues() {
 };
 
 RunContext.prototype.dispose = function dispose() {
-    checkDisposed.call(this, true);
+    Common.checkDisposed(this, true);
+
+    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+        return { commit: () => {} };
+    }
 
     this.runStatus = 'disposing';
 
+    const commits = [];
+
     _.forEach(this.ruleContexts, (context) => {
-        context.dispose();
+        commits.push(context.dispose().commit);
     });
 
-    this.scope = null;
-    this.livingIssues = null;
-    this.compacted = null;
-    this.tokenValue = undefined;
-    this.status = 'disposed';
-    this.ruleContexts = null;
-    this.data = null;
+    return {
+        commit: () => {
+            _.forEach(commits, (commit) => {
+                commit();
+            });
 
-    this.emit('disposed');
+            this.scope = null;
+            this.livingIssues = null;
+            this.compacted = null;
+            this.tokenValue = undefined;
+            this.status = 'disposed';
+            this.ruleContexts = null;
+            this.data = null;
+
+            this.emit('disposed');
+        }
+    };
 };
 
 module.exports = RunContext;

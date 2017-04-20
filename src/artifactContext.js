@@ -1,23 +1,11 @@
 const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
-const Console = require('console');
 const ArtifactLexor = require('./artifactLexing/artifactLexer.js');
 const Scope = require('./scope.js');
 const RunContext = require('./runContext.js');
 const Issue = require('./issue.js');
-
-function checkDisposed(asWarning) {
-    if (this.status === 'disposed') {
-        const message = 'This object has been disposed.';
-
-        if (asWarning) {
-            Console.warn(message);
-        } else {
-            throw new Error(message);
-        }
-    }
-}
+const Common = require('./common.js');
 
 function emitRaise(force) {
     if (this.runStatus === 'started' || force) {
@@ -76,20 +64,21 @@ function setToken(artifact) {
 }
 
 function disposeToken() {
-    if (!_.isNil(this.ruleContext)) {
-        this.ruleContext.dispose();
-        this.ruleContext = null;
-    }
+    // if (!_.isNil(this.ruleContext)) {
+    //     this.ruleContext.dispose();
+    //     this.ruleContext = null;
+    // }
 
     if (!_.isNil(this.tokenContext)) {
-        this.tokenContext.dispose();
-        this.tokenContext = null;
+        this.tokenContext.dispose().commit();
     }
 
     if (!_.isNil(this.initalRuleScope)) {
         this.initalRuleScope.dispose();
-        this.initalRuleScope = null;
     }
+
+    this.initalRuleScope = null;
+    this.tokenContext = null;
 }
 
 function updateToken(artifact) {
@@ -109,6 +98,7 @@ function ArtifactContext(id, rule, artifact, sessionScope) {
 
     this.id = id;
     this.scope = Scope('__artifact', sessionScope);
+    this.scope.set(this.scope.id, id, true, true, this);
     this.rule = rule;
     this.runStatus = 'starting';
     this.compacted = null;
@@ -123,7 +113,7 @@ function ArtifactContext(id, rule, artifact, sessionScope) {
 Util.inherits(ArtifactContext, EventEmitter);
 
 ArtifactContext.prototype.issues = function issues() {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     if (_.isNil(this.compacted)) {
         this.compacted = this.tokenContext.issues();
@@ -133,7 +123,7 @@ ArtifactContext.prototype.issues = function issues() {
 };
 
 ArtifactContext.prototype.update = function update(artifact) {
-    checkDisposed.call(this);
+    Common.checkDisposed(this);
 
     this.runStatus = 'updating';
 
@@ -155,7 +145,7 @@ ArtifactContext.prototype.update = function update(artifact) {
 ArtifactContext.prototype.dispose = function dispose() {
     this.runStatus = 'disposing';
 
-    checkDisposed.call(this, true);
+    Common.checkDisposed(this, true);
 
     disposeToken.call(this);
 
