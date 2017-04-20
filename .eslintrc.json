@@ -1,0 +1,35 @@
+{
+  "extends": ["airbnb/base"],
+  "parserOptions": {
+    "ecmaVersion": 5,
+    "sourceType": "module"
+  },
+  "env": {
+    "browser": true,
+    "mocha": true
+  },
+  "plugins": [
+      "mocha",
+      "import"
+  ],
+  "rules": {
+    "indent": [2, 4],
+    "indent": [2, 4, {"SwitchCase": 1}],
+    "comma-dangle": 0,
+    "id-length": 0,
+    "new-cap": 0,
+    "max-len": 0,
+    "no-multi-assign" : 0,
+    "arrow-body-style": 0,
+    "no-unused-vars": 2,
+    "prefer-const": 2,
+    "object-shorthand": 2,
+    "padded-blocks": 2,
+    "prefer-arrow-callback": 1,
+    "no-underscore-dangle": 0,
+    "class-methods-use-this": 0,
+    "jsx-a11y/href-no-hash": 0,
+    "jsx-a11y/no-static-element-interactions": 0,
+    "prefer-rest-params": 0
+  }
+}

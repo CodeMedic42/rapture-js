@@ -1,5 +1,6 @@
-const EventEmmiter = require('event');
+const EventEmitter = require('eventemitter3');
 const Util = require('util');
+const _ = require('lodash');
 
 function internalSet(id, value, ready, owner) {
     let target = this.data[id];
@@ -17,30 +18,25 @@ function internalSet(id, value, ready, owner) {
             // origial was set by parent, we can override this value no matter what
             target.value = value;
             target.status = status;
-        } else {
-            if (!_.isNil(owner)) {
-                if (owner === target.owner) {
-                    // The owner is changing this value
-                    target.value = value;
-                    target.status = status;
-                } else {
-                    // This value is being updated by someone else and this cannot be allowed.
-                    throw new Error(`Cannot set duplicate value for ${id}`);
-                }
+        } else if (!_.isNil(owner)) {
+            if (owner === target.owner) {
+                // The owner is changing this value
+                target.value = value;
+                target.status = status;
+            } else {
+                // This value is being updated by someone else and this cannot be allowed.
+                throw new Error(`Cannot set duplicate value for ${id}`);
             }
-            // else {
-            //     update is coming from parent but we already have a direct set here. we must ignore this update.
-            // }
         }
 
         if ((oldValue === target.value) && (oldStatus === target.status)) {
             // Nothing changes
-            return null;
+            return target;
         }
     }
 
     // we changed something
-    _.forEach((this.watch[id], (watch) => {
+    _.forEach(this.watches[id], (watch) => {
         watch(target.status, target.value);
     });
 
@@ -51,10 +47,10 @@ function internalRemove(id, owner) {
     let target = this.data[id];
 
     if (_.isNil(target)) {
-        return;
+        return null;
     }
 
-    if (_.isNil(target.owner)) {
+    if (_.isNil(target.owner) && !_.isNil(owner)) {
         // This was set by our parent, we cannot remove it.
         throw new Error('Attempting to remove a value from the wrong scope.');
     } else if (target.owner !== owner) {
@@ -81,7 +77,7 @@ function internalRemove(id, owner) {
         return null;
     }
 
-    _.forEach((this.watch[id], (watch) => {
+    _.forEach(this.watches[id], (watch) => {
         watch(target.status, target.value);
     });
 
@@ -90,7 +86,7 @@ function internalRemove(id, owner) {
 
 function updateFromParent(parentData) {
     const updatedData = {};
-    const updateAvaliable = false;
+    let updateAvaliable = false;
 
     _.forOwn(parentData, (data, dataId) => {
         let target;
@@ -98,11 +94,11 @@ function updateFromParent(parentData) {
         if (data.status === 'undefined') {
             target = internalRemove.call(this, dataId, null);
         } else {
-            target = internalSet.call(this, dataId, data.value, data.ready, null);
+            target = internalSet.call(this, dataId, data.value, data.status === 'ready', null);
         }
 
-        if (!_.isNil(newValue)) {
-            updatedData[dataId] = newValue;
+        if (!_.isNil(target)) {
+            updatedData[dataId] = target;
             updateAvaliable = true;
         }
     });
@@ -122,22 +118,51 @@ function Scope(id, parentScope) {
     this.parentScope = parentScope;
     this.watches = {};
 
-    EventEmmiter.call(this);
+    EventEmitter.call(this);
 
-    this.parentScope.on('update', (updatedData) => {
-        updateFromParent.call(this, updatedData);
-    });
+    if (!_.isNil(this.parentScope)) {
+        const parentCB = (updatedData) => {
+            updateFromParent.call(this, updatedData);
+        };
 
-    updateFromParent.call(this, this.parentScope.data);
+        this.parentScope.on('update', parentCB);
+
+        this.disposeParentConnection = () => {
+            this.parentScope.removeListener('update', parentCB);
+
+            this.parentScope = null;
+        };
+
+        updateFromParent.call(this, this.parentScope.data);
+    }
 }
 
 Util.inherits(Scope, EventEmitter);
 
+Scope.prototype.dispose = function dispose() {
+    _.forOwn(this.data, (item, name) => {
+        this.data[name] = null;
+    });
+
+    _.forOwn(this.watches, (item, name) => {
+        this.watches[name] = null;
+    });
+
+    if (!_.isNil(this.parentScope)) {
+        this.disposeParentConnection();
+    }
+
+    this.data = null;
+    this.watches = null;
+
+    this.emit('disposed');
+};
+
 Scope.prototype.createChildScope = function createChildScope(id) {
     return Scope(id, this);
-}
+};
 
-functon internalInitalSet() {
+function internalInitalSet(scopeID, id, value, ready, owner) {
     if (scopeID !== this.id) {
         if (_.isNil(this.parentScope)) {
             throw new Error(`Scope "${scopeID}" does not exist.`);
@@ -149,8 +174,10 @@ functon internalInitalSet() {
     const newValue = internalSet.call(this, id, value, ready, owner);
 
     if (!_.isNil(newValue)) {
-        this.emit('update', { [id]: newValue});
+        this.emit('update', { [id]: newValue });
     }
+
+    return newValue;
 }
 
 Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
@@ -158,30 +185,39 @@ Scope.prototype.set = function set(scopeID, id, value, ready, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (!_.isNil(scopeID) {
-        if (!_.isString(scopeID)) {
-            throw new Error('scopeID must be a string when used');
-        }
-    } else {
-        scopeID = this.id;
+    let _scopeID = scopeID;
+
+    if (_.isNil(_scopeID)) {
+        _scopeID = this.id;
+    } else if (!_.isString(_scopeID)) {
+        throw new Error('scopeID must be a string when used');
     }
 
-    internalInitalSet.call(this, scopeID, id, value, ready, owner);
+    return internalInitalSet.call(this, _scopeID, id, value, ready, owner).value;
 };
 
-functon internalInitalRemove(scopeID, id, owner) {
+Scope.prototype.get = function get(id) {
+    return this.data[id];
+};
+
+function internalInitalRemove(scopeID, id, owner) {
     if (scopeID !== this.id) {
         if (_.isNil(this.parentScope)) {
-            throw new Error(`Scope "${scopeID}" does not exist.`);
+            // TODO: CHeck and see if returning when does not exist is ok.
+            return;
+
+            // throw new Error(`Scope "${scopeID}" does not exist.`);
         }
 
-        return internalRemove.call(this.parentScope, scopeID, id, value, owner);
+        internalInitalRemove.call(this.parentScope, scopeID, id, owner);
+
+        return;
     }
 
     const removedValue = internalRemove.call(this, id, owner);
 
     if (!_.isNil(removedValue)) {
-        this.emit('update', { [id]: removedValue});
+        this.emit('update', { [id]: removedValue });
     }
 }
 
@@ -190,21 +226,23 @@ Scope.prototype.remove = function remove(scopeID, id, owner) {
         throw new Error('Must supply an owner');
     }
 
-    if (!_.isNil(scopeID) {
-        if (!_.isString(scopeID)) {
+    let _scopeID = scopeID;
+
+    if (!_.isNil(_scopeID)) {
+        if (!_.isString(_scopeID)) {
             throw new Error('scopeID must be a string when used');
         }
     } else {
-        scopeID = this.id;
+        _scopeID = this.id;
     }
 
-    internalInitalRemove.call(this, scopeID, id, owner);
+    internalInitalRemove.call(this, _scopeID, id, owner);
 };
 
 Scope.prototype.watch = function watch(id, onUpdate) {
     const watches = this.watches[id] = this.watches[id] || [];
 
-    const watchCallback = _.debounce(onUpdate);
+    const watchCallback = onUpdate;
 
     watches.push(watchCallback);
 
@@ -220,50 +258,5 @@ Scope.prototype.watch = function watch(id, onUpdate) {
         _.pull(watches, watchCallback);
     };
 };
-
-// Scope.prototype.watchGroup = function watchGroup(items, onReady, onUnReady) {
-//     args = [];
-//
-//     const evaluate = _.debounce(() => {
-//         const result = [];
-//         const ready = true;
-//
-//         _.forEach(args, (arg) => {
-//             result.push(arg.value);
-//
-//             ready = ready && arg.ready;
-//
-//             return ready;
-//         });
-//
-//         ready ? onReady(result) : onUnReady();
-//     });
-//
-//     _.forEach(items, (item, index) => {
-//         args[index] = {
-//             ready: false,
-//             listener: this.watch(item, (paramValue) => {
-//                 args[index].ready = true;
-//                 args[index].value = paramValue;
-//
-//                 evaluate();
-//             }, () => {
-//                 .args[item].ready = false;
-//                 delete args[index].value;
-//
-//                 evaluate();
-//             });
-//         };
-//     });
-//
-//     return () => {
-//         _.forEach(args, (arg) => {
-//             arg();
-//         });
-//     };
-// }
-
-
-
 
 module.exports = Scope;

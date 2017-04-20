@@ -3,11 +3,11 @@ const _ = require('lodash');
 const TokenLocation = require('./tokenLocation');
 
 function LexingContext(artifact) {
-    if (!(this instanceof LexingContext)){
+    if (!(this instanceof LexingContext)) {
         return new LexingContext(artifact);
     }
 
-    this.tokens = JsonLexer(artifact),
+    this.tokens = JsonLexer(artifact);
     this.index = -1;
 }
 
@@ -41,10 +41,10 @@ function calculateLocation(tokens, targetIndex) {
         previousLocation.columnEnd + lines[0].length :
         // We are dealing with multiple lines.
         // We end on the length of the last item.
-        lines[lines.length-1].length;
+        lines[lines.length - 1].length;
 
     // If we only have one line then we are no
-    const rowEnd = previousLocation.rowEnd + lines.length - 1;
+    const rowEnd = (previousLocation.rowEnd + lines.length) - 1;
 
     token.location = TokenLocation(previousLocation.rowEnd, rowEnd, previousLocation.columnEnd, columnEnd);
 
@@ -55,14 +55,14 @@ LexingContext.prototype.current = function current() {
     const targetIndex = this.index;
 
     if (targetIndex < 0) {
-        throw new Error ('Must call next first');
+        throw new Error('Must call next first');
     }
 
     return calculateLocation(this.tokens, targetIndex);
 };
 
 LexingContext.prototype.peak = function peak() {
-    const targetIndex = this.index + 1;
+    let targetIndex = this.index + 1;
 
     let token = calculateLocation(this.tokens, targetIndex);
 

@@ -1,30 +1,34 @@
-const JsonLexer = require('json-lexer');
 const _ = require('lodash');
 const LexingContext = require('./lexingContext.js');
 const TokenContext = require('./tokenContext.js');
 const TokenLocation = require('./tokenLocation.js');
 const Issue = require('../issue.js');
 
+let _processObject;
+let _processArray;
+
 function processProperty(lexingContext, from, complexOnly) {
-    let token = lexingContext.next();
+    const token = lexingContext.next();
 
     let contents = null;
 
     if (token.type === 'punctuator') {
         if (token.raw === '{') {
-            contents = processObject(lexingContext, from);
+            contents = _processObject(lexingContext, from); // eslint-disable-line
         } else if (token.raw === '[') {
-            contents = processArray(lexingContext, from);
+            contents = _processArray(lexingContext, from); // eslint-disable-line
         } else {
             throw Issue('parsing', token.type, token.location, 'Invalid start punctuator');
         }
-    } else if (!complexOnly){
+    } else if (!complexOnly) {
         if (token.type === 'string') {
             contents = token.value;
         } else if (token.type === 'number') {
             contents = token.value;
         } else if (token.type === 'literal') {
             contents = token.value;
+        } else if (token.type === 'invalid') {
+            throw Issue('parsing', token.type, token.location, 'Invalid character');
         } else {
             throw Error(`No idea what is going on here. Got a toke type of ${token.type}`);
         }
@@ -35,7 +39,7 @@ function processProperty(lexingContext, from, complexOnly) {
     return contents;
 }
 
-function processObject(lexingContext, from) {
+_processObject = function processObject(lexingContext, from) {
     const target = {};
 
     let propertyNameToken = lexingContext.next();
@@ -48,7 +52,7 @@ function processObject(lexingContext, from) {
         throw Issue('parsing', propertyNameToken.type, propertyNameToken.location, 'Must be a string for a property or an end tag for the object.');
     }
 
-    while (true) {
+    while (true) { // eslint-disable-line no-constant-condition
         if (propertyNameToken.type !== 'string') {
             // Must be a property which is a string.
             throw Issue('parsing', propertyNameToken.type, propertyNameToken.location, 'Must be a string if not ending an object');
@@ -67,12 +71,12 @@ function processObject(lexingContext, from) {
             throw Issue('parsing', propPuncToken.type, propPuncToken.location, 'Missing ":"');
         }
 
-        const newFrom = from.length <= 0 ? `${propertyName}` : `${from}.${propertyName}`
+        const newFrom = from.length <= 0 ? `${propertyName}` : `${from}.${propertyName}`;
         const contents = processProperty(lexingContext, newFrom, false);
 
         target[propertyName] = TokenContext(contents, propertyNameToken.location, newFrom);
 
-        endPuncToken = lexingContext.next();
+        const endPuncToken = lexingContext.next();
 
         if (endPuncToken.type === 'punctuator') {
             if (endPuncToken.raw === '}') {
@@ -86,24 +90,25 @@ function processObject(lexingContext, from) {
     }
 
     return target;
-}
+};
 
-function processArray(lexingContext, from) {
+_processArray = function processArray(lexingContext, from) {
     const target = [];
 
-    let currentToken = lexingContext.next();
+    let nextToken = lexingContext.peak();
 
-    if (currentToken.type === 'punctuator') {
-        if (currentToken.raw === ']') {
+    if (nextToken.type === 'punctuator') {
+        if (nextToken.raw === ']') {
+            lexingContext.next();
             return target;
+        } else if (nextToken.raw !== '{') {
+            throw Issue('parsing', nextToken.type, nextToken.location, 'Must be a valid array item or an end tag for the array.');
         }
-
-        throw Issue('parsing', currentToken.type, currentToken.location, 'Must be a valid array item or an end tag for the array.');
     }
 
-    while (true) {
-        const tokenRowStart = currentToken.location.rowStart;
-        const tokenColumnStart = currentToken.location.columnStart;
+    while (true) { // eslint-disable-line no-constant-condition
+        const tokenRowStart = nextToken.location.rowStart;
+        const tokenColumnStart = nextToken.location.columnStart;
 
         const indexLocation = TokenLocation(tokenRowStart, tokenRowStart, tokenColumnStart, tokenColumnStart);
 
@@ -113,7 +118,7 @@ function processArray(lexingContext, from) {
 
         target.push(TokenContext(contents, indexLocation, newFrom));
 
-        endPuncToken = lexingContext.next();
+        const endPuncToken = lexingContext.next();
 
         if (endPuncToken.type === 'punctuator') {
             if (endPuncToken.raw === ']') {
@@ -123,11 +128,11 @@ function processArray(lexingContext, from) {
             }
         }
 
-        currentToken = lexingContext.next();
+        nextToken = lexingContext.peak();
     }
 
     return target;
-}
+};
 
 module.exports = function ArtifactLexer(artifact) {
     const contents = processProperty(LexingContext(artifact), '', false);
