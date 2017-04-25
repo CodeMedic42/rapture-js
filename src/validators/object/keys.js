@@ -2,30 +2,34 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function disposeContexts(control, currentContexts) {
-    _.forEach(currentContexts, (context, propertyName) => {
-        control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-            return keyCount - 1;
-        });
+function disposeContexts(context, currentContexts) {
+    context.data.__keyData.set(context.id, false);
 
-        if (!_.isNil(context)) {
-            context.dispose();
+    const commits = [];
+
+    _.forEach(currentContexts, (paramContext /* , propertyName */) => {
+        if (!_.isNil(paramContext)) {
+            commits.push(paramContext.dispose().commit);
         }
+    });
+
+    _.forEach(commits, (commit) => {
+        commit();
     });
 }
 
-function validateKeys(control, keys) {
+function validateKeys(context, keys) {
     if (_.isNil(keys)) {
         // If nothing is provided then all keys are allowed, as far as this instance of this rule is concerned.
 
-        control.data.__keyData.set(`rules.${control.id}`, false);
+        context.data.__keyData.set(context.id, false);
 
         // But there are no rules to validate to.
         return false;
     } else if (!_.isPlainObject(keys)) {
-        control.data.__keyData.set(`rules.${control.id}`, false);
+        context.data.__keyData.set(context.id, false);
 
-        control.raise('rule', 'Keys must either be undefined, null, or a plain object', 'error');
+        context.raise('rule', 'Keys must either be undefined, null, or a plain object', 'error');
 
         return false;
     }
@@ -33,8 +37,10 @@ function validateKeys(control, keys) {
     return true;
 }
 
-function buildContexts(control, contents, keys, allowAll) {
-    return _.reduce(contents, (current, propValue, propertyName) => {
+function buildContexts(context, contents, keys, allowAll) {
+    const keyData = {};
+
+    const paramContexts = _.reduce(contents, (current, propValue, propertyName) => {
         let ruleContext = null;
 
         const keyRule = keys[propertyName];
@@ -44,15 +50,11 @@ function buildContexts(control, contents, keys, allowAll) {
                 return current;
             }
 
-            control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                return keyCount + 1;
-            });
+            keyData[propertyName] = true;
         } else {
-            control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                return keyCount + 1;
-            });
+            keyData[propertyName] = true;
 
-            ruleContext = control.createRuleContext(keyRule, propValue);
+            ruleContext = context.createRuleContext(keyRule, propValue);
 
             ruleContext.start();
         }
@@ -63,6 +65,10 @@ function buildContexts(control, contents, keys, allowAll) {
 
         return _current;
     }, {});
+
+    context.data.__keyData.set(context.id, keyData);
+
+    return paramContexts;
 }
 
 function keysAction(parentRule, actions, keyData, options) {
@@ -78,7 +84,7 @@ function keysAction(parentRule, actions, keyData, options) {
 
     const logic = Logic({
         define: { id: 'keys', value: keyData },
-        onRun: (control, contents, params, currentContexts) => {
+        onRun: (context, contents, params, currentContexts) => {
             // TODO: const transaction = params.__keyData.startTransaction();
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
@@ -86,43 +92,19 @@ function keysAction(parentRule, actions, keyData, options) {
                 return null;
             }
 
-            disposeContexts(control, currentContexts);
+            disposeContexts(context, currentContexts);
 
-            if (!validateKeys(control, params.keys)) {
+            if (!validateKeys(context, params.keys)) {
                 return [];
             }
 
-            control.data.__keyData.set(`rules.${control.id}`, true);
-
-            return buildContexts(control, contents, params.keys, _options.allowAll);
-
-            // TODO: transaction.commitTransaction();
+            return buildContexts(context, contents, params.keys, _options.allowAll);
         },
-        onPause: (control, contents, currentContexts) => {
-            // TODO: const transaction = control.data.__keyData.startTransaction();
-
-            control.data.__keyData.set(`rules.${control.id}`, false);
-
-            _.forEach(currentContexts, (context, propertyName) => {
-                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                    return keyCount - 1;
-                });
-
-                if (!_.isNil(context)) {
-                    context.stop();
-                }
-            });
-
-            // TODO: transaction.commitTransaction();
+        onPause: (context, contents, currentContexts) => {
+            disposeContexts(context, currentContexts);
         },
-        onTeardown: (control, contents, currentContexts) => {
-            control.data.__keyData.set(`rules.${control.id}`, false);
-
-            _.forEach(currentContexts, (context, propertyName) => {
-                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                    return keyCount - 1;
-                });
-            });
+        onTeardown: (context, contents, currentContexts) => {
+            disposeContexts(context, currentContexts);
         }
     });
 

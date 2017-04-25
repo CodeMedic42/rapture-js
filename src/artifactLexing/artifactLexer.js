@@ -21,14 +21,20 @@ function processProperty(lexingContext, from, complexOnly) {
             throw Issue('parsing', token.type, token.location, 'Invalid start punctuator');
         }
     } else if (!complexOnly) {
+        if (!_.isNil(token.issue)) {
+            const newLocation = TokenLocation(token.location.rowStart, token.location.rowEnd, token.location.columnStart + token.issue.start, token.location.columnStart + token.issue.start + token.issue.length);
+
+            throw Issue('parsing', token.type, newLocation, token.issue.message);
+        }
+
         if (token.type === 'string') {
             contents = token.value;
         } else if (token.type === 'number') {
             contents = token.value;
         } else if (token.type === 'literal') {
             contents = token.value;
-        } else if (token.type === 'invalid') {
-            throw Issue('parsing', token.type, token.location, 'Invalid character');
+        // } else if (token.type === 'unknown') {
+        //     throw Issue('parsing', token.type, token.location, token.detail);
         } else {
             throw Error(`No idea what is going on here. Got a toke type of ${token.type}`);
         }

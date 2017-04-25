@@ -21,10 +21,10 @@ function RuleContext(runContext, rule) {
 
     if (!_.isUndefined(rule.ruleGroup.scopeId)) {
         this.scope = Scope(rule.ruleGroup.scopeId, runContext.scope);
-        this.ScopeOwner = true;
+        this.scopeOwner = true;
     } else {
         this.scope = runContext.scope;
-        this.ScopeOwner = false;
+        this.scopeOwner = false;
     }
 
     this.logicContexts = [];
@@ -116,8 +116,6 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
 
     this.status = 'updating';
 
-    this.tokenValue = newTokenValue;
-
     const commits = [];
 
     _.forEach(this.logicContexts, (logicContext) => {
@@ -129,6 +127,9 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
     });
 
     this.logicContexts = [];
+
+    // Only Update the tokenValue after disposal.
+    this.tokenValue = newTokenValue;
 
     this.rule.applyLogic(this);
 

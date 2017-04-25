@@ -50,7 +50,11 @@ function setToken(artifact) {
         return;
     }
 
-    this.tokenContext.on('raise', emitRaise, this);
+    this.tokenContext.on('raise', () => {
+        this.compacted = null;
+
+        emitRaise();
+    }, this);
 
     this.initalRuleScope = Scope(null, this.scope);
 
@@ -127,10 +131,12 @@ ArtifactContext.prototype.update = function update(artifact) {
 
     this.runStatus = 'updating';
 
-    this.compacted = null;
-
     if (_.isNil(this.tokenContext)) {
+        this.compacted = null;
+
         setToken.call(this, artifact);
+
+        this.runStatus = 'emitNeeded';
     } else {
         updateToken.call(this, artifact);
     }

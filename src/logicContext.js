@@ -59,8 +59,6 @@ function raise(...issueMeta) {
         updateValueStatus.call(this, 'failed');
     }
 
-    // this.compactedIssues = null;
-
     this.livingIssues = newIssues;
 
     emitUpdate.call(this);
@@ -298,7 +296,6 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
     this.lastEmited = 'undefined';
 
     this.livingIssues = [];
-    // this.compactedIssues = [];
 
     this.onRun = onRun;
     this.onPause = onPause;
@@ -345,12 +342,6 @@ LogicContext.prototype.faulted = function faulted() {
 
 LogicContext.prototype.issues = function issues() {
     Common.checkDisposed(this);
-
-    // if (!_.isNil(this.compactedIssues)) {
-    //     return this.compactedIssues;
-    // }
-    //
-    // this.compactedIssues = [...this.livingIssues];
 
     return this.livingIssues;
 };

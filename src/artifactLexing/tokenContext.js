@@ -32,6 +32,16 @@ function linkContents() {
     }
 }
 
+function setupOnDispose(tokenContext, runContext) {
+    const cb = () => {
+        _.pull(tokenContext.runContexts, runContext);
+
+        runContext.removeListener('disposed', cb);
+    };
+
+    runContext.on('disposed', cb);
+}
+
 function TokenContext(contents, location, from) {
     if (!(this instanceof TokenContext)) {
         return new TokenContext(contents, location, from);
@@ -92,9 +102,12 @@ TokenContext.prototype.addRunContext = function addRunContext(runContext) {
     Common.checkDisposed(this);
 
     runContext.on('raise', emitPersonalIssues, this);
-    runContext.on('destroy', () => {
-        _.pull(this.runContexts, runContext);
-    });
+
+    setupOnDispose(this, runContext);
+    //
+    // runContext.on('destroy', () => {
+    //     _.pull(this.runContexts, runContext);
+    // });
 
     runContext.runWith(this.contents);
 

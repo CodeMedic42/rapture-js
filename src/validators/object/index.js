@@ -15,48 +15,50 @@ const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 
-function evaluateForInvalidKeys(runContext, value, keyData) {
-    let keyRuleRunning = false;
+function evaluateForInvalidKeys(runContext, contents, keyData) {
+    const keyStates = {};
+    let enabled = false;
 
-    _.forOwn(keyData.get('rules').value, (enabled) => {
-        keyRuleRunning = keyRuleRunning || enabled.value;
+    const data = keyData.toJS();
 
-        return !keyRuleRunning;
+    _.forOwn(data, (ruleState) => {
+        if (!ruleState) {
+            return;
+        }
+
+        enabled = true;
+
+        _.forOwn(ruleState, (propertyValue, propertyName) => {
+            if (propertyValue) {
+                keyStates[propertyName] = true;
+            }
+        });
     });
 
-    if (!keyRuleRunning) {
+    if (!enabled) {
         runContext.raise();
 
         return;
     }
 
-    const finalIssues = _.reduce(keyData.get('keys').value, (issues, propRefCount, propName) => {
-        if (propRefCount.value <= 0) {
-            const propValue = value[propName];
-            issues.push({ type: 'schema', message: `The property "${propName}" is not allowed to exist.`, severity: 'error', from: propValue.from, location: propValue.location });
+    const issues = _.reduce(contents, (issArray, propertyValue, propertyName) => {
+        if (keyStates[propertyName]) {
+            return issArray;
         }
 
-        return issues;
+        issArray.push({ type: 'schema', message: `The property "${propertyName}" is not allowed to exist.`, severity: 'error', from: propertyValue.from, location: propertyValue.location });
+
+        return issArray;
     }, []);
 
-    runContext.raise(finalIssues);
+    runContext.raise(issues);
 }
 
 const objectLogic = Logic({
     onSetup: (runContext, value) => {
         const _runContext = runContext;
 
-        const keys = _.reduce(value, (current, childValue, childName) => {
-            const _current = current;
-
-            _current[childName] = 0;
-
-            return _current;
-        }, {});
-
         _runContext.data.__keyData = Observable({
-            rules: {},
-            keys
         }).on('change', function onChange() {
             evaluateForInvalidKeys(runContext, value, this);
         });

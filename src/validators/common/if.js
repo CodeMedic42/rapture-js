@@ -28,11 +28,19 @@ function onPause(control, contents, currentValue) {
     currentValue.thenContext.stop();
 }
 
-function ifLogic(ifCondition, thenLogic, actions, nextIf) {
+function onTeardown(control, contents, currentValue) {
+    if (!_.isNil(currentValue.nextContext)) {
+        currentValue.nextContext.dispose().commit();
+    }
+
+    currentValue.thenContext.dispose().commit();
+}
+
+function ifLogic(ifCondition, thenLogic, actions, parentRule, nextIf) {
     const newActions = _.reduce(actions, (current, action, actionName) => {
         const _current = current;
 
-        _current[actionName] = action.bind(null, null, actions);
+        _current[actionName] = action.bind(null, parentRule.ruleGroup, actions);
 
         return _current;
     }, {});
@@ -41,6 +49,10 @@ function ifLogic(ifCondition, thenLogic, actions, nextIf) {
 
     if (!(thenRule instanceof Rule)) {
         throw new Error('Must provide a rule');
+    }
+
+    if (thenRule.ruleGroup !== parentRule.ruleGroup) {
+        throw new Error('please continue from current rule');
     }
 
     let logicDef;
@@ -57,7 +69,8 @@ function ifLogic(ifCondition, thenLogic, actions, nextIf) {
             };
         },
         onRun,
-        onPause
+        onPause,
+        onTeardown
     };
 
     if (!_.isNil(ifCondition)) {
@@ -74,7 +87,7 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
 
     const logicList = [];
 
-    logicList.unshift(ifLogic.bind(null, ifCondition, thenLogic, actions));
+    logicList.unshift(ifLogic.bind(null, ifCondition, thenLogic, actions, parentRule));
 
     const ifActions = {
         elseIf: (childIfCondition, childThenLogic) => {
@@ -82,12 +95,12 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
                 throw new Error('Must provide some logic for the if component');
             }
 
-            logicList.unshift(ifLogic.bind(null, childIfCondition, childThenLogic, actions));
+            logicList.unshift(ifLogic.bind(null, childIfCondition, childThenLogic, actions, parentRule));
 
             return ifActions;
         },
         else: (childThenLogic) => {
-            logicList.unshift(ifLogic.bind(null, null, childThenLogic, actions));
+            logicList.unshift(ifLogic.bind(null, null, childThenLogic, actions, parentRule));
 
             return ifActions.endIf();
         },

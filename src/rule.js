@@ -2,6 +2,7 @@ const _ = require('lodash');
 const ShortId = require('shortid');
 const Logic = require('./logic');
 const RuleGroup = require('./ruleGroup.js');
+const ScopeRule = require('./scopeRule.js');
 
 function addActions(actions) {
     _.forEach(actions, (action, actionName) => {
@@ -20,10 +21,20 @@ function Rule(name, logic, actions, parentRule) {
 
     addActions.call(this, actions);
     this.logic = logic;
-    this.parentRule = parentRule;
+
     this.name = name;
     this.id = ShortId.generate();
-    this.ruleGroup = _.isNil(parentRule) ? RuleGroup() : parentRule.ruleGroup;
+
+    if (_.isNil(parentRule)) {
+        this.ruleGroup = RuleGroup();
+    } else if (parentRule instanceof Rule) {
+        this.parentRule = parentRule;
+        this.ruleGroup = parentRule.ruleGroup;
+    } else if ((parentRule instanceof RuleGroup) || (parentRule instanceof ScopeRule)) {
+        this.ruleGroup = parentRule;
+    } else {
+        throw new Error('unknown object');
+    }
 }
 
 Rule.prototype.applyLogic = function applyLogic(ruleContext) {

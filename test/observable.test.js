@@ -44,7 +44,7 @@ describe('Observable Tests', () => {
             expect(ob.value.foo.value).to.equal('new');
         });
 
-        it('set complext foo', (done) => {
+        it('set complex foo', (done) => {
             const ob = Observable({
                 rules: {},
                 keys: {}
@@ -57,6 +57,19 @@ describe('Observable Tests', () => {
             ob.set('rules.foo', true);
 
             expect(ob.value.rules.value.foo.value).to.be.true();
+        });
+
+        it('set boolean to object', (done) => {
+            const ob = Observable({});
+
+            ob.on('change', () => {
+                // debugger;
+            });
+
+            ob.set('foo', false);
+            ob.set('foo', {});
+
+            done();
         });
     });
 });

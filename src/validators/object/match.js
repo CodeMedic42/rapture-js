@@ -2,20 +2,26 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function disposeContexts(control, currentContexts) {
-    _.forEach(currentContexts, (context, propertyName) => {
-        control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-            return keyCount - 1;
-        });
+function disposeContexts(context, currentContexts) {
+    context.data.__keyData.set(context.id, false);
 
-        if (!_.isNil(context)) {
-            context.dispose();
+    const commits = [];
+
+    _.forEach(currentContexts, (paramContext /* , propertyName */) => {
+        if (!_.isNil(paramContext)) {
+            commits.push(paramContext.dispose().commit);
         }
+    });
+
+    _.forEach(commits, (commit) => {
+        commit();
     });
 }
 
-function buildContexts(control, contents, rule, matcher, allowAll) {
-    return _.reduce(contents, (current, propValue, propertyName) => {
+function buildContexts(context, contents, rule, matcher, allowAll) {
+    const keyData = {};
+
+    const paramContexts = _.reduce(contents, (current, propValue, propertyName) => {
         let ruleContext = null;
 
         let matches = false;
@@ -35,15 +41,11 @@ function buildContexts(control, contents, rule, matcher, allowAll) {
                 return current;
             }
 
-            control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                return keyCount + 1;
-            });
+            keyData[propertyName] = true;
         } else {
-            control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                return keyCount + 1;
-            });
+            keyData[propertyName] = true;
 
-            ruleContext = control.createRuleContext(rule, propValue);
+            ruleContext = context.createRuleContext(rule, propValue);
 
             ruleContext.start();
         }
@@ -54,6 +56,10 @@ function buildContexts(control, contents, rule, matcher, allowAll) {
 
         return _current;
     }, {});
+
+    context.data.__keyData.set(context.id, keyData);
+
+    return paramContexts;
 }
 
 function validateRule(rule) {
@@ -100,13 +106,13 @@ function matchAction(parentRule, actions, rule, matcher, options) {
     const _options = options || {};
 
     const logicComponents = {
-        onRun: (control, contents, params, currentContexts) => {
+        onRun: (context, contents, params, currentContexts) => {
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
                 // Do nothing
                 return null;
             }
 
-            disposeContexts(control, currentContexts);
+            disposeContexts(context, currentContexts);
 
             let finalMatcher = _matcher;
 
@@ -118,28 +124,13 @@ function matchAction(parentRule, actions, rule, matcher, options) {
                 }
             }
 
-            control.data.__keyData.set(`rules.${control.id}`, true);
-
-            return buildContexts(control, contents, rule, finalMatcher, _options.allowAll);
-
-            // TODO: transaction.commitTransaction();
+            return buildContexts(context, contents, rule, finalMatcher, _options.allowAll);
         },
-        onPause: (control, contents, currentContexts) => {
-            // TODO: const transaction = control.data.__keyData.startTransaction();
-
-            control.data.__keyData.set(`rules.${control.id}`, false);
-
-            _.forEach(currentContexts, (context, propertyName) => {
-                control.data.__keyData.manipulate(`keys.${propertyName}`, (keyCount) => {
-                    return keyCount - 1;
-                });
-
-                if (!_.isNil(context)) {
-                    context.stop();
-                }
-            });
-
-            // TODO: transaction.commitTransaction();
+        onPause: (context, contents, currentContexts) => {
+            disposeContexts(context, currentContexts);
+        },
+        onTeardown: (context, contents, currentContexts) => {
+            disposeContexts(context, currentContexts);
         }
     };
 

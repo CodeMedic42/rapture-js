@@ -5,9 +5,11 @@
   "main": "src/index.js",
   "scripts": {
     "test": "mocha --recursive",
-    "test-debug": "mocha --inspect --debug-brk  --recursive",
+    "test-debug": "mocha --inspect --debug-brk --recursive",
     "test-package": "mocha ./target/package_json/index.test.js",
     "test-package-debug": "mocha  --inspect --debug-brk ./target/package_json/index.test.js",
+    "test-remix": "mocha ./target/remix/index.test.js",
+    "test-remix-debug": "mocha  --inspect --debug-brk ./target/remix/index.test.js",
     "lint": "eslint ./src"
   },
   "author": "",

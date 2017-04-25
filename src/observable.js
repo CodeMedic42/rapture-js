@@ -2,26 +2,16 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 
-let _set;
-
-function Observable(initalValue) {
-    if (!(this instanceof Observable)) {
-        return new Observable(initalValue);
-    }
-
-    EventEmitter.call(this);
-
-    _set.call(this, initalValue);
-}
-
-Util.inherits(Observable, EventEmitter);
+let _Observable = null;
 
 function _emitChange(force) {
     if (this.status === 'started' || force) {
         this.emit('change');
-    } else {
-        this.status = 'emitRequired';
+
+        return;
     }
+
+    this.status = 'emitRequired';
 }
 
 function _link(observable) {
@@ -36,24 +26,123 @@ function _unlink(observable) {
     this.status = 'emitRequired';
 }
 
-function _setAsObject(value) {
+function _arrayUpdateAdd(newValue, cb) {
+    this.status = 'updating';
+
+    let newValueOb = newValue;
+
+    if (!(newValue instanceof _Observable)) {
+        newValueOb = new _Observable(newValue);
+    }
+
+    cb(newValueOb);
+
+    _link.call(this, newValueOb);
+
+    _emitChange.call(this, true);
+
+    this.status = 'started';
+}
+
+function _arrayUpdateRemove(cb) {
+    this.status = 'updating';
+
+    const items = cb();
+
+    if (items.length > 0) {
+        _.forEach(items, (item) => {
+            _unlink.call(this, item);
+        });
+
+        _emitChange.call(this, true);
+    }
+
+    this.status = 'started';
+}
+
+function _push(newValue) {
+    _arrayUpdateAdd.call(this, newValue, (newValueOb) => {
+        this.value.push(newValueOb);
+    });
+}
+
+function _unshift(newValue) {
+    _arrayUpdateAdd.call(this, newValue, (newValueOb) => {
+        this.value.unshift(newValueOb);
+    });
+}
+
+function _remove(cb) {
+    _arrayUpdateRemove.call(this, () => {
+        return _.remove(this.value, (item) => {
+            return cb(item.toJS());
+        });
+    });
+}
+
+function _pop() {
+    _arrayUpdateRemove.call(this, () => {
+        const item = this.value.pop();
+
+        if (_.isNil(item)) {
+            return [];
+        }
+
+        return [item];
+    });
+}
+
+function _shift() {
+    _arrayUpdateRemove.call(this, () => {
+        const item = this.value.shift();
+
+        if (_.isNil(item)) {
+            return [];
+        }
+
+        return [item];
+    });
+}
+
+function _addArrayProperies(target) {
+    const _target = target;
+
+    _target.push = _push;
+    _target.pop = _pop;
+    _target.remove = _remove;
+    _target.shift = _shift;
+    _target.unshift = _unshift;
+}
+
+function _removeArrayProperies(target) {
+    const _target = target;
+
+    delete _target.push;
+    delete _target.pop;
+    delete _target.remove;
+    delete _target.shift;
+    delete _target.unshift;
+}
+
+function _setAsObject(newValue) {
     const newData = {};
-    let currentData = this.value;
 
-    if (!_.isPlainObject(this.value)) {
-        currentData = newData;
+    let currentValue = this.value;
 
-        if (_.isArray(this.value)) {
-            _.forEach(this.value, (item) => {
+    if (!_.isPlainObject(currentValue)) {
+        if (_.isArray(currentValue)) {
+            _.forEach(currentValue, (item) => {
                 _unlink.call(this, item);
             });
         }
 
+        currentValue = {};
+
         this.status = 'emitRequired';
     }
 
-    _.forOwn(value, (newChild, key) => {
-        const existingChild = currentData[key];
+    _.forOwn(newValue, (newChild, key) => {
+        const existingChild = currentValue[key];
 
         newData[key] = existingChild;
 
@@ -62,7 +151,7 @@ function _setAsObject(value) {
             return;
         }
 
-        if (newChild instanceof Observable) {
+        if (newChild instanceof _Observable) {
             if (_.isNil(existingChild)) {
                 newData[key] = newChild;
 
@@ -75,7 +164,7 @@ function _setAsObject(value) {
         }
 
         if (_.isNil(existingChild)) {
-            const child = newData[key] = new Observable(newChild);
+            const child = newData[key] = new _Observable(newChild);
 
             _link.call(this, child);
         } else {
@@ -83,15 +172,15 @@ function _setAsObject(value) {
         }
     });
 
-    if (_.isPlainObject(this.value)) {
-        _.forOwn(this.value, (item, name) => {
-            if (_.isNil(newData[name])) {
-                _unlink.call(this, item);
-            }
-        });
-    }
+    _.forOwn(currentValue, (item, name) => {
+        if (_.isNil(newData[name])) {
+            _unlink.call(this, item);
+        }
+    });
 
     this.value = newData;
+
+    this.runningType = 'object';
 }
 
 function _setAsArray(value) {
@@ -120,7 +209,7 @@ function _setAsArray(value) {
             return;
         }
 
-        if (newChild instanceof Observable) {
+        if (newChild instanceof _Observable) {
             if (_.isNil(existingChild)) {
                 newData[key] = newChild;
 
@@ -133,7 +222,7 @@ function _setAsArray(value) {
         }
 
         if (_.isNil(existingChild)) {
-            const child = newData[key] = new Observable(newChild);
+            const child = newData[key] = new _Observable(newChild);
 
             _link.call(this, child);
         } else {
@@ -150,24 +239,34 @@ function _setAsArray(value) {
     }
 
     this.value = newData;
+
+    _addArrayProperies(this);
+
+    this.runningType = 'array';
 }
 
 function _setAsSimple(value) {
     if (value !== this.value) {
         this.value = value;
 
+        this.runningType = 'simple';
+
         this.status = 'emitRequired';
     }
 }
 
-_set = function __set(value) {
+function _set(value) {
     this.status = 'updating';
 
     if (_.isPlainObject(value)) {
+        _removeArrayProperies(this);
+
         _setAsObject.call(this, value);
     } else if (_.isArray(value)) {
         _setAsArray.call(this, value);
     } else {
+        _removeArrayProperies(this);
+
         _setAsSimple.call(this, value);
     }
 
@@ -176,9 +275,29 @@ _set = function __set(value) {
 
         _emitChange.call(this);
     }
+}
+
+function _toJSReducer(current, item, id) {
+    const curr = current;
+
+    curr[id] = item.toJS();
+
+    return curr;
+}
+
+_Observable = function Observable(initalValue) {
+    if (!(this instanceof Observable)) {
+        return new Observable(initalValue);
+    }
+
+    EventEmitter.call(this);
+
+    _set.call(this, initalValue);
 };
 
-Observable.prototype.set = function set(...args) {
+Util.inherits(_Observable, EventEmitter);
+
+_Observable.prototype.set = function set(...args) {
     if (args.length <= 0) {
         throw new Error('Need a value');
     } else if (args.length === 1) {
@@ -217,11 +336,11 @@ Observable.prototype.set = function set(...args) {
     if (_.isNil(finalTarget)) {
         this.status = 'updating';
 
-        finalTarget = new Observable(value);
+        finalTarget = new _Observable(value);
 
         currentTarget.value[finalTargetPath] = finalTarget;
 
-        _link(finalTarget);
+        _link.call(this, finalTarget);
 
         _emitChange.call(this, true);
 
@@ -231,7 +350,7 @@ Observable.prototype.set = function set(...args) {
     }
 };
 
-Observable.prototype.get = function get(...args) {
+_Observable.prototype.get = function get(...args) {
     if (args.length <= 0) {
         return this.get('');
     }
@@ -263,27 +382,19 @@ Observable.prototype.get = function get(...args) {
     return currentTarget[finalTargetPath];
 };
 
-function toJSReducer(current, item, id) {
-    const curr = current;
-
-    curr[id] = item.toJS();
-
-    return curr;
-}
-
-Observable.prototype.toJS = function toJS() {
+_Observable.prototype.toJS = function toJS() {
     let data = this.value;
 
     if (_.isArray(data)) {
-        data = _.reduce(data, toJSReducer, []);
+        data = _.reduce(data, _toJSReducer, []);
     } else if (_.isPlainObject(data)) {
-        data = _.reduce(data, toJSReducer, {});
+        data = _.reduce(data, _toJSReducer, {});
     }
 
     return data;
 };
 
-Observable.prototype.manipulate = function manipulate(...args) {
+_Observable.prototype.manipulate = function manipulate(...args) {
     if (args.length <= 0) {
         throw new Error('Must provide a callback');
     } else if (args.length === 1) {
@@ -315,12 +426,12 @@ Observable.prototype.manipulate = function manipulate(...args) {
     this.set(path, newValue);
 };
 
-Observable.prototype.pause = function pause() {
+_Observable.prototype.pause = function pause() {
     this.status = 'paused';
 };
 
-Observable.prototype.unpause = function unpause() {
+_Observable.prototype.unpause = function unpause() {
     this.status = 'started';
 };
 
-module.exports = Observable;
+module.exports = _Observable;

@@ -7,7 +7,7 @@ function LexingContext(artifact) {
         return new LexingContext(artifact);
     }
 
-    this.tokens = JsonLexer(artifact);
+    this.tokens = JsonLexer(artifact, { throwOnError: false });
     this.index = -1;
 }
 

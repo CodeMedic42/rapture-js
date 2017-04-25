@@ -2,7 +2,6 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const Common = require('./common.js');
-// const Scope = require('./scope.js');
 const RuleContext = require('./ruleContext.js');
 
 function emitRaise(force) {
@@ -20,7 +19,7 @@ function RunContext(scope) {
         return new RunContext(scope);
     }
 
-    this.scope = scope; // Scope('__rule', scope);
+    this.scope = scope;
     this.livingIssues = {};
     this.compacted = null;
     this.tokenValue = undefined;
@@ -29,6 +28,20 @@ function RunContext(scope) {
     this.data = {};
 
     EventEmitter.call(this);
+}
+
+function setupOnDispose(runContext, ruleContext) {
+    const cb = () => {
+        _.pull(runContext.ruleContexts, ruleContext);
+
+        ruleContext.removeListener('disposed', cb);
+
+        if (runContext.ruleContexts.length <= 0) {
+            runContext.dispose().commit();
+        }
+    };
+
+    ruleContext.on('disposed', cb);
 }
 
 Util.inherits(RunContext, EventEmitter);
@@ -59,6 +72,8 @@ RunContext.prototype.createRuleContext = function createRuleContext(rule) {
     const ruleContext = RuleContext(this, rule);
 
     ruleContext.on('raise', emitRaise, this);
+
+    setupOnDispose(this, ruleContext);
 
     this.ruleContexts.push(ruleContext);
 
