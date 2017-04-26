@@ -28,7 +28,7 @@ function stringDefinition(parentRule) {
         valid: validAction,
         length: lengthAction,
         register: registerAction,
-        if: ifAction,
+        if: ifAction.bind(null, true),
         custom: customAction,
         registered: registeredAction
     };

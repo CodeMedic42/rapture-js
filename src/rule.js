@@ -1,8 +1,6 @@
 const _ = require('lodash');
 const ShortId = require('shortid');
 const Logic = require('./logic');
-const RuleGroup = require('./ruleGroup.js');
-const ScopeRule = require('./scopeRule.js');
 
 function addActions(actions) {
     _.forEach(actions, (action, actionName) => {
@@ -15,7 +13,7 @@ function Rule(name, logic, actions, parentRule) {
         return new Rule(name, logic, actions, parentRule);
     }
 
-    if (!(logic instanceof Logic)) {
+    if (!_.isNil(logic) && !(logic instanceof Logic)) {
         throw new Error('Logic required.');
     }
 
@@ -26,14 +24,12 @@ function Rule(name, logic, actions, parentRule) {
     this.id = ShortId.generate();
 
     if (_.isNil(parentRule)) {
-        this.ruleGroup = RuleGroup();
+        this.groupId = ShortId.generate();
     } else if (parentRule instanceof Rule) {
         this.parentRule = parentRule;
-        this.ruleGroup = parentRule.ruleGroup;
-    } else if ((parentRule instanceof RuleGroup) || (parentRule instanceof ScopeRule)) {
-        this.ruleGroup = parentRule;
+        this.groupId = this.parentRule.groupId;
     } else {
-        throw new Error('unknown object');
+        throw new Error('If defined, parentRule must be a Rule object');
     }
 }
 
@@ -44,9 +40,13 @@ Rule.prototype.applyLogic = function applyLogic(ruleContext) {
         previousContext = this.parentRule.applyLogic(ruleContext);
     }
 
-    const logicContext = this.logic.buildContext(ruleContext, previousContext);
+    let logicContext = null;
 
-    ruleContext.addLogicContext(logicContext);
+    if (!_.isNil(this.logic)) {
+        logicContext = this.logic.buildContext(ruleContext, previousContext);
+
+        ruleContext.addLogicContext(logicContext);
+    }
 
     return logicContext;
 };

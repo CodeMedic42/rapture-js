@@ -15,7 +15,7 @@ const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 
-function evaluateForInvalidKeys(runContext, contents, keyData) {
+function evaluateForInvalidKeys(context, contents, keyData) {
     const keyStates = {};
     let enabled = false;
 
@@ -36,7 +36,7 @@ function evaluateForInvalidKeys(runContext, contents, keyData) {
     });
 
     if (!enabled) {
-        runContext.raise();
+        context.raise();
 
         return;
     }
@@ -51,30 +51,33 @@ function evaluateForInvalidKeys(runContext, contents, keyData) {
         return issArray;
     }, []);
 
-    runContext.raise(issues);
+    context.raise(issues);
 }
 
 const objectLogic = Logic({
-    onSetup: (runContext, value) => {
-        const _runContext = runContext;
+    options: {
+        useToken: true
+    },
+    onSetup: (context, content) => {
+        const _context = context;
 
-        _runContext.data.__keyData = Observable({
+        _context.data.__keyData = Observable({
         }).on('change', function onChange() {
-            evaluateForInvalidKeys(runContext, value, this);
+            evaluateForInvalidKeys(context, content.contents, this);
         });
     },
-    onRun: (runContext, value) => {
-        if (!_.isNil(value) && !_.isPlainObject(value)) {
-            runContext.raise('schema', 'When defined this field must be a plain object', 'error');
+    onRun: (context, content) => {
+        if (!_.isNil(content.contents) && !_.isPlainObject(content.contents)) {
+            context.raise('schema', 'When defined this field must be a plain object', 'error');
         } else {
-            runContext.raise();
-            runContext.data.__keyData.unpause();
+            context.raise();
+            context.data.__keyData.unpause();
 
-            evaluateForInvalidKeys(runContext, value, runContext.data.__keyData);
+            evaluateForInvalidKeys(context, content.contents, context.data.__keyData);
         }
     },
-    onPause: (runContext) => {
-        runContext.data.__keyData.pause();
+    onPause: (context) => {
+        context.data.__keyData.pause();
     }
 });
 
@@ -86,7 +89,7 @@ const objectActions = {
     without: withoutAction,
     required: requiredAction,
     register: registerAction,
-    if: ifAction,
+    if: ifAction.bind(null, true),
     registered: registeredAction,
     custom: customAction
 };

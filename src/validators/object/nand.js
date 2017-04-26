@@ -17,8 +17,13 @@ function nandAction(parentRule, actions, ...initalLogicData) {
     const logicData = cleanLogicData(initalLogicData);
 
     const logic = Logic({
+        options: {
+            useToken: true
+        },
         onRun: (context, content) => {
-            if (!_.isPlainObject(content)) {
+            const contents = content.contents;
+
+            if (!_.isPlainObject(contents)) {
                 return;
             }
 
@@ -27,8 +32,8 @@ function nandAction(parentRule, actions, ...initalLogicData) {
             const presentItems = [];
 
             _.forEach(logicData, (item) => {
-                if (Object.prototype.hasOwnProperty.call(content, item)) {
-                    presentItems.push(content[item]);
+                if (Object.prototype.hasOwnProperty.call(contents, item)) {
+                    presentItems.push(contents[item]);
                 }
             });
 

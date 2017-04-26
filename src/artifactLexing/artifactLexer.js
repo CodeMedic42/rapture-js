@@ -33,8 +33,8 @@ function processProperty(lexingContext, from, complexOnly) {
             contents = token.value;
         } else if (token.type === 'literal') {
             contents = token.value;
-        // } else if (token.type === 'unknown') {
-        //     throw Issue('parsing', token.type, token.location, token.detail);
+        } else if (token.type === 'end') {
+            throw Issue('parsing', null, token.location, 'Unexpected end of file');
         } else {
             throw Error(`No idea what is going on here. Got a toke type of ${token.type}`);
         }
@@ -59,6 +59,12 @@ _processObject = function processObject(lexingContext, from) {
     }
 
     while (true) { // eslint-disable-line no-constant-condition
+        if (!_.isNil(propertyNameToken.issue)) {
+            const newLocation = TokenLocation(propertyNameToken.location.rowStart, propertyNameToken.location.rowEnd, propertyNameToken.location.columnStart + propertyNameToken.issue.start, propertyNameToken.location.columnStart + propertyNameToken.issue.start + propertyNameToken.issue.length);
+
+            throw Issue('parsing', propertyNameToken.type, newLocation, propertyNameToken.issue.message);
+        }
+
         if (propertyNameToken.type !== 'string') {
             // Must be a property which is a string.
             throw Issue('parsing', propertyNameToken.type, propertyNameToken.location, 'Must be a string if not ending an object');
@@ -90,6 +96,8 @@ _processObject = function processObject(lexingContext, from) {
             } else if (endPuncToken.raw !== ',') {
                 throw Issue('parsing', endPuncToken.type, endPuncToken.location, 'Expecting "}" or ","');
             }
+        } else {
+            throw Issue('parsing', endPuncToken.type, endPuncToken.location, 'Expecting "}" or ","');
         }
 
         propertyNameToken = lexingContext.next();

@@ -225,7 +225,7 @@ describe('Registration Tests', () => {
                         expect(params.testRegLow).to.equal(testObject.lowReg);
                     }
                 })),
-                subObj: Rapture.scope('scopeA').object().keys({
+                subObj: Rapture.scope('scopeA', Rapture.object().keys({
                     lowReg: Rapture.string().register('testRegLow'),
                     lowPeak: Rapture.string().custom(Rapture.logic({
                         require: ['testRegHigh', 'testRegLow'],
@@ -236,7 +236,7 @@ describe('Registration Tests', () => {
                             expect(params.testRegLow).to.equal(testObject.subObj.lowReg);
                         }
                     }))
-                })
+                }))
             });
 
             const context = TestingSupport.fail(testObject, rule, {

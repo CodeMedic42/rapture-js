@@ -53,7 +53,7 @@ function setToken(artifact) {
     this.tokenContext.on('raise', () => {
         this.compacted = null;
 
-        emitRaise();
+        emitRaise.call(this);
     }, this);
 
     this.initalRuleScope = Scope(null, this.scope);
@@ -68,11 +68,6 @@ function setToken(artifact) {
 }
 
 function disposeToken() {
-    // if (!_.isNil(this.ruleContext)) {
-    //     this.ruleContext.dispose();
-    //     this.ruleContext = null;
-    // }
-
     if (!_.isNil(this.tokenContext)) {
         this.tokenContext.dispose().commit();
     }

@@ -2,7 +2,6 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const Common = require('./common.js');
-const Scope = require('./scope.js');
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -14,22 +13,15 @@ function emitRaise(force) {
     this.status = 'emitNeeded';
 }
 
-function RuleContext(runContext, rule) {
+function RuleContext(runContext, rule, scope) {
     if (!(this instanceof RuleContext)) {
-        return new RuleContext(runContext, rule);
+        return new RuleContext(runContext, rule, scope);
     }
 
-    if (!_.isUndefined(rule.ruleGroup.scopeId)) {
-        this.scope = Scope(rule.ruleGroup.scopeId, runContext.scope);
-        this.scopeOwner = true;
-    } else {
-        this.scope = runContext.scope;
-        this.scopeOwner = false;
-    }
-
+    this.scope = scope;
     this.logicContexts = [];
     this.compacted = [];
-    this.tokenValue = runContext.tokenValue;
+    this.tokenContext = runContext.tokenContext;
     this.status = 'stopped';
     this.rule = rule;
     this.runContext = runContext;
@@ -128,8 +120,8 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
 
     this.logicContexts = [];
 
-    // Only Update the tokenValue after disposal.
-    this.tokenValue = newTokenValue;
+    // Only Update the tokenContext after disposal.
+    this.tokenContext = newTokenValue;
 
     this.rule.applyLogic(this);
 

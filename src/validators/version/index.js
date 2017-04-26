@@ -4,6 +4,7 @@ const Logic = require('../../logic.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
+const customAction = require('../common/custom.js');
 
 function versionDefinition(parentRule) {
     const logic = Logic({
@@ -18,8 +19,9 @@ function versionDefinition(parentRule) {
 
     const actions = {
         register: registerAction,
-        if: ifAction,
-        registered: registeredAction
+        if: ifAction.bind(null, true),
+        registered: registeredAction,
+        custom: customAction
     };
 
     return Rule('version', logic, actions, parentRule);

@@ -104,12 +104,8 @@ TokenContext.prototype.addRunContext = function addRunContext(runContext) {
     runContext.on('raise', emitPersonalIssues, this);
 
     setupOnDispose(this, runContext);
-    //
-    // runContext.on('destroy', () => {
-    //     _.pull(this.runContexts, runContext);
-    // });
 
-    runContext.runWith(this.contents);
+    runContext.runWith(this);
 
     this.runContexts.push(runContext);
 
@@ -119,7 +115,7 @@ TokenContext.prototype.addRunContext = function addRunContext(runContext) {
 
 function updateContexts() {
     _.forEach(this.runContexts, (runContext) => {
-        runContext.runWith(this.contents);
+        runContext.runWith(this);
     });
 }
 
@@ -213,6 +209,8 @@ TokenContext.prototype.update = function update(newTokenContext) {
 
     this.runStatus = 'updating';
 
+    this.raw = undefined;
+
     updateContents.call(this, newTokenContext);
     const locationUpdated = this.location.update(newTokenContext.location);
 
@@ -233,15 +231,7 @@ TokenContext.prototype.get = function get(path) {
     const nodes = _StringToPath(path);
 
     return _.reduce(nodes, (current, node) => {
-        const target = current.contents[node];
-
-        // TODO: determine if this code is needed.
-        // if (_.isNil(target)) {
-        //     const from = current.from.length <= 0 ? node : `${current.from}.${node}`;
-        //     target = TokenContext(undefined, current.location, from);
-        // }
-
-        return target;
+        return current.contents[node];
     }, this);
 };
 
@@ -258,10 +248,12 @@ TokenContext.prototype.getRaw = function getRaw() {
         return this.raw;
     }
 
-    let type = {};
+    let type = null;
 
     if (_.isArray(this.contents)) {
         type = [];
+    } else {
+        type = {};
     }
 
     this.raw = _.reduce(this.contents, (current, item, name) => {

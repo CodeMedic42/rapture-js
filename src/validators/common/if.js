@@ -36,23 +36,32 @@ function onTeardown(control, contents, currentValue) {
     currentValue.thenContext.dispose().commit();
 }
 
-function ifLogic(ifCondition, thenLogic, actions, parentRule, nextIf) {
-    const newActions = _.reduce(actions, (current, action, actionName) => {
-        const _current = current;
+// TODO: Remove parentRule
+function ifLogic(isContinue, ifCondition, thenLogic, actions, parentRule, nextIf) {
+    let thenRule = null;
 
-        _current[actionName] = action.bind(null, parentRule.ruleGroup, actions);
+    if (isContinue) {
+        if (!_.isFunction(thenLogic)) {
+            throw new Error('Must provide a function call in then clause.');
+        }
 
-        return _current;
-    }, {});
+        const continueRule = Rule('continueHook', null, actions, null);
 
-    const thenRule = thenLogic(newActions);
+        thenRule = thenLogic(continueRule);
 
-    if (!(thenRule instanceof Rule)) {
-        throw new Error('Must provide a rule');
-    }
+        if (!(thenRule instanceof Rule)) {
+            throw new Error('please continue from current rule');
+        }
 
-    if (thenRule.ruleGroup !== parentRule.ruleGroup) {
-        throw new Error('please continue from current rule');
+        if (thenRule.groupId !== continueRule.groupId) {
+            throw new Error('please continue from current rule');
+        }
+    } else {
+        thenRule = thenLogic;
+
+        if (!(thenRule instanceof Rule)) {
+            throw new Error('Must provide a rule');
+        }
     }
 
     let logicDef;
@@ -80,14 +89,14 @@ function ifLogic(ifCondition, thenLogic, actions, parentRule, nextIf) {
     return logicContents;
 }
 
-function ifAction(parentRule, actions, ifCondition, thenLogic) {
+function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
     if (!(ifCondition instanceof Logic)) {
         throw new Error('Must provide some logic for the if component');
     }
 
     const logicList = [];
 
-    logicList.unshift(ifLogic.bind(null, ifCondition, thenLogic, actions, parentRule));
+    logicList.unshift(ifLogic.bind(null, isContinue, ifCondition, thenLogic, actions, parentRule));
 
     const ifActions = {
         elseIf: (childIfCondition, childThenLogic) => {
@@ -95,12 +104,12 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
                 throw new Error('Must provide some logic for the if component');
             }
 
-            logicList.unshift(ifLogic.bind(null, childIfCondition, childThenLogic, actions, parentRule));
+            logicList.unshift(ifLogic.bind(null, isContinue, childIfCondition, childThenLogic, actions, parentRule));
 
             return ifActions;
         },
         else: (childThenLogic) => {
-            logicList.unshift(ifLogic.bind(null, null, childThenLogic, actions, parentRule));
+            logicList.unshift(ifLogic.bind(null, isContinue, null, childThenLogic, actions, parentRule));
 
             return ifActions.endIf();
         },

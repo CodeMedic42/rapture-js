@@ -22,8 +22,13 @@ function itemsAction(parentRule, actions, itemRule) {
     }
 
     const logic = Logic({
+        options: {
+            useToken: true
+        },
         define: { id: 'itemRule', value: itemRule },
-        onRun: (context, contents, params, currentContexts) => {
+        onRun: (context, content, params, currentContexts) => {
+            const contents = content.contents;
+
             if (_.isNil(contents) || !_.isArray(contents)) {
                 // Do nothing
                 return null;

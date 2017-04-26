@@ -83,8 +83,12 @@ function keysAction(parentRule, actions, keyData, options) {
     const _options = options || {};
 
     const logic = Logic({
+        options: {
+            useToken: true
+        },
         define: { id: 'keys', value: keyData },
-        onRun: (context, contents, params, currentContexts) => {
+        onRun: (context, content, params, currentContexts) => {
+            const contents = content.contents;
             // TODO: const transaction = params.__keyData.startTransaction();
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {

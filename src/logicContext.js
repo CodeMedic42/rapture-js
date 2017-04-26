@@ -123,7 +123,7 @@ function _run() {
         this.lastEmited = null;
 
         if (!_.isNil(this.onPause)) {
-            this.onPause(this.control, this.ruleContext.tokenValue, this.currentValue);
+            this.onPause(this.control, this.content, this.currentValue);
         }
 
         // clear any living issues.
@@ -143,7 +143,7 @@ function _run() {
     // Current value could have been set by setup.
     // So even if onRun does not exists we will still want to emit the value when we start up..
     if (!_.isNil(this.onRun)) {
-        ret = this.onRun(this.control, this.ruleContext.tokenValue, this.parameters.values, this.currentValue);
+        ret = this.onRun(this.control, this.content, this.parameters.values, this.currentValue);
     }
 
     if (this.livingIssues.length <= 0) {
@@ -160,6 +160,12 @@ function _run() {
     this.currentValue = ret;
 
     emitUpdate.call(this);
+}
+
+function createRuleContextInScope(scopeId, rule) {
+    const runContext = this.ruleContext.runContext;
+
+    return runContext.createRuleContextInScope(scopeId, rule);
 }
 
 function createRuleContext(rule, tokenContext) {
@@ -208,6 +214,7 @@ function buildControl() {
         data: this.ruleContext.data,
         id: this.id,
         createRuleContext: createRuleContext.bind(this),
+        createRuleContextInScope: createRuleContextInScope.bind(this),
         buildLogicContext: buildLogicContext.bind(this),
         register: register.bind(this),
         unregister: unregister.bind(this),
@@ -291,6 +298,12 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
 
     this.options = _.isNil(options) ? defaultOptions : options;
 
+    if (this.options.useToken) {
+        this.content = this.ruleContext.tokenContext;
+    } else {
+        this.content = this.ruleContext.tokenContext.getRaw();
+    }
+
     this.runStatus = 'stopped';
     this.valueStatus = 'undefined';
     this.lastEmited = 'undefined';
@@ -312,7 +325,7 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
     }
 
     if (!_.isNil(onSetup)) {
-        this.currentValue = onSetup(this.control, this.ruleContext.tokenValue);
+        this.currentValue = onSetup(this.control, this.content);
     } else {
         this.currentValue = undefined;
     }
@@ -389,7 +402,7 @@ LogicContext.prototype.stop = function stop() {
     });
 
     if (!_.isNil(this.onPause)) {
-        this.onPause(this.control, this.ruleContext.tokenValue, this.currentValue);
+        this.onPause(this.control, this.content, this.currentValue);
     }
 
     this.control.raise();
@@ -433,7 +446,7 @@ LogicContext.prototype.dispose = function dispose() {
             updateValueStatus.call(this, 'undefined');
 
             if (!_.isNil(this.onTeardown)) {
-                this.onTeardown(this.control, this.ruleContext.tokenValue, this.currentValue);
+                this.onTeardown(this.control, this.content, this.currentValue);
             }
 
             this.control.raise();

@@ -7,7 +7,7 @@ function disposeContexts(context, currentContexts) {
 
     const commits = [];
 
-    _.forEach(currentContexts, (paramContext /* , propertyName */) => {
+    _.forEach(currentContexts, (paramContext) => {
         if (!_.isNil(paramContext)) {
             commits.push(paramContext.dispose().commit);
         }
@@ -106,7 +106,12 @@ function matchAction(parentRule, actions, rule, matcher, options) {
     const _options = options || {};
 
     const logicComponents = {
-        onRun: (context, contents, params, currentContexts) => {
+        options: {
+            useToken: true
+        },
+        onRun: (context, content, params, currentContexts) => {
+            const contents = content.contents;
+
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
                 // Do nothing
                 return null;

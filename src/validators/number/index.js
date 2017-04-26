@@ -20,7 +20,7 @@ function numberDefinition(parentRule) {
 
     const actions = {
         register: registerAction,
-        if: ifAction,
+        if: ifAction.bind(null, true),
         registered: registeredAction,
         custom: customAction
     };

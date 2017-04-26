@@ -7,7 +7,7 @@ const registeredAction = require('../common/registered.js');
 function anyDefinition(parentRule) {
     const anyActions = {
         register: registerAction,
-        if: ifAction,
+        if: ifAction.bind(null, true),
         registered: registeredAction
     };
 

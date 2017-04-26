@@ -38,9 +38,14 @@ function registerAction(parentRule, actions, data) {
     }
 
     const logicComponents = {
-        options: { onFaultChange: true },
+        options: {
+            onFaultChange: true,
+            useToken: true
+        },
         define: [{ id: 'registerID', value: id }],
-        onSetup: (context, contents) => {
+        onSetup: (context, content) => {
+            const contents = content.contents;
+
             const runningData = {
                 targetScope
             };
@@ -52,12 +57,14 @@ function registerAction(parentRule, actions, data) {
             runningData.listener = onTreeRaise.bind(null, context, contents, runningData);
 
             if (when === 'tree') {
-                contents.on('raise', runningData.listener);
+                content.on('raise', runningData.listener);
             }
 
             return runningData;
         },
-        onRun: (context, contents, params, currentValue) => {
+        onRun: (context, content, params, currentValue) => {
+            const contents = content.contents;
+
             const _runningData = currentValue;
 
             if (!_.isNil(_runningData.id) && _runningData.id !== params.registerID) {
@@ -82,14 +89,14 @@ function registerAction(parentRule, actions, data) {
 
             return _runningData;
         },
-        onPause: (context, contents, currentValue) => {
+        onPause: (context, content, currentValue) => {
             const _runningData = currentValue;
 
             _runningData.running = false;
 
             context.unregister(targetScope, _runningData.id);
         },
-        onTeardown: (context, contents, currentValue) => {
+        onTeardown: (context, content, currentValue) => {
             const _runningData = currentValue;
 
             _runningData.running = false;
@@ -97,7 +104,7 @@ function registerAction(parentRule, actions, data) {
             context.unregister(targetScope, _runningData.id);
 
             if (!_.isNil(_runningData.listener)) {
-                contents.removeListener(_runningData.listener);
+                content.removeListener(_runningData.listener);
             }
         }
     };
