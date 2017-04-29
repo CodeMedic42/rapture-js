@@ -58,11 +58,11 @@ function setToken(artifact) {
 
     this.initalRuleScope = Scope(null, this.scope);
 
-    const runContext = RunContext(this.initalRuleScope);
+    const runContext = RunContext();
 
     this.tokenContext.addRunContext(runContext);
 
-    this.ruleContext = runContext.createRuleContext(this.rule);
+    this.ruleContext = runContext.createRuleContext(this.rule, this.initalRuleScope);
 
     this.ruleContext.start();
 }

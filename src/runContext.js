@@ -2,7 +2,6 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const Common = require('./common.js');
-const Scope = require('./scope.js');
 const RuleContext = require('./ruleContext.js');
 
 function emitRaise(force) {
@@ -15,12 +14,11 @@ function emitRaise(force) {
     this.status = 'emitNeeded';
 }
 
-function RunContext(scope) {
+function RunContext() {
     if (!(this instanceof RunContext)) {
-        return new RunContext(scope);
+        return new RunContext();
     }
 
-    this.scope = scope;
     this.livingIssues = {};
     this.compacted = null;
     this.tokenContext = undefined;
@@ -65,40 +63,12 @@ RunContext.prototype.runWith = function runWith(tokenContext) {
     this.status = 'started';
 };
 
-RunContext.prototype.createRuleContext = function createRuleContext(rule) {
+RunContext.prototype.createRuleContext = function createRuleContext(rule, scope) {
     Common.checkDisposed(this);
 
     this.status = 'updating';
 
-    const ruleContext = RuleContext(this, rule, this.scope);
-
-    ruleContext.on('raise', emitRaise, this);
-
-    setupOnDispose(this, ruleContext);
-
-    this.ruleContexts.push(ruleContext);
-
-    if (this.status === 'emitNeeded') {
-        emitRaise.call(this, true);
-    }
-
-    this.status = 'started';
-
-    return ruleContext;
-};
-
-RunContext.prototype.createRuleContextInScope = function createRuleContextInScope(scopeId, rule) {
-    Common.checkDisposed(this);
-
-    this.status = 'updating';
-
-    const newScope = Scope(scopeId, this.scope);
-
-    const ruleContext = RuleContext(this, rule, newScope);
-
-    ruleContext.on('disposed', () => {
-        newScope.dispose();
-    });
+    const ruleContext = RuleContext(this, rule, scope);
 
     ruleContext.on('raise', emitRaise, this);
 

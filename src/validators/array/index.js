@@ -7,6 +7,7 @@ const itemsAction = require('./items.js');
 const minAction = require('./min.js');
 const maxAction = require('./max.js');
 const lengthAction = require('./length.js');
+const uniqueAction = require('./unique.js');
 const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
@@ -27,6 +28,7 @@ const actions = {
     max: maxAction,
     length: lengthAction,
     items: itemsAction,
+    unique: uniqueAction,
     register: registerAction,
     if: ifAction.bind(null, true),
     registered: registeredAction,

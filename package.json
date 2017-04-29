@@ -10,7 +10,8 @@
     "test-package-debug": "mocha  --inspect --debug-brk ./target/package_json/index.test.js",
     "test-remix": "mocha ./target/remix/index.test.js",
     "test-remix-debug": "mocha  --inspect --debug-brk ./target/remix/index.test.js",
-    "lint": "eslint ./src"
+    "lint": "eslint ./src",
+    "cover": "./node_modules/istanbul/lib/cli.js cover ./node_modules/mocha/bin/_mocha -- --recursive"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +21,7 @@
     "glob": "^7.1.1",
     "gulp": "^3.9.1",
     "gulp-mocha": "^3.0.1",
+    "istanbul": "^0.4.5",
     "mocha": "^3.2.0",
     "sinon": "^2.1.0"
   },

@@ -4,6 +4,7 @@ const _ = require('lodash');
 const ShortId = require('shortid');
 const Issue = require('./issue');
 const Common = require('./common.js');
+const Scope = require('./scope.js');
 
 function updateValueStatus(newStatus) {
     if (this.valueStatus === newStatus) {
@@ -165,7 +166,15 @@ function _run() {
 function createRuleContextInScope(scopeId, rule) {
     const runContext = this.ruleContext.runContext;
 
-    return runContext.createRuleContextInScope(scopeId, rule);
+    const newScope = Scope(scopeId, this.ruleContext.scope);
+
+    const newRuleContext = runContext.createRuleContext(rule, newScope);
+
+    newRuleContext.on('disposed', () => {
+        newScope.dispose();
+    });
+
+    return newRuleContext;
 }
 
 function createRuleContext(rule, tokenContext) {
@@ -181,7 +190,7 @@ function createRuleContext(rule, tokenContext) {
         tokenContext.addRunContext(runContext);
     }
 
-    return runContext.createRuleContext(rule);
+    return runContext.createRuleContext(rule, this.ruleContext.scope);
 }
 
 function buildLogicContext(logicDefinition) {

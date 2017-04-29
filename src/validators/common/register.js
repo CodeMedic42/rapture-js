@@ -2,12 +2,12 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function onTreeRaise(context, contents, runningData) {
+function onTreeRaise(context, content, runningData) {
     if (!runningData.running) {
         return;
     }
 
-    context.register(runningData.targetScope, runningData.id, runningData.targetValue, contents.Issues().length <= 0);
+    context.register(runningData.targetScope, runningData.id, runningData.targetValue, content.issues().length <= 0);
 }
 
 function registerAction(parentRule, actions, data) {
@@ -44,8 +44,6 @@ function registerAction(parentRule, actions, data) {
         },
         define: [{ id: 'registerID', value: id }],
         onSetup: (context, content) => {
-            const contents = content.contents;
-
             const runningData = {
                 targetScope
             };
@@ -54,17 +52,13 @@ function registerAction(parentRule, actions, data) {
                 return runningData;
             }
 
-            runningData.listener = onTreeRaise.bind(null, context, contents, runningData);
+            runningData.listener = onTreeRaise.bind(null, context, content, runningData);
 
-            if (when === 'tree') {
-                content.on('raise', runningData.listener);
-            }
+            content.on('raise', runningData.listener);
 
             return runningData;
         },
         onRun: (context, content, params, currentValue) => {
-            const contents = content.contents;
-
             const _runningData = currentValue;
 
             if (!_.isNil(_runningData.id) && _runningData.id !== params.registerID) {
@@ -72,13 +66,15 @@ function registerAction(parentRule, actions, data) {
                 context.unregister(targetScope, _runningData.id);
             }
 
-            let targetValue = contents;
+            let targetValue = null;
 
             if (Object.prototype.hasOwnProperty.call(params, 'registerValue')) {
                 targetValue = params.registerValue;
+            } else {
+                targetValue = content.getRaw();
             }
 
-            const valueReady = when === 'always' || (when === 'this' && !context.isFaulted) || (when === 'tree' && contents.Issues().length <= 0);
+            const valueReady = when === 'always' || (when === 'this' && !context.isFaulted) || (when === 'tree' && content.issues().length <= 0);
 
             // create/update the value in the targetScope.
             context.register(targetScope, params.registerID, targetValue, valueReady);

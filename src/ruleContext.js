@@ -159,11 +159,6 @@ RuleContext.prototype.dispose = function dispose() {
                 commit();
             });
 
-            if (this.scopeOwner) {
-                this.scope.dispose();
-                this.scope = null;
-            }
-
             this.logicContexts = null;
 
             this.status = 'disposed';

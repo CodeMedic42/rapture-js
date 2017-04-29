@@ -14,6 +14,7 @@ const deferAction = require('./validators/common/defer.js');
 const scopeAction = require('./validators/common/scope.js');
 const Logic = require('./logic.js');
 const Observable = require('./observable.js');
+const Compile = require('./compile.js');
 
 const initialActions = {
     any,
@@ -26,12 +27,16 @@ const initialActions = {
     boolean
 };
 
-module.exports = _.merge({
+const final = _.merge({
     scope: scopeAction,
     createSessionContext: SessionContext,
     is: isAction,
     if: ifAction.bind(null, false, null, initialActions),
     defer: deferAction,
     logic: Logic,
-    observable: Observable
+    observable: Observable,
 }, initialActions);
+
+final.compile = Compile(final);
+
+module.exports = final;
