@@ -14,6 +14,20 @@ function emitRaise(force) {
     this.status = 'emitNeeded';
 }
 
+function setupOnDispose(runContext, ruleContext) {
+    const cb = () => {
+        _.pull(runContext.ruleContexts, ruleContext);
+
+        ruleContext.removeListener('disposed', cb);
+
+        if (runContext.ruleContexts.length <= 0) {
+            runContext.dispose().commit();
+        }
+    };
+
+    ruleContext.on('disposed', cb);
+}
+
 function RunContext() {
     if (!(this instanceof RunContext)) {
         return new RunContext();
@@ -27,20 +41,6 @@ function RunContext() {
     this.data = {};
 
     EventEmitter.call(this);
-}
-
-function setupOnDispose(runContext, ruleContext) {
-    const cb = () => {
-        _.pull(runContext.ruleContexts, ruleContext);
-
-        ruleContext.removeListener('disposed', cb);
-
-        if (runContext.ruleContexts.length <= 0) {
-            runContext.dispose().commit();
-        }
-    };
-
-    ruleContext.on('disposed', cb);
 }
 
 Util.inherits(RunContext, EventEmitter);

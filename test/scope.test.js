@@ -996,7 +996,7 @@ describe('Scope Tests :', () => {
         });
     });
 
-    describe('parented', () => {
+    describe('parented :', () => {
         beforeEach(function beforeEach() {
             this.scope1 = Scope('1');
             this.scope2 = Scope('2', this.scope1);
@@ -1078,7 +1078,7 @@ describe('Scope Tests :', () => {
             });
         });
 
-        describe('in-directly', () => {
+        describe('in-directly :', () => {
             it('set foo at 3', function test() {
                 setupWatch(this.scope1, 'foo', [undefined]);
                 setupWatch(this.scope2, 'foo', [undefined]);
@@ -1116,7 +1116,7 @@ describe('Scope Tests :', () => {
             });
         });
 
-        describe('override', () => {
+        describe('override :', () => {
             it('set foo at 3', function test() {
                 const validateCount1 = setupWatch(this.scope1, 'foo', [undefined, { status: 'ready', value: 41 }]);
                 const validateCount2 = setupWatch(this.scope2, 'foo', [undefined, { status: 'ready', value: 41 }, { status: 'ready', value: 42 }]);
@@ -1146,7 +1146,7 @@ describe('Scope Tests :', () => {
             });
         });
 
-        describe('remove', () => {
+        describe('remove :', () => {
             beforeEach(function beforeEach() {
                 this.scope1.set(null, 'foo', 42, true, this);
                 this.scope2.set(null, 'foo', 43, true, this);
@@ -1219,6 +1219,34 @@ describe('Scope Tests :', () => {
                 validateCount3();
             });
 
+            it('remove foo at 1 then 2 then 3', function test() {
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }, undefined]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }, undefined]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, undefined]);
+
+                this.scope1.remove(null, 'foo', this);
+
+                checkGotted(this.scope1, 'foo');
+                checkGotted(this.scope2, 'foo', 43);
+                checkGotted(this.scope3, 'foo', 44);
+
+                this.scope2.remove(null, 'foo', this);
+
+                checkGotted(this.scope1, 'foo');
+                checkGotted(this.scope2, 'foo');
+                checkGotted(this.scope3, 'foo', 44);
+
+                this.scope3.remove(null, 'foo', this);
+
+                checkGotted(this.scope1, 'foo');
+                checkGotted(this.scope2, 'foo');
+                checkGotted(this.scope3, 'foo');
+
+                validateCount1();
+                validateCount2();
+                validateCount3();
+            });
+
             it('try to remove foo when not yours', function test() {
                 this.scope2.set(null, 'bar', 40, true, this);
 
@@ -1232,6 +1260,7 @@ describe('Scope Tests :', () => {
             });
 
             it('all the same except 3, then remove 2', function test() {
+                debugger;
                 this.scope1.set(null, 'foo', 42, true, this);
                 this.scope2.set(null, 'foo', 42, true, this);
                 this.scope3.remove(null, 'foo', this);

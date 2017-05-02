@@ -16,7 +16,7 @@ function isType(type) {
     });
 }
 
-describe('If Tests', () => {
+describe('If Tests :', () => {
     it('Takes first path - success', () => {
         const rule = Rapture.object().keys({
             type: Rapture.string().register('typeValue')

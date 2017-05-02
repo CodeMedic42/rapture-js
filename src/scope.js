@@ -26,6 +26,23 @@ function validateStatus(status) {
     }
 }
 
+function setTarget(target, value, status) {
+    const _target = target;
+
+    const oldValue = _target.value;
+    const oldStatus = _target.status;
+
+    _target.value = value;
+    _target.status = status;
+
+    if ((oldValue === _target.value) && (oldStatus === _target.status)) {
+        // Nothing changes
+        return null;
+    }
+
+    return _target;
+}
+
 function internalSet(key, value, ready, owner) {
     let target = this.data[key];
     const status = ready ? 'ready' : 'failed';
@@ -34,33 +51,27 @@ function internalSet(key, value, ready, owner) {
         // We have no value for this in memory at this scope.
         // Just set it no matter what.
         target = this.data[key] = { owner, value, status };
-    } else {
-        const oldValue = target.value;
-        const oldStatus = target.status;
 
-        if (_.isNil(target.owner)) {
-            // origial was set by parent, we can override this value no matter what
-            target.value = value;
-            target.status = status;
-            target.owner = owner;
-        } else if (!_.isNil(owner)) {
-            if (owner === target.owner) {
-                // The owner is changing this value
-                target.value = value;
-                target.status = status;
-            } else {
-                // This value is being updated by someone else and this cannot be allowed.
-                throw new Error(`Cannot set duplicate value for "${key}"`);
-            }
-        }
-
-        if ((oldValue === target.value) && (oldStatus === target.status)) {
-            // Nothing changes
-            return null;
-        }
+        return target;
     }
 
-    return target;
+    if (owner === this.parentScope) {
+        // parent scope is trying to set a value.
+
+        if (target.owner === this.parentScope) {
+            // parent is updating it's reference.
+
+            return setTarget(target, value, status);
+        }
+
+        return null;
+    } else if (owner === target.owner || target.owner === this.parentScope) {
+        target.owner = owner;
+
+        return setTarget(target, value, status);
+    }
+
+    throw new Error(`Cannot set duplicate value for "${key}"`);
 }
 
 function internalRemove(key, owner) {
@@ -70,39 +81,56 @@ function internalRemove(key, owner) {
         return null;
     }
 
-    if (_.isNil(target.owner) && !_.isNil(owner)) {
+    if (owner === this.parentScope) {
+        if (target.owner === this.parentScope) {
+            // parent is removing it's reference.
+
+            delete this.data[key];
+
+            target.status = 'undefined';
+            target.value = undefined;
+
+            return target;
+        }
+
+        // parent is removing it's reference but the reference was overridden.
+        // Nothing to do
+        return null;
+    } else if (owner === target.owner) {
+        // Owner is removing it's reference
+
+        const oldValue = target.value;
+        const oldStatus = target.status;
+
+        delete this.data[key];
+
+        target.status = 'undefined';
+        target.value = undefined;
+
+        let parentData = null;
+
+        if (!_.isNil(this.parentScope)) {
+            // We need to check to see if a value by the same id exists in the partent.
+            // If so we need to use that.
+            parentData = this.parentScope.data[key];
+        }
+
+        if (!_.isNil(parentData)) {
+            target = internalSet.call(this, key, parentData.value, parentData.status === 'ready', this.parentScope);
+
+            if ((oldValue === target.value) && (oldStatus === target.status)) {
+                // Nothing actualy changed about the data.
+                return null;
+            }
+        }
+
+        return target;
+    } else if (target.owner === this.parentScope) {
         // This was set by our parent, we cannot remove it.
         throw new Error('Attempting to remove a value from the wrong scope');
-    } else if (target.owner !== owner) {
+    } else {
         throw new Error(`Only owner can remove ${key}`);
     }
-
-    const oldValue = target.value;
-    const oldStatus = target.status;
-
-    delete this.data[key];
-
-    target.status = 'undefined';
-    target.value = undefined;
-
-    let parentData = null;
-
-    if (!_.isNil(this.parentScope)) {
-        // We need to check to see if a value by the same id exists in the partent.
-        // If so we need to use that.
-        parentData = this.parentScope.data[key];
-    }
-
-    if (!_.isNil(parentData)) {
-        target = internalSet.call(this, key, parentData.value, parentData.status === 'ready', null);
-
-        if ((oldValue === target.value) && (oldStatus === target.status)) {
-            // Nothing actualy changed about the data.
-            return null;
-        }
-    }
-
-    return target;
 }
 
 function updateFromParent(parentData) {
@@ -113,9 +141,9 @@ function updateFromParent(parentData) {
         let target;
 
         if (data.status === 'undefined') {
-            target = internalRemove.call(this, key, null);
+            target = internalRemove.call(this, key, this.parentScope);
         } else {
-            target = internalSet.call(this, key, data.value, data.status === 'ready', null);
+            target = internalSet.call(this, key, data.value, data.status === 'ready', this.parentScope);
         }
 
         if (!_.isNil(target)) {
@@ -131,6 +159,52 @@ function updateFromParent(parentData) {
     if (updateAvaliable) {
         // we changed something
         this.emit('update', updatedData);
+    }
+}
+
+function internalInitalSet(id, key, value, ready, owner) {
+    if (id !== this.id) {
+        if (_.isNil(this.parentScope)) {
+            throw new Error(`Scope "${id}" does not exist`);
+        }
+
+        return internalInitalSet.call(this.parentScope, id, key, value, ready, owner);
+    }
+
+    const target = internalSet.call(this, key, value, ready, owner);
+
+    if (!_.isNil(target)) {
+        // we changed something
+        _.forEach(this.watches[key], (watch) => {
+            watch(target.status, target.value);
+        });
+
+        this.emit('update', { [key]: target });
+    }
+
+    return target;
+}
+
+function internalInitalRemove(id, key, owner) {
+    if (id !== this.id) {
+        if (_.isNil(this.parentScope)) {
+            throw new Error(`Scope "${id}" does not exist`);
+        }
+
+        internalInitalRemove.call(this.parentScope, id, key, owner);
+
+        return;
+    }
+
+    const target = internalRemove.call(this, key, owner);
+
+    if (!_.isNil(target)) {
+        // we changed something
+        _.forEach(this.watches[key], (watch) => {
+            watch(target.status, target.value);
+        });
+
+        this.emit('update', { [key]: target });
     }
 }
 
@@ -206,29 +280,6 @@ Scope.prototype.dispose = function dispose() {
     this.emit('disposed');
 };
 
-function internalInitalSet(id, key, value, ready, owner) {
-    if (id !== this.id) {
-        if (_.isNil(this.parentScope)) {
-            throw new Error(`Scope "${id}" does not exist`);
-        }
-
-        return internalInitalSet.call(this.parentScope, id, key, value, ready, owner);
-    }
-
-    const target = internalSet.call(this, key, value, ready, owner);
-
-    if (!_.isNil(target)) {
-        // we changed something
-        _.forEach(this.watches[key], (watch) => {
-            watch(target.status, target.value);
-        });
-
-        this.emit('update', { [key]: target });
-    }
-
-    return target;
-}
-
 Scope.prototype.set = function set(id, key, value, status, owner) {
     validateOwner(owner);
     validateKey(key);
@@ -250,29 +301,6 @@ Scope.prototype.get = function get(key) {
 
     return this.data[key];
 };
-
-function internalInitalRemove(id, key, owner) {
-    if (id !== this.id) {
-        if (_.isNil(this.parentScope)) {
-            throw new Error(`Scope "${id}" does not exist`);
-        }
-
-        internalInitalRemove.call(this.parentScope, id, key, owner);
-
-        return;
-    }
-
-    const target = internalRemove.call(this, key, owner);
-
-    if (!_.isNil(target)) {
-        // we changed something
-        _.forEach(this.watches[key], (watch) => {
-            watch(target.status, target.value);
-        });
-
-        this.emit('update', { [key]: target });
-    }
-}
 
 Scope.prototype.remove = function remove(id, key, owner) {
     validateOwner(owner);

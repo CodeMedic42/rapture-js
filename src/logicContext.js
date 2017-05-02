@@ -164,11 +164,11 @@ function _run() {
 }
 
 function createRuleContextInScope(scopeId, rule) {
-    const runContext = this.ruleContext.runContext;
+    const ruleContext = this.ruleContext;
 
     const newScope = Scope(scopeId, this.ruleContext.scope);
 
-    const newRuleContext = runContext.createRuleContext(rule, newScope);
+    const newRuleContext = ruleContext.createRuleContext(rule, newScope);
 
     newRuleContext.on('disposed', () => {
         newScope.dispose();
@@ -178,17 +178,15 @@ function createRuleContextInScope(scopeId, rule) {
 }
 
 function createRuleContext(rule, tokenContext) {
-    let runContext;
-
     if (_.isNil(tokenContext)) {
-        runContext = this.ruleContext.runContext;
-    } else {
-        const RunContext = require('./runContext.js'); // eslint-disable-line
+        const ruleContext = this.ruleContext;
 
-        runContext = RunContext(this.ruleContext.scope);
-
-        tokenContext.addRunContext(runContext);
+        return ruleContext.createRuleContext(rule, this.ruleContext.scope);
     }
+
+    const runContext = require('./runContext.js')(); // eslint-disable-line
+
+    tokenContext.addRunContext(runContext);
 
     return runContext.createRuleContext(rule, this.ruleContext.scope);
 }

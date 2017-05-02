@@ -90,14 +90,18 @@ function registerAction(parentRule, actions, data) {
 
             _runningData.running = false;
 
-            context.unregister(targetScope, _runningData.id);
+            if (!_.isNil(_runningData.id)) {
+                context.unregister(targetScope, _runningData.id);
+            }
         },
         onTeardown: (context, content, currentValue) => {
             const _runningData = currentValue;
 
             _runningData.running = false;
 
-            context.unregister(targetScope, _runningData.id);
+            if (!_.isNil(_runningData.id)) {
+                context.unregister(targetScope, _runningData.id);
+            }
 
             if (!_.isNil(_runningData.listener)) {
                 content.removeListener(_runningData.listener);
