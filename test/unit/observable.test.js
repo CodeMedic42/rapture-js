@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
-const Observable = require('../src/observable.js');
+const Observable = require('../../src/observable.js');
 
 Chai.use(DirtyChai);
 

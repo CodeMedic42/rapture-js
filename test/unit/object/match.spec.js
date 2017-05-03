@@ -1,7 +1,7 @@
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
-const Rapture = require('../../src');
-const TestingSupport = require('../testingSupport');
+const Rapture = require('../../../src');
+const TestingSupport = require('../../testingSupport');
 
 Chai.use(DirtyChai);
 

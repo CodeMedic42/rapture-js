@@ -33,7 +33,7 @@ module.exports.isDate = function isDate(strValue) {
 };
 
 module.exports.checkDisposed = function checkDisposed(target, asWarning) {
-    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+    if (this.runStatus === 'disposed' || this.runStatus === 'disposing' || (this.status && (this.status.runStatus === 'disposed' || this.status.runStatus === 'disposing'))) {
         const message = 'This object has been disposed or is being disposed.';
 
         if (asWarning) {

@@ -1,5 +1,5 @@
-const Rapture = require('../../src');
-const TestingSupport = require('../testingSupport');
+const Rapture = require('../../../src');
+const TestingSupport = require('../../testingSupport');
 
 module.exports = () => {
     describe('Rule - required :', () => {

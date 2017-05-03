@@ -75,19 +75,9 @@ function deferAction(getRuleCb) {
         }
     };
 
-    if (_.isFunction(getRuleCb)) {
-        logicComponents.onSetup = (context) => {
-            const rule = getRuleCb();
-
-            if (!(rule instanceof Rule)) {
-                throw new Error('Must be an an instance of Rule');
-            }
-
-            return context.createRuleContext(rule);
-        };
-    } else if (getRuleCb instanceof Logic) {
+    if (getRuleCb instanceof Logic) {
         logicComponents.define = { id: 'rule', value: getRuleCb };
-    } else {
+    } else if (!_.isFunction(getRuleCb)) {
         throw new Error('Invalid defer logic');
     }
 

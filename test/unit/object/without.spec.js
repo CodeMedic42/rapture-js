@@ -1,24 +1,25 @@
-const Rapture = require('../../src');
-const TestingSupport = require('../testingSupport');
+const Rapture = require('../../../src');
+const TestingSupport = require('../../testingSupport');
 
 /*
 
-Defines an exclusive relationship between a set of keys where one of them is required but not at the same time where:
+Forbids the presence of other keys whenever the specified is present where:
 
-peers - the exclusive key names that must not appear together but where one of them is required. peers can be a single string value, an array of string values, or each peer provided as an argument.
+key - the reference key.
+peers - the forbidden peer key names that must not appear together with key. peers can be a single string value or an array of string values.
 const schema = Joi.object().keys({
     a: Joi.any(),
     b: Joi.any()
-}).xor('a', 'b');
+}).without('a', ['b']);
 
 */
 
 module.exports = () => {
-    describe('Rule - xor :', () => {
+    describe('Rule - without :', () => {
         it('does not generate an issue when not an object', () => {
             const testObject = [];
 
-            const rule = Rapture.object().xor('foo', 'bar');
+            const rule = Rapture.object().without('foo', 'bar');
 
             TestingSupport.fail(testObject, rule, {
                 type: 'schema',
@@ -35,18 +36,9 @@ module.exports = () => {
         it('No property exists', () => {
             const testObject = {};
 
-            const rule = Rapture.object().xor('foo', 'bar');
+            const rule = Rapture.object().without('foo', 'bar');
 
-            TestingSupport.fail(testObject, rule, [{
-                type: 'schema',
-                rowStart: 0,
-                rowEnd: 0,
-                columnStart: 0,
-                columnEnd: 0,
-                message: 'One of ["foo","bar"] is required',
-                cause: '',
-                severity: 'error'
-            }]);
+            TestingSupport.pass(testObject, rule);
         });
 
         describe('First Property exists', () => {
@@ -55,7 +47,7 @@ module.exports = () => {
                     foo: 'faz'
                 };
 
-                const rule = Rapture.object().xor('foo', 'bar');
+                const rule = Rapture.object().without('foo', 'bar');
 
                 TestingSupport.pass(testObject, rule);
             });
@@ -66,24 +58,15 @@ module.exports = () => {
                     bar: 'baz'
                 };
 
-                const rule = Rapture.object().xor('foo', 'bar');
+                const rule = Rapture.object().without('foo', 'bar');
 
                 TestingSupport.fail(testObject, rule, [{
-                    type: 'schema',
-                    rowStart: 1,
-                    rowEnd: 1,
-                    columnStart: 2,
-                    columnEnd: 7,
-                    message: 'Only one of ["foo","bar"] is allowed',
-                    cause: 'foo',
-                    severity: 'error'
-                }, {
                     type: 'schema',
                     rowStart: 2,
                     rowEnd: 2,
                     columnStart: 2,
                     columnEnd: 7,
-                    message: 'Only one of ["foo","bar"] is allowed',
+                    message: 'Cannot exist when "foo" exists',
                     cause: 'bar',
                     severity: 'error'
                 }]);
@@ -96,7 +79,7 @@ module.exports = () => {
                     bar: 'baz'
                 };
 
-                const rule = Rapture.object().xor('foo', 'bar');
+                const rule = Rapture.object().without('foo', 'bar');
 
                 TestingSupport.pass(testObject, rule);
             });
@@ -104,30 +87,21 @@ module.exports = () => {
 
         it('Flattens Arrays', () => {
             const testObject = {
+                bar: 'baz',
                 fooA: 'fazA',
-                fooB: 'fazB',
-                fooC: 'fazC'
+                fooB: 'fazB'
             };
 
-            const rule = Rapture.object().xor([[]], ['fooA', [], 'fooB', [[['fooC']]]], 'fooD');
+            const rule = Rapture.object().without('bar', [[]], ['fooA', [], 'fooB', [[['fooC']]]], 'fooD');
 
             TestingSupport.fail(testObject, rule, [{
-                type: 'schema',
-                rowStart: 1,
-                rowEnd: 1,
-                columnStart: 2,
-                columnEnd: 8,
-                message: 'Only one of ["fooA","fooB","fooC","fooD"] is allowed',
-                cause: 'fooA',
-                severity: 'error'
-            }, {
                 type: 'schema',
                 rowStart: 2,
                 rowEnd: 2,
                 columnStart: 2,
                 columnEnd: 8,
-                message: 'Only one of ["fooA","fooB","fooC","fooD"] is allowed',
-                cause: 'fooB',
+                message: 'Cannot exist when "bar" exists',
+                cause: 'fooA',
                 severity: 'error'
             }, {
                 type: 'schema',
@@ -135,8 +109,8 @@ module.exports = () => {
                 rowEnd: 3,
                 columnStart: 2,
                 columnEnd: 8,
-                message: 'Only one of ["fooA","fooB","fooC","fooD"] is allowed',
-                cause: 'fooC',
+                message: 'Cannot exist when "bar" exists',
+                cause: 'fooB',
                 severity: 'error'
             }]);
         });

@@ -2,7 +2,7 @@
 const _ = require('lodash');
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
-const Scope = require('../src/scope.js');
+const Scope = require('../../src/scope.js');
 
 Chai.use(DirtyChai);
 
@@ -1260,7 +1260,6 @@ describe('Scope Tests :', () => {
             });
 
             it('all the same except 3, then remove 2', function test() {
-                debugger;
                 this.scope1.set(null, 'foo', 42, true, this);
                 this.scope2.set(null, 'foo', 42, true, this);
                 this.scope3.remove(null, 'foo', this);

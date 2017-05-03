@@ -6,30 +6,42 @@ const Issue = require('./issue');
 const Common = require('./common.js');
 const Scope = require('./scope.js');
 
-function updateValueStatus(newStatus) {
-    if (this.valueStatus === newStatus) {
+function updateValueStatus() {
+    if (_.isNil(this._status.pendingValueStatus)) {
+        // Nothing to do
         return;
     }
 
-    this.valueStatus = newStatus;
+    const currentPendingValueStatus = this._status.pendingValueStatus;
+    this._status.pendingValueStatus = null;
+
+    if (this._status.valueStatus === currentPendingValueStatus) {
+        // Nothing to do
+        return;
+    }
+
+    this._status.valueStatus = currentPendingValueStatus;
 
     // HACK Fault change is getting chatty
-    if (this.runStatus === 'running' || this.runStatus === 'started') {
-        const fault = this.valueStatus !== 'ready' || (_.isNil(this.previousContext) ? false : this.previousContext.faulted());
+    if (this._status.runStatus === 'started' || this._status.runStatus === 'starting') {
+        const fault = this._status.valueStatus !== 'ready' || (_.isNil(this.previousContext) ? false : this.previousContext.faulted());
 
         this.emit('faultChange', fault);
     }
 }
 
 function emitUpdate(force) {
-    if (this.runStatus === 'started' || force) {
-        this.lastEmited = this.valueStatus;
-        this.emit('update', this.valueStatus, this.currentValue);
+    updateValueStatus.call(this);
 
-        return;
+    if (this._status.runStatus === 'started' || force) {
+        if ((this._status.lastEmited === this._status.valueStatus) && !this._status.emitRequired) {
+            return;
+        }
+
+        this.lastEmited = this._status.valueStatus;
+        this._status.emitRequired = false;
+        this.emit('update', this._status.valueStatus, this.currentValue);
     }
-
-    this.runStatus = 'emitNeeded';
 }
 
 function raise(...issueMeta) {
@@ -51,28 +63,38 @@ function raise(...issueMeta) {
         return current;
     }, []);
 
-    // If both are empty then don't emit anything. It just creates noise.
-    if (newIssues.length === 0 && this.livingIssues.length === 0) {
-        return;
+    if (!this._status.processing) {
+        // If both are empty then don't emit anything. It just creates noise.
+        if (newIssues.length === 0 && this.livingIssues.length === 0) {
+            return;
+        }
+
+        if (newIssues.length > 0) {
+            this._status.pendingValueStatus = 'failed';
+            // updateValueStatus.call(this, 'failed');
+        } else {
+            this._status.pendingValueStatus = 'ready';
+            // updateValueStatus.call(this, 'ready');
+        }
+
+        this._status.emitRequired = true;
+
+        this.livingIssues = newIssues;
+
+        emitUpdate.call(this);
+    } else {
+        this.livingIssues = newIssues;
     }
-
-    if (newIssues.length > 0) {
-        updateValueStatus.call(this, 'failed');
-    }
-
-    this.livingIssues = newIssues;
-
-    emitUpdate.call(this);
 }
 
 function checkParameters(parameters) {
     let ready = true;
     const issues = [];
 
-    _.forOwn(parameters.values, (value, name) => {
-        const paramStatus = parameters.meta[name].status;
+    _.forOwn(parameters.meta, (meta, name) => {
+        const paramStatus = meta.status;
 
-        if (parameters.meta[name].required) {
+        if (meta.required) {
             if (paramStatus === 'undefined') {
                 // The required value has never been defined and this is an issue.
                 issues.push(Issue('rule', null, null, `Required rule value "${name}" is not defined.`, 'warning'));
@@ -112,53 +134,56 @@ function checkParameters(parameters) {
 }
 
 function _run() {
+    this._status.processing = true;
+    this._status.pendingValueStatus = null;
+    this._status.emitRequired = false;
+
     const paramResult = checkParameters(this.parameters);
 
     if (!paramResult.ready) {
-        if (paramResult.issues.length > 0) {
-            updateValueStatus.call(this, 'failed');
-        } else {
-            updateValueStatus.call(this, 'undefined');
-        }
+        this.control.isFailed = true;
 
-        this.lastEmited = null;
-
-        if (!_.isNil(this.onPause)) {
-            this.onPause(this.control, this.content, this.currentValue);
-        }
-
-        // clear any living issues.
         this.control.raise(paramResult.issues);
 
-        this.parameters.ready = false;
-
-        return;
-    } else if (!this.parameters.ready) {
-        this.control.raise();
-    }
-
-    this.parameters.ready = true;
-
-    let ret = this.currentValue;
-
-    // Current value could have been set by setup.
-    // So even if onRun does not exists we will still want to emit the value when we start up..
-    if (!_.isNil(this.onRun)) {
-        ret = this.onRun(this.control, this.content, this.parameters.values, this.currentValue);
-    }
-
-    if (this.livingIssues.length <= 0) {
-        // Even if ret and the current value match if we have never emitted it then we should.
-        if (ret === this.currentValue && this.lastEmited === 'ready') {
-            return;
+        if (this.options.onFailure) {
+            if (!_.isNil(this.onRun)) {
+                this.currentValue = this.onRun(this.control, this.content, this.parameters.values, this.currentValue);
+            }
         }
 
-        updateValueStatus.call(this, 'ready');
+        this._status.pendingValueStatus = 'failed';
     } else {
-        updateValueStatus.call(this, 'failed');
+        this.control.isFailed = false;
+
+        this.control.raise();
+
+        let ret = this.currentValue;
+
+        // Current value could have been set by setup.
+        // So even if onRun does not exists we will still want to emit the value when we start up..
+        if (!_.isNil(this.onRun)) {
+            ret = this.onRun(this.control, this.content, this.parameters.values, this.currentValue);
+        }
+
+        if (this.livingIssues.length <= 0) {
+            // Even if ret and the current value match if we have never emitted it then we should.
+            // if (ret === this.currentValue && this.lastEmited === 'ready') {
+            //     return;
+            // }
+
+            if (ret !== this.currentValue) {
+                this.currentValue = ret;
+                this._status.emitRequired = true;
+            }
+
+            this._status.pendingValueStatus = 'ready';
+        } else {
+            this._status.pendingValueStatus = 'failed';
+            // updateValueStatus.call(this, 'failed');
+        }
     }
 
-    this.currentValue = ret;
+    this._status.processing = false;
 
     emitUpdate.call(this);
 }
@@ -195,14 +220,14 @@ function buildLogicContext(logicDefinition) {
     return logicDefinition.buildContext(this.ruleContext);
 }
 
-function register(targetScope, id, value, status) {
+function register(targetScope, id, value, _status) {
     let _targetScope = targetScope;
 
     if (_.isNil(_targetScope)) {
         _targetScope = this.ruleContext.scope.id;
     }
 
-    this.ruleContext.scope.set(_targetScope, id, value, status, this);
+    this.ruleContext.scope.set(_targetScope, id, value, _status, this);
 }
 
 function unregister(targetScope, id) {
@@ -231,43 +256,100 @@ function buildControl() {
 
 function onDefinedUpdate(name, status, value) {
     this.parameters.meta[name].status = status;
-    this.parameters.values[name] = value;
 
-    if (this.runStatus === 'started') {
+    if (status === 'ready') {
+        this.parameters.values[name] = value;
+    } else {
+        delete this.parameters.values[name];
+    }
+
+    if (this._status.runStatus === 'started') {
         _run.call(this);
+    }
+}
+
+function processDefinition(param, name) {
+    const Logic = require('./logic'); // eslint-disable-line
+
+    this.parameters.meta[name] = {
+        required: false
+    };
+
+    if (param.value instanceof Logic) {
+        const logicContext = param.value.buildContext(this.ruleContext);
+
+        this.parameters.meta[name].status = logicContext.status();
+
+        if (this.parameters.meta[name].status === 'ready') {
+            this.parameters.values[name] = logicContext.currentValue;
+        }
+
+        logicContext.on('update', onDefinedUpdate.bind(this, name));
+
+        this.parameters.contexts[name] = logicContext;
+    } else {
+        this.parameters.values[name] = param.value;
+        this.parameters.meta[name].status = 'ready';
+    }
+}
+
+function stopWatch(name) {
+    if (!_.isNil(this.parameters.listeners[name])) {
+        // Stop the old watch
+        this.parameters.listeners[name]();
+        this.parameters.listeners[name] = null;
+    }
+}
+
+function processRequired(param, name) {
+    const Logic = require('./logic'); // eslint-disable-line
+
+    this.parameters.meta[name] = {
+        required: true,
+        status: 'undefined',
+        watchId: null
+    };
+
+    if (param.value instanceof Logic) {
+        const logicContext = param.value.buildContext(this.ruleContext);
+
+        logicContext.on('update', (status, value) => {
+            if (status !== 'ready') {
+                // kill the watch
+                this.parameters.meta[name].watchId = null;
+
+                stopWatch.call(this, name);
+
+                return;
+            } else if (value === this.parameters.meta[name].watchId) {
+                // Id did not change so no need to reload the watch
+                return;
+            }
+
+            stopWatch.call(this, name);
+
+            this.parameters.meta[name].watchId = value;
+
+            this.parameters.listeners[name] = this.ruleContext.scope.watch(value, onDefinedUpdate.bind(this, name));
+        });
+
+        this.parameters.contexts[name] = logicContext;
+    } else {
+        const listener = this.ruleContext.scope.watch(param.value, onDefinedUpdate.bind(this, name));
+
+        this.parameters.listeners[name] = listener;
+        this.parameters.meta[name].watchId = param.value;
     }
 }
 
 function processParameters(parameters) {
     const Logic = require('./logic'); // eslint-disable-line
 
-    _.forOwn(parameters, (value, name) => {
-        if (value instanceof Logic) {
-            this.parameters.meta[name] = {};
-
-            const logicContext = value.buildContext(this.ruleContext);
-
-            this.parameters.meta[name] = {
-                status: logicContext.status()
-            };
-
-            this.parameters.values[name] = logicContext.currentValue;
-
-            logicContext.on('update', onDefinedUpdate.bind(this, name));
-
-            this.parameters.contexts[name] = logicContext;
-        } else if (!_.isNil(value)) {
-            this.parameters.values[name] = value;
-            this.parameters.meta[name] = {
-                status: 'ready'
-            };
+    _.forOwn(parameters, (param, name) => {
+        if (param.required) {
+            processRequired.call(this, param, name);
         } else {
-            this.parameters.meta[name] = {
-                status: 'undefined',
-                required: true
-            };
-
-            this.ruleContext.scope.watch(name, onDefinedUpdate.bind(this, name));
+            processDefinition.call(this, param, name);
         }
     });
 }
@@ -280,7 +362,7 @@ function onFaultChange(faultValue) {
         _run.call(this);
     }
 
-    this.emit('faultChange', faultValue || this.valueStatus !== 'ready');
+    this.emit('faultChange', faultValue || this._status.valueStatus !== 'ready');
 }
 
 function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, parameters, previousContext, options) {
@@ -294,7 +376,8 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
         values: {},
         meta: {},
         contexts: {},
-        issues: []
+        // issues: [],
+        listeners: {}
     };
 
     this.id = ShortId.generate();
@@ -311,9 +394,11 @@ function LogicContext(ruleContext, onSetup, onRun, onPause, onTeardown, paramete
         this.content = this.ruleContext.tokenContext.getRaw();
     }
 
-    this.runStatus = 'stopped';
-    this.valueStatus = 'undefined';
-    this.lastEmited = 'undefined';
+    this._status = {
+        runStatus: 'stopped',
+        valueStatus: 'undefined',
+        lastEmited: null
+    };
 
     this.livingIssues = [];
 
@@ -357,7 +442,7 @@ LogicContext.prototype.faulted = function faulted() {
         previousFault = this.previousContext.faulted();
     }
 
-    return previousFault || (this.valueStatus !== 'ready');
+    return previousFault || (this._status.valueStatus !== 'ready');
 };
 
 LogicContext.prototype.issues = function issues() {
@@ -370,11 +455,11 @@ LogicContext.prototype.start = function start() {
     Common.checkDisposed(this);
 
     // If we are already starting or are started then we should not do anything.
-    if (this.runStatus === 'started' || this.runStatus === 'starting') {
+    if (this._status.runStatus === 'started' || this._status.runStatus === 'starting') {
         return;
     }
 
-    this.runStatus = 'starting';
+    this._status.runStatus = 'starting';
 
     this.control.isFaulted = !_.isNil(this.previousContext) && this.previousContext.faulted();
 
@@ -384,11 +469,9 @@ LogicContext.prototype.start = function start() {
 
     _run.call(this);
 
-    if (this.runStatus === 'emitNeeded') {
-        emitUpdate.call(this, true);
-    }
+    emitUpdate.call(this, true);
 
-    this.runStatus = 'started';
+    this._status.runStatus = 'started';
 };
 
 LogicContext.prototype.stop = function stop() {
@@ -396,11 +479,11 @@ LogicContext.prototype.stop = function stop() {
     Common.checkDisposed(this);
 
     // If we are already stopping or are stopped then we should not do anything.
-    if (this.runStatus === 'stopped' || this.runStatus === 'stopping') {
+    if (this._status.runStatus === 'stopped' || this._status.runStatus === 'stopping') {
         return;
     }
 
-    this.runStatus = 'stopping';
+    this._status.runStatus = 'stopping';
 
     updateValueStatus.call(this, 'undefined');
 
@@ -414,17 +497,15 @@ LogicContext.prototype.stop = function stop() {
 
     this.control.raise();
 
-    if (this.runStatus === 'emitNeeded') {
-        emitUpdate.call(this, true);
-    }
+    emitUpdate.call(this, true);
 
-    this.runStatus = 'stopped';
+    this._status.runStatus = 'stopped';
 };
 
 LogicContext.prototype.status = function status() {
     Common.checkDisposed(this);
 
-    return this.valueStatus;
+    return this._status.valueStatus;
 };
 
 LogicContext.prototype.dispose = function dispose() {
@@ -432,11 +513,13 @@ LogicContext.prototype.dispose = function dispose() {
     Common.checkDisposed(this, true);
 
     // If we are already disposed or are disposing then we should not do anything.
-    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+    if (this._status.runStatus === 'disposed' || this._status.runStatus === 'disposing') {
         return { commit: () => {} };
     }
 
-    this.runStatus = 'disposing';
+    this._status.runStatus = 'disposing';
+
+    _.forOwn(this.parameters.listeners, listener => listener());
 
     const commits = [];
 
@@ -458,11 +541,9 @@ LogicContext.prototype.dispose = function dispose() {
 
             this.control.raise();
 
-            if (this.runStatus === 'emitNeeded') {
-                emitUpdate.call(this, true);
-            }
+            emitUpdate.call(this, true);
 
-            this.runStatus = 'disposed';
+            this._status.runStatus = 'disposed';
         }
     };
 };

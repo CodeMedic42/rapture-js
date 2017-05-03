@@ -40,7 +40,8 @@ function registerAction(parentRule, actions, data) {
     const logicComponents = {
         options: {
             onFaultChange: true,
-            useToken: true
+            useToken: true,
+            onFailure: true
         },
         define: [{ id: 'registerID', value: id }],
         onSetup: (context, content) => {
@@ -66,22 +67,35 @@ function registerAction(parentRule, actions, data) {
                 context.unregister(targetScope, _runningData.id);
             }
 
-            let targetValue = null;
+            let targetValue;
+            let valueReady;
 
-            if (Object.prototype.hasOwnProperty.call(params, 'registerValue')) {
-                targetValue = params.registerValue;
+            if (!context.isFailed) {
+                valueReady = when === 'always';
+                valueReady = valueReady || (when === 'this' && !context.isFaulted);
+                valueReady = valueReady || (when === 'tree' && content.issues().length <= 0 && !context.isFaulted);
+
+                if (!_.isNil(value)) {
+                    targetValue = params.registerValue;
+                } else {
+                    targetValue = content.getRaw();
+                }
             } else {
-                targetValue = content.getRaw();
+                valueReady = false;
+
+                _runningData.running = false;
             }
 
-            const valueReady = when === 'always' || (when === 'this' && !context.isFaulted) || (when === 'tree' && content.issues().length <= 0);
+            if (!_.isNil(params.registerID)) {
+                // create/update the value in the targetScope.
+                context.register(targetScope, params.registerID, targetValue, valueReady);
 
-            // create/update the value in the targetScope.
-            context.register(targetScope, params.registerID, targetValue, valueReady);
-
-            _runningData.id = params.registerID;
-            _runningData.targetValue = targetValue;
-            _runningData.running = true;
+                _runningData.id = params.registerID;
+                _runningData.targetValue = targetValue;
+                _runningData.running = true;
+            } else {
+                _runningData.running = false;
+            }
 
             return _runningData;
         },

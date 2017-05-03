@@ -1,7 +1,7 @@
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
-const Rapture = require('../../src');
-const TestingSupport = require('../testingSupport');
+const Rapture = require('../../../src');
+const TestingSupport = require('../../testingSupport');
 
 Chai.use(DirtyChai);
 
@@ -165,7 +165,7 @@ module.exports = () => {
                             require: 'willNotExist',
                             onRun: () => {
                                 // Should not call because "keys" dones not exist
-                                expect().TestingSupport.fail();
+                                expect.fail();
                             }
                         }), option);
 
@@ -669,7 +669,7 @@ module.exports = () => {
                             require: 'willNotExist',
                             onRun: () => {
                                 // Should not call because "keys" dones not exist
-                                expect().TestingSupport.fail();
+                                expect.fail();
                             }
                         }), option);
 

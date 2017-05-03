@@ -2,9 +2,9 @@
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
 
-const Rapture = require('../src');
-const SessionContext = require('../src/sessionContext.js');
-const ArtifactContext = require('../src/sessionContext.js');
+const Rapture = require('../../src');
+const SessionContext = require('../../src/sessionContext.js');
+const ArtifactContext = require('../../src/artifactContext.js');
 
 Chai.use(DirtyChai);
 
@@ -43,7 +43,7 @@ describe('SessionContext Tests', () => {
             const artifactContext = sessionContext.createArtifactContext('artifactID', artifactRule, artifactA);
 
             expect(artifactContext, 'Must exist').to.exist();
-            expect(sessionContext, 'Must be an instanceof ArtifactContext').to.be.instanceOf(ArtifactContext);
+            expect(artifactContext, 'Must be an instanceof ArtifactContext').to.be.instanceOf(ArtifactContext);
         });
     });
 });

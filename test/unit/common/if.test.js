@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
-const Rapture = require('../../src');
+const Rapture = require('../../../src');
 
 Chai.use(DirtyChai);
 
