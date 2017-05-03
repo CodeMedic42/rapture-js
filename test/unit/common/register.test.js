@@ -17,7 +17,7 @@ describe('Registration Tests', () => {
 
         let called = false;
 
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             reg: Rapture.string().register('testReg'),
             peak: Rapture.string().custom(Rapture.logic({
                 require: 'testReg',
@@ -48,7 +48,7 @@ describe('Registration Tests', () => {
 
         let called = false;
 
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__artifact' }),
             peak: Rapture.string().custom(Rapture.logic({
                 require: 'testReg',
@@ -81,7 +81,7 @@ describe('Registration Tests', () => {
 
         let called = false;
 
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }),
             peak: Rapture.string().custom(Rapture.logic({
                 require: 'testReg',
@@ -114,7 +114,7 @@ describe('Registration Tests', () => {
             peak: 'bar'
         };
 
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }),
             peak: Rapture.string().custom(Rapture.logic({
                 require: 'testReg',
@@ -154,7 +154,7 @@ describe('Registration Tests', () => {
 
         let called = false;
 
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }).min(5).register({ id: 'testReg2', scope: '__session' }),
             peak: Rapture.string().custom(Rapture.logic({
                 require: 'testReg',
@@ -214,7 +214,7 @@ describe('Registration Tests', () => {
             let highPeakCalled = false;
             let lowPeakCalled = false;
 
-            const rule = Rapture.object().keys({
+            const rule = Rapture.object().valid({
                 highReg: Rapture.string().register('testRegHigh'),
                 highPeak: Rapture.string().custom(Rapture.logic({
                     require: ['testRegHigh', 'testRegLow'],
@@ -225,7 +225,7 @@ describe('Registration Tests', () => {
                         expect(params.testRegLow).to.equal(testObject.lowReg);
                     }
                 })),
-                subObj: Rapture.scope('scopeA', Rapture.object().keys({
+                subObj: Rapture.scope('scopeA', Rapture.object().valid({
                     lowReg: Rapture.string().register('testRegLow'),
                     lowPeak: Rapture.string().custom(Rapture.logic({
                         require: ['testRegHigh', 'testRegLow'],

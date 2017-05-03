@@ -9,7 +9,7 @@ module.exports = () => {
                 strValue: 'valid'
             };
 
-            const rule = Rapture.object().keys({
+            const rule = Rapture.object().valid({
                 strValue: Rapture.string()
             });
 
@@ -21,7 +21,7 @@ module.exports = () => {
                 strValue: 42
             };
 
-            const rule = Rapture.object().keys({
+            const rule = Rapture.object().valid({
                 strValue: Rapture.string()
             });
 

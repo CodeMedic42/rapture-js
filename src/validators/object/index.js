@@ -3,8 +3,11 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const Observable = require('../../observable.js');
 
-const keysAction = require('./keys.js');
-const matchAction = require('./match.js');
+// const keysAction = require('./keys.js');
+// const matchAction = require('./match.js');
+const validAction = require('./valid/index.js');
+const invalidAction = require('./invalid.js');
+const strictAction = require('./strict.js');
 const requiredAction = require('./required.js');
 const nandAction = require('./nand.js');
 const xorAction = require('./xor.js');
@@ -15,75 +18,25 @@ const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 
-function evaluateForInvalidKeys(context, contents, keyData) {
-    const keyStates = {};
-    let enabled = false;
-
-    const data = keyData.toJS();
-
-    _.forOwn(data, (ruleState) => {
-        if (!ruleState) {
-            return;
-        }
-
-        enabled = true;
-
-        _.forOwn(ruleState, (propertyValue, propertyName) => {
-            if (propertyValue) {
-                keyStates[propertyName] = true;
-            }
-        });
-    });
-
-    if (!enabled) {
-        context.raise();
-
-        return;
-    }
-
-    const issues = _.reduce(contents, (issArray, propertyValue, propertyName) => {
-        if (keyStates[propertyName]) {
-            return issArray;
-        }
-
-        issArray.push({ type: 'schema', message: `The property "${propertyName}" is not allowed to exist.`, severity: 'error', from: propertyValue.from, location: propertyValue.location });
-
-        return issArray;
-    }, []);
-
-    context.raise(issues);
-}
-
 const objectLogic = Logic({
-    options: {
-        useToken: true
-    },
-    onSetup: (context, content) => {
+    onSetup: (context) => {
         const _context = context;
 
-        _context.data.__keyData = Observable({
-        }).on('change', function onChange() {
-            evaluateForInvalidKeys(context, content.contents, this);
-        });
+        _context.data.__keyData = Observable({});
     },
     onRun: (context, content) => {
-        if (!_.isNil(content.contents) && !_.isPlainObject(content.contents)) {
+        if (!_.isNil(content) && !_.isPlainObject(content)) {
             context.raise('schema', 'When defined this field must be a plain object', 'error');
         } else {
             context.raise();
-            context.data.__keyData.unpause();
-
-            evaluateForInvalidKeys(context, content.contents, context.data.__keyData);
         }
-    },
-    onPause: (context) => {
-        context.data.__keyData.pause();
     }
 });
 
 const objectActions = {
-    keys: keysAction,
-    match: matchAction,
+    valid: validAction,
+    invalid: invalidAction,
+    strict: strictAction,
     nand: nandAction,
     xor: xorAction,
     without: withoutAction,

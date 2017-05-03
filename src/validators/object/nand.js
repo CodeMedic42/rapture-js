@@ -57,7 +57,7 @@ function nandAction(parentRule, actions, ...initalLogicData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-min', logic, nextActions, parentRule);
+    return Rule('object-nand', logic, nextActions, parentRule);
 }
 
 module.exports = nandAction;

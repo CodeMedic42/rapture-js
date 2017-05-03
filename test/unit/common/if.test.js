@@ -18,16 +18,16 @@ function isType(type) {
 
 describe('If Tests :', () => {
     it('Takes first path - success', () => {
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             type: Rapture.string().register('typeValue')
         })
         .if(isType('foo'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.string()
             });
         })
         .elseIf(isType('bar'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.number()
             });
         })
@@ -54,16 +54,16 @@ describe('If Tests :', () => {
     });
 
     it('Takes second path - fail', () => {
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             type: Rapture.string().register('typeValue')
         })
         .if(isType('foo'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.string()
             });
         })
         .elseIf(isType('bar'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.number()
             });
         })
@@ -99,16 +99,16 @@ describe('If Tests :', () => {
     });
 
     it('Takes second path - success', () => {
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             type: Rapture.string().register('typeValue')
         })
         .if(isType('foo'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.string()
             });
         })
         .elseIf(isType('bar'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.number()
             });
         })
@@ -135,16 +135,16 @@ describe('If Tests :', () => {
     });
 
     it('Takes second path - fail', () => {
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().valid({
             type: Rapture.string().register('typeValue')
         })
         .if(isType('foo'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.string()
             });
         })
         .elseIf(isType('bar'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.number()
             });
         })
@@ -180,16 +180,16 @@ describe('If Tests :', () => {
     });
 
     it('No path taken - fail', () => {
-        const rule = Rapture.object().keys({
+        const rule = Rapture.object().strict().valid({
             type: Rapture.string().register('typeValue')
         })
         .if(isType('foo'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.string()
             });
         })
         .elseIf(isType('bar'), (hook) => {
-            return hook.keys({
+            return hook.valid({
                 code: Rapture.number()
             });
         })

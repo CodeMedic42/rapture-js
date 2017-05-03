@@ -12,12 +12,10 @@ module.exports = () => {
         const matchKey = /^\d+-validKey$/;
         const matchKeyB = /^\d+-validKeyB$/;
         describe('No options :', () => {
-            const option = null;
-
             describe('Rule called once :', () => {
                 it('Parameter - Rule Empty', () => {
                     try {
-                        Rapture.object().match(null, 'validMatch', option);
+                        Rapture.object().valid('validMatch', null);
 
                         expect.fail();
                     } catch (err) {
@@ -29,7 +27,7 @@ module.exports = () => {
                     it('Test data - Empty object', () => {
                         const testObject = {};
 
-                        const rule = Rapture.object().match(Rapture.any(), undefined, option);
+                        const rule = Rapture.object().valid(undefined, Rapture.any());
 
                         TestingSupport.pass(testObject, rule);
                     });
@@ -39,7 +37,7 @@ module.exports = () => {
                             validKey: 'foo'
                         };
 
-                        const rule = Rapture.object().match(Rapture.any(), undefined, option);
+                        const rule = Rapture.object().valid(undefined, Rapture.any());
 
                         TestingSupport.pass(testObject, rule);
                     });
@@ -49,7 +47,7 @@ module.exports = () => {
                     it('Test data - Empty object', () => {
                         const testObject = {};
 
-                        const rule = Rapture.object().match(Rapture.any(), matchKey, option);
+                        const rule = Rapture.object().valid(matchKey, Rapture.any());
 
                         TestingSupport.pass(testObject, rule);
                     });
@@ -57,7 +55,7 @@ module.exports = () => {
                     it('Test data - Object with key("invalidKey")', () => {
                         const testObject = { invalidKey: 'foo' };
 
-                        const rule = Rapture.object().match(Rapture.any(), matchKey, option);
+                        const rule = Rapture.object().valid(matchKey, Rapture.any()).strict();
 
                         TestingSupport.fail(testObject, rule, {
                             type: 'schema',
@@ -74,7 +72,7 @@ module.exports = () => {
                     it('Test data - Object with key("1-validKey", "2-validKey")', () => {
                         const testObject = { '1-validKey': 'foo', '2-validKey': 'foo' };
 
-                        const rule = Rapture.object().match(Rapture.any(), matchKey, option);
+                        const rule = Rapture.object().valid(matchKey, Rapture.any());
 
                         TestingSupport.pass(testObject, rule);
                     });
@@ -82,7 +80,7 @@ module.exports = () => {
                     it('Test data - Object with keys("validKey", "invalidKey")', () => {
                         const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', invalidKey: 'foo' };
 
-                        const rule = Rapture.object().match(Rapture.any(), matchKey, option);
+                        const rule = Rapture.object().valid(matchKey, Rapture.any()).strict();
 
                         TestingSupport.fail(testObject, rule, {
                             type: 'schema',
@@ -102,7 +100,7 @@ module.exports = () => {
                         it('Test data - Empty object', () => {
                             const testObject = {};
 
-                            const rule = Rapture.object().match(Rapture.any(), [matchKey, matchKeyB], option);
+                            const rule = Rapture.object().valid([matchKey, matchKeyB], Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
                         });
@@ -110,7 +108,7 @@ module.exports = () => {
                         it('Test data - Object with key("invalidKey")', () => {
                             const testObject = { invalidKey: 'foo' };
 
-                            const rule = Rapture.object().match(Rapture.any(), [matchKey, matchKeyB], option);
+                            const rule = Rapture.object().valid([matchKey, matchKeyB], Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
                                 type: 'schema',
@@ -127,7 +125,7 @@ module.exports = () => {
                         it('Test data - Object with key("1-validKey", "2-validKey", "1-validKeyB", "2-validKeyB")', () => {
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo' };
 
-                            const rule = Rapture.object().match(Rapture.any(), [matchKey, matchKeyB], option);
+                            const rule = Rapture.object().valid([matchKey, matchKeyB], Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
                         });
@@ -135,7 +133,7 @@ module.exports = () => {
                         it('Test data - Object with keys("1-validKey", "2-validKey", "1-validKeyB", "2-validKeyB", "invalidKey")', () => {
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo', invalidKey: 'foo' };
 
-                            const rule = Rapture.object().match(Rapture.any(), [matchKey, matchKeyB], option);
+                            const rule = Rapture.object().valid([matchKey, matchKeyB], Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
                                 type: 'schema',
@@ -152,11 +150,11 @@ module.exports = () => {
 
                     it('of neither', () => {
                         try {
-                            Rapture.object().match(Rapture.any(), [42], option);
+                            Rapture.object().valid([42], Rapture.any());
 
                             expect.fail();
                         } catch (err) {
-                            expect(err.message).to.be.equal('Only regular expressions are allowed to be enumerated');
+                            expect(err.message).to.be.equal('Must be either a string, regular expression, an array of the former two, or a Rapture Logic definition if not already loaded through one');
                         }
                     });
                 });
@@ -166,9 +164,9 @@ module.exports = () => {
                         it('Results in null', () => {
                             const testObject = {};
 
-                            const rule = Rapture.object().match(Rapture.any(), Rapture.logic({
+                            const rule = Rapture.object().valid(Rapture.logic({
                                 onRun: () => { return null; }
-                            }), option);
+                            }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
                         });
@@ -176,26 +174,26 @@ module.exports = () => {
                         it('Results in a number', () => {
                             const testObject = {};
 
-                            const rule = Rapture.object().match(Rapture.any(), Rapture.logic({
+                            const rule = Rapture.object().valid(Rapture.logic({
                                 onRun: () => {
                                     return 42;
                                 }
-                            }), option);
+                            }), Rapture.any());
 
-                            TestingSupport.failWithException(testObject, rule, 'Only regular expressions, arrays of regular expressions, or Rapture logic objects which result in either of the first two are allowed');
+                            TestingSupport.failWithException(testObject, rule, 'Must be either a string, regular expression, an array of the former two, or a Rapture Logic definition if not already loaded through one');
                         });
                     });
 
                     it('Never loads', () => {
                         const testObject = {};
 
-                        const rule = Rapture.object().match(Rapture.any(), Rapture.logic({
+                        const rule = Rapture.object().valid(Rapture.logic({
                             require: 'willNotExist',
                             onRun: () => {
                                 // Should not call because "keys" dones not exist
                                 expect.fail();
                             }
-                        }), option);
+                        }), Rapture.any()).strict();
 
                         TestingSupport.fail(testObject, rule, {
                             type: 'rule',
@@ -215,7 +213,7 @@ module.exports = () => {
 
                             const rule = Rapture.object().keys(Rapture.logic({
                                 onRun: () => { return [matchKey, matchKeyB]; }
-                            }), option);
+                            }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
                         });
@@ -225,7 +223,7 @@ module.exports = () => {
 
                             const rule = Rapture.object().keys(Rapture.logic({
                                 onRun: () => { return [matchKey, matchKeyB]; }
-                            }), option);
+                            }), Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
                                 type: 'schema',
@@ -244,7 +242,7 @@ module.exports = () => {
 
                             const rule = Rapture.object().keys(Rapture.logic({
                                 onRun: () => { return [matchKey, matchKeyB]; }
-                            }), option);
+                            }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
                         });
@@ -254,7 +252,7 @@ module.exports = () => {
 
                             const rule = Rapture.object().keys(Rapture.logic({
                                 onRun: () => { return [matchKey, matchKeyB]; }
-                            }), option);
+                            }), Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
                                 type: 'schema',
@@ -272,11 +270,11 @@ module.exports = () => {
 
                 it('Parameter - Neither', () => {
                     try {
-                        Rapture.object().match(Rapture.any(), 42, option);
+                        Rapture.object().valid(42, Rapture.any());
 
                         expect.fail();
                     } catch (err) {
-                        expect(err.message).to.be.equal('Only regular expressions, arrays of regular expressions, or Rapture logic objects which result in either of the first two are allowed');
+                        expect(err.message).to.be.equal('Must be either a string, regular expression, an array of the former two, or a Rapture Logic definition if not already loaded through one');
                     }
                 });
             });

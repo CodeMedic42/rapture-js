@@ -22,7 +22,7 @@ describe('Register and Require Integration Tests :', () => {
 
         let called = false;
 
-        const ruleA = Rapture.object().keys({
+        const ruleA = Rapture.object().valid({
             id: Rapture.string().register({
                 id: Rapture.logic({
                     onRun: (context, content) => `id/${content}`
@@ -31,7 +31,7 @@ describe('Register and Require Integration Tests :', () => {
             })
         });
 
-        const ruleB = Rapture.object().keys({
+        const ruleB = Rapture.object().valid({
             ref: Rapture.string().custom(Rapture.logic({
                 require: {
                     id: 'idValue',

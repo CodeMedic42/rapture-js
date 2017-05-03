@@ -9,7 +9,7 @@ module.exports = () => {
                 strValue: 'four'
             };
 
-            const rule = Rapture.object().keys({
+            const rule = Rapture.object().valid({
                 strValue: Rapture.string().min(4)
             });
 
@@ -21,7 +21,7 @@ module.exports = () => {
                 strValue: 'foo'
             };
 
-            const rule = Rapture.object().keys({
+            const rule = Rapture.object().valid({
                 strValue: Rapture.string().min(4)
             });
 
@@ -44,7 +44,7 @@ module.exports = () => {
         //     const testData = JSON.stringify(testObject, null, 4);
         //
         //     const rule =
-        //     Rapture.object().keys({
+        //     Rapture.object().valid({
         //         strValue: Rapture.string().min(Rapture.logic({
         //             onRun: () => {
         //                 return 4;
@@ -73,7 +73,7 @@ module.exports = () => {
         //     const testData = JSON.stringify(testObject, null, 4);
         //
         //     const rule =
-        //     Rapture.object().keys({
+        //     Rapture.object().valid({
         //         strValue: Rapture.string().min(Rapture.logic({
         //             onRun: () => {
         //                 return 4;
