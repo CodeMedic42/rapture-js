@@ -4,24 +4,37 @@ const EventEmitter = require('eventemitter3');
 const _StringToPath = require('lodash/_stringToPath');
 const Common = require('../common.js');
 
-function emitIssues(force) {
-    if (this.runStatus === 'started' || force) {
-        this.emit('raise');
+function emit(force) {
+    if (this._status.runStatus === 'started' || force) {
+        if (this._status.raisePending || this._status.updatedPending) {
+            const emitData = {
+                raise: this._status.raisePending,
+                update: this._status.updatedPending
+            };
 
-        return;
+            this._status.raisePending = false;
+            this._status.updatedPending = false;
+
+            this.emit('update', emitData);
+        }
     }
-
-    this.runStatus = 'emitPending';
 }
 
-function emitPersonalIssues(force) {
+function emitPersonalIssues() {
     this.compactedIssues = null;
 
-    emitIssues.call(this, force);
+    this._status.raisePending = true;
+
+    emit.call(this);
 }
 
 function linkContent(content) {
-    content.on('raise', emitIssues, this);
+    content.on('update', (emitData) => {
+        this._status.raisePending = emitData.raise;
+        this._status.updatedPending = emitData.update;
+
+        emit.call(this);
+    }, this);
 }
 
 function linkContents() {
@@ -41,77 +54,6 @@ function setupOnDispose(tokenContext, runContext) {
 
     runContext.on('disposed', cb);
 }
-
-function TokenContext(contents, location, from) {
-    if (!(this instanceof TokenContext)) {
-        return new TokenContext(contents, location, from);
-    }
-
-    this.contents = contents;
-    this.location = location;
-    this.from = from;
-    this.runContexts = [];
-    this.compactedIssues = null;
-    this.runStatus = 'started';
-
-    EventEmitter.call(this);
-
-    linkContents.call(this);
-}
-
-Util.inherits(TokenContext, EventEmitter);
-
-TokenContext.prototype.issues = function issues() {
-    Common.checkDisposed(this);
-
-    const finalIssues = [];
-
-    if (_.isArray(this.contents) || _.isPlainObject(this.contents)) {
-        _.forEach(this.contents, (child) => {
-            finalIssues.push(...child.issues());
-        });
-    }
-
-    if (_.isNil(this.compactedIssues)) {
-        this.compactedIssues = _.reduce(this.runContexts, (compactedIssues, runContext) => {
-            _.forEach(runContext.issues(), (issue) => {
-                const _issue = issue;
-
-                if (_.isNil(_issue.location)) {
-                    _issue.location = this.location;
-                }
-
-                if (_.isNil(_issue.cause)) {
-                    _issue.cause = this.from;
-                }
-
-                compactedIssues.push(_issue);
-                finalIssues.push(_issue);
-            });
-
-            return compactedIssues;
-        }, []);
-    } else {
-        finalIssues.unshift(...this.compactedIssues);
-    }
-
-    return finalIssues;
-};
-
-TokenContext.prototype.addRunContext = function addRunContext(runContext) {
-    Common.checkDisposed(this);
-
-    runContext.on('raise', emitPersonalIssues, this);
-
-    setupOnDispose(this, runContext);
-
-    runContext.runWith(this);
-
-    this.runContexts.push(runContext);
-
-    // TODO: Is this going to cause noise?
-    emitPersonalIssues();
-};
 
 function updateContexts() {
     _.forEach(this.runContexts, (runContext) => {
@@ -202,23 +144,99 @@ function updateContents(newTokenContext) {
     linkContents.call(this);
 
     updateContexts.call(this);
+
+    this._status.updatedPending = true;
 }
+
+function TokenContext(contents, location, from) {
+    if (!(this instanceof TokenContext)) {
+        return new TokenContext(contents, location, from);
+    }
+
+    this._status = {
+        updatedPending: false,
+        runStatus: 'started'
+    };
+
+    this.contents = contents;
+    this.location = location;
+    this.from = from;
+    this.runContexts = [];
+    this.compactedIssues = null;
+
+    EventEmitter.call(this);
+
+    linkContents.call(this);
+}
+
+Util.inherits(TokenContext, EventEmitter);
+
+TokenContext.prototype.issues = function issues() {
+    Common.checkDisposed(this);
+
+    const finalIssues = [];
+
+    if (_.isArray(this.contents) || _.isPlainObject(this.contents)) {
+        _.forEach(this.contents, (child) => {
+            finalIssues.push(...child.issues());
+        });
+    }
+
+    if (_.isNil(this.compactedIssues)) {
+        this.compactedIssues = _.reduce(this.runContexts, (compactedIssues, runContext) => {
+            _.forEach(runContext.issues(), (issue) => {
+                const _issue = issue;
+
+                if (_.isNil(_issue.location)) {
+                    _issue.location = this.location;
+                }
+
+                if (_.isNil(_issue.cause)) {
+                    _issue.cause = this.from;
+                }
+
+                compactedIssues.push(_issue);
+                finalIssues.push(_issue);
+            });
+
+            return compactedIssues;
+        }, []);
+    } else {
+        finalIssues.unshift(...this.compactedIssues);
+    }
+
+    return finalIssues;
+};
+
+TokenContext.prototype.addRunContext = function addRunContext(runContext) {
+    Common.checkDisposed(this);
+
+    runContext.on('raise', emitPersonalIssues, this);
+
+    setupOnDispose(this, runContext);
+
+    runContext.runWith(this);
+
+    this.runContexts.push(runContext);
+};
 
 TokenContext.prototype.update = function update(newTokenContext) {
     Common.checkDisposed(this);
 
-    this.runStatus = 'updating';
+    this._status.runStatus = 'updating';
 
     this.raw = undefined;
 
     updateContents.call(this, newTokenContext);
     const locationUpdated = this.location.update(newTokenContext.location);
 
-    if (this.runStatus === 'emitPending' || locationUpdated) {
-        emitPersonalIssues.call(this, true);
+    if (locationUpdated) {
+        this._status.raisePending = true;
     }
 
-    this.runStatus = 'started';
+    emit.call(this, true);
+
+    this._status.runStatus = 'started';
 };
 
 TokenContext.prototype.get = function get(path) {
@@ -268,11 +286,11 @@ TokenContext.prototype.getRaw = function getRaw() {
 TokenContext.prototype.dispose = function dispose() {
     Common.checkDisposed(this, true);
 
-    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+    if (this._status.runStatus === 'disposed' || this._status.runStatus === 'disposing') {
         return { commit: () => {} };
     }
 
-    this.runStatus = 'disposing';
+    this._status.runStatus = 'disposing';
 
     const commits = [];
 
@@ -297,7 +315,7 @@ TokenContext.prototype.dispose = function dispose() {
             this.from = null;
             this.compactedIssues = null;
 
-            this.runStatus = 'disposed';
+            this._status.runStatus = 'disposed';
 
             this.emit('disposed');
         }

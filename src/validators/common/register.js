@@ -2,12 +2,12 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function onTreeRaise(context, content, runningData) {
+function onTreeChange(context, content, runningData) {
     if (!runningData.running) {
         return;
     }
 
-    context.register(runningData.targetScope, runningData.id, runningData.targetValue, content.issues().length <= 0);
+    context.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
 }
 
 function registerAction(parentRule, actions, data) {
@@ -46,49 +46,47 @@ function registerAction(parentRule, actions, data) {
         define: [{ id: 'registerID', value: id }],
         onSetup: (context, content) => {
             const runningData = {
-                targetScope
+                targetScope,
+                running: false
             };
 
             if (when !== 'tree') {
                 return runningData;
             }
 
-            runningData.listener = onTreeRaise.bind(null, context, content, runningData);
+            runningData.listener = onTreeChange.bind(null, context, content, runningData);
 
-            content.on('raise', runningData.listener);
+            content.on('update', runningData.listener);
 
             return runningData;
         },
         onRun: (context, content, params, currentValue) => {
             const _runningData = currentValue;
 
+            _runningData.running = false;
+
             if (!_.isNil(_runningData.id) && _runningData.id !== params.registerID) {
                 // If the old id is not the same as the new one then we need to unregister the old id.
                 context.unregister(targetScope, _runningData.id);
             }
 
-            let targetValue;
-            let valueReady;
+            _runningData.getReadyStatus = () => {
+                return !context.isFailed && (when === 'always' ||
+                        (when === 'this' && !context.isFaulted) ||
+                        (when === 'tree' && content.issues().length <= 0 && !context.isFaulted));
+            };
 
-            if (!context.isFailed) {
-                valueReady = when === 'always';
-                valueReady = valueReady || (when === 'this' && !context.isFaulted);
-                valueReady = valueReady || (when === 'tree' && content.issues().length <= 0 && !context.isFaulted);
+            _runningData.getTargetValue = () => {
+                return _.isNil(value) ? content.getRaw() : params.registerValue;
+            };
 
-                if (!_.isNil(value)) {
-                    targetValue = params.registerValue;
-                } else {
-                    targetValue = content.getRaw();
-                }
-            } else {
-                valueReady = false;
-
-                _runningData.running = false;
-            }
+            const valueReady = _runningData.getReadyStatus();
+            const targetValue = _runningData.getTargetValue();
+            // }
 
             if (!_.isNil(params.registerID)) {
                 // create/update the value in the targetScope.
-                context.register(targetScope, params.registerID, targetValue, valueReady);
+                context.register(targetScope, params.registerID, targetValue, valueReady, true);
 
                 _runningData.id = params.registerID;
                 _runningData.targetValue = targetValue;
@@ -118,7 +116,7 @@ function registerAction(parentRule, actions, data) {
             }
 
             if (!_.isNil(_runningData.listener)) {
-                content.removeListener(_runningData.listener);
+                content.removeListener('raise', _runningData.listener);
             }
         }
     };

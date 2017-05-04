@@ -26,7 +26,7 @@ function validateStatus(status) {
     }
 }
 
-function setTarget(target, value, status) {
+function setTarget(target, value, status, force) {
     const _target = target;
 
     const oldValue = _target.value;
@@ -35,7 +35,7 @@ function setTarget(target, value, status) {
     _target.value = value;
     _target.status = status;
 
-    if ((oldValue === _target.value) && (oldStatus === _target.status)) {
+    if (!force && (oldValue === _target.value) && (oldStatus === _target.status)) {
         // Nothing changes
         return null;
     }
@@ -43,7 +43,7 @@ function setTarget(target, value, status) {
     return _target;
 }
 
-function internalSet(key, value, ready, owner) {
+function internalSet(key, value, ready, owner, force) {
     let target = this.data[key];
     const status = ready ? 'ready' : 'failed';
 
@@ -61,14 +61,14 @@ function internalSet(key, value, ready, owner) {
         if (target.owner === this.parentScope) {
             // parent is updating it's reference.
 
-            return setTarget(target, value, status);
+            return setTarget(target, value, status, force);
         }
 
         return null;
     } else if (owner === target.owner || target.owner === this.parentScope) {
         target.owner = owner;
 
-        return setTarget(target, value, status);
+        return setTarget(target, value, status, force);
     }
 
     throw new Error(`Cannot set duplicate value for "${key}"`);
@@ -133,7 +133,7 @@ function internalRemove(key, owner) {
     }
 }
 
-function updateFromParent(parentData) {
+function updateFromParent(parentData, force) {
     const updatedData = {};
     let updateAvaliable = false;
 
@@ -143,7 +143,7 @@ function updateFromParent(parentData) {
         if (data.status === 'undefined') {
             target = internalRemove.call(this, key, this.parentScope);
         } else {
-            target = internalSet.call(this, key, data.value, data.status === 'ready', this.parentScope);
+            target = internalSet.call(this, key, data.value, data.status === 'ready', this.parentScope, force);
         }
 
         if (!_.isNil(target)) {
@@ -151,27 +151,31 @@ function updateFromParent(parentData) {
             updateAvaliable = true;
 
             _.forEach(this.watches[key], (watch) => {
-                watch(target.status, target.value);
+                // Due to the nature of this system it appears that it is possiblefor the watch to be pulled while we are in the middle of looping.
+                // So we need to handle when the watch is null or undefined;
+                if (!_.isNil(watch)) {
+                    watch(target.status, target.value);
+                }
             });
         }
     });
 
     if (updateAvaliable) {
         // we changed something
-        this.emit('update', updatedData);
+        this.emit('update', { data: updatedData, force });
     }
 }
 
-function internalInitalSet(id, key, value, ready, owner) {
+function internalInitalSet(id, key, value, ready, owner, force) {
     if (id !== this.id) {
         if (_.isNil(this.parentScope)) {
             throw new Error(`Scope "${id}" does not exist`);
         }
 
-        return internalInitalSet.call(this.parentScope, id, key, value, ready, owner);
+        return internalInitalSet.call(this.parentScope, id, key, value, ready, owner, force);
     }
 
-    const target = internalSet.call(this, key, value, ready, owner);
+    const target = internalSet.call(this, key, value, ready, owner, force);
 
     if (!_.isNil(target)) {
         // we changed something
@@ -179,7 +183,7 @@ function internalInitalSet(id, key, value, ready, owner) {
             watch(target.status, target.value);
         });
 
-        this.emit('update', { [key]: target });
+        this.emit('update', { data: { [key]: target }, force });
     }
 
     return target;
@@ -204,7 +208,7 @@ function internalInitalRemove(id, key, owner) {
             watch(target.status, target.value);
         });
 
-        this.emit('update', { [key]: target });
+        this.emit('update', { data: { [key]: target } });
     }
 }
 
@@ -233,8 +237,8 @@ function Scope(id, parentScope) {
 
         this.parentScope = parentScope;
 
-        const parentCB = (updatedData) => {
-            updateFromParent.call(this, updatedData);
+        const parentCB = (update) => {
+            updateFromParent.call(this, update.data, update.force);
         };
 
         this.parentScope.on('update', parentCB);
@@ -245,7 +249,7 @@ function Scope(id, parentScope) {
             this.parentScope = null;
         };
 
-        updateFromParent.call(this, this.parentScope.data);
+        updateFromParent.call(this, this.parentScope.data, false);
     } else {
         this.parentScope = null;
     }
@@ -280,7 +284,7 @@ Scope.prototype.dispose = function dispose() {
     this.emit('disposed');
 };
 
-Scope.prototype.set = function set(id, key, value, status, owner) {
+Scope.prototype.set = function set(id, key, value, status, owner, force) {
     validateOwner(owner);
     validateKey(key);
     validateStatus(status);
@@ -293,7 +297,7 @@ Scope.prototype.set = function set(id, key, value, status, owner) {
         throw new Error('When defined the id must be a string');
     }
 
-    internalInitalSet.call(this, _id, key, value, status, owner);
+    internalInitalSet.call(this, _id, key, value, status, owner, !!force);
 };
 
 Scope.prototype.get = function get(key) {

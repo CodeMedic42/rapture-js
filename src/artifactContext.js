@@ -50,7 +50,11 @@ function setToken(artifact) {
         return;
     }
 
-    this.tokenContext.on('raise', () => {
+    this.tokenContext.on('update', (emitData) => {
+        if (!emitData.raise) {
+            return;
+        }
+
         this.compacted = null;
 
         emitRaise.call(this);

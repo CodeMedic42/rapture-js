@@ -220,14 +220,14 @@ function buildLogicContext(logicDefinition) {
     return logicDefinition.buildContext(this.ruleContext);
 }
 
-function register(targetScope, id, value, _status) {
+function register(targetScope, id, value, _status, force) {
     let _targetScope = targetScope;
 
     if (_.isNil(_targetScope)) {
         _targetScope = this.ruleContext.scope.id;
     }
 
-    this.ruleContext.scope.set(_targetScope, id, value, _status, this);
+    this.ruleContext.scope.set(_targetScope, id, value, _status, this, force);
 }
 
 function unregister(targetScope, id) {
@@ -297,7 +297,7 @@ function stopWatch(name) {
     if (!_.isNil(this.parameters.listeners[name])) {
         // Stop the old watch
         this.parameters.listeners[name]();
-        this.parameters.listeners[name] = null;
+        delete this.parameters.listeners[name];
     }
 }
 
@@ -519,7 +519,11 @@ LogicContext.prototype.dispose = function dispose() {
 
     this._status.runStatus = 'disposing';
 
-    _.forOwn(this.parameters.listeners, listener => listener());
+    _.forOwn(this.parameters.listeners, (listener) => {
+        if (!_.isNil(listener)) {
+            listener();
+        }
+    });
 
     const commits = [];
 
