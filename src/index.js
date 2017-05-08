@@ -13,7 +13,7 @@ const isAction = require('./validators/common/is.js');
 const deferAction = require('./validators/common/defer.js');
 const scopeAction = require('./validators/common/scope.js');
 const Logic = require('./logic.js');
-const Observable = require('./observable.js');
+const Observable = require('./observable/index.js');
 const Compile = require('./compile.js');
 
 const initialActions = {

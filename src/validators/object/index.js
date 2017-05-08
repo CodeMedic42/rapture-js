@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
-const Observable = require('../../observable.js');
+const Observable = require('../../observable/index.js');
 
 // const keysAction = require('./keys.js');
 // const matchAction = require('./match.js');

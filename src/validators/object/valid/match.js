@@ -68,7 +68,7 @@ function validateCleanMatchers(matchers, allowArray) {
 
         return allowArray ? [cb] : cb;
     } else if (_.isRegExp(matchers)) {
-        const cb = item => item.match(matchers);
+        const cb = item => !_.isNil(item.match(matchers));
 
         return allowArray ? [cb] : cb;
     } else if (_.isArray(matchers)) {

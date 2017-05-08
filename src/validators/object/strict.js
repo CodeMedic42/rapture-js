@@ -5,7 +5,7 @@ const Logic = require('../../logic.js');
 function evaluateForInvalidKeys(context, contents, keyData) {
     const keyStates = {};
 
-    const data = keyData.toJS();
+    const data = keyData.value();
 
     _.forOwn(data, (ruleState) => {
         if (!ruleState) {
@@ -49,7 +49,7 @@ function strictAction(parentRule, actions) {
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
                 context.data.__keyData.pause();
             } else {
-                context.data.__keyData.unpause();
+                context.data.__keyData.run();
 
                 evaluateForInvalidKeys(context, contents, context.data.__keyData);
             }
