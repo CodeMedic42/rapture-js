@@ -1,14 +1,15 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
+const Common = require('../../common.js');
 
-function onTreeChange(context, content, runningData) {
-    if (!runningData.running) {
-        return;
-    }
-
-    context.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
-}
+// function onTreeChange(context, content, runningData) {
+//     if (!runningData.running) {
+//         return;
+//     }
+//
+//     context.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
+// }
 
 function registerAction(parentRule, actions, data) {
     let id = data;
@@ -41,82 +42,89 @@ function registerAction(parentRule, actions, data) {
         options: {
             onFaultChange: true,
             useToken: true,
-            onFailure: true
+            runOnFailure: true
         },
         define: [{ id: 'registerID', value: id }],
         onSetup: (context, content) => {
-            const runningData = {
+            const _context = context;
+
+            const runningData = _context.data[context.id] = {
                 targetScope,
                 running: false
             };
 
             if (when !== 'tree') {
-                return runningData;
+                return;
             }
 
-            runningData.listener = onTreeChange.bind(null, context, content, runningData);
+            runningData.disenguage = Common.createListener(content, 'update', () => {
+                if (!runningData.running) {
+                    return;
+                }
 
-            content.on('update', runningData.listener);
+                context.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
+            });
 
-            return runningData;
+            // runningData.listener = onTreeChange.bind(null, context, content, runningData);
+            //
+            // content.on('update', runningData.listener);
         },
-        onRun: (context, content, params, currentValue) => {
-            const _runningData = currentValue;
+        onRun: (context, content, params) => {
+            const runningData = context.data[context.id];
 
-            _runningData.running = false;
+            runningData.running = false;
 
-            if (!_.isNil(_runningData.id) && _runningData.id !== params.registerID) {
+            if (!_.isNil(runningData.id) && runningData.id !== params.registerID) {
                 // If the old id is not the same as the new one then we need to unregister the old id.
-                context.unregister(targetScope, _runningData.id);
+                context.unregister(targetScope, runningData.id);
             }
 
-            _runningData.getReadyStatus = () => {
+            runningData.getReadyStatus = () => {
                 return !context.isFailed && (when === 'always' ||
                         (when === 'this' && !context.isFaulted) ||
                         (when === 'tree' && content.issues().length <= 0 && !context.isFaulted));
             };
 
-            _runningData.getTargetValue = () => {
+            runningData.getTargetValue = () => {
                 return _.isNil(value) ? content.getRaw() : params.registerValue;
             };
 
-            const valueReady = _runningData.getReadyStatus();
-            const targetValue = _runningData.getTargetValue();
+            const valueReady = runningData.getReadyStatus();
+            const targetValue = runningData.getTargetValue();
             // }
 
             if (!_.isNil(params.registerID)) {
                 // create/update the value in the targetScope.
                 context.register(targetScope, params.registerID, targetValue, valueReady, true);
 
-                _runningData.id = params.registerID;
-                _runningData.targetValue = targetValue;
-                _runningData.running = true;
+                runningData.id = params.registerID;
+                runningData.targetValue = targetValue;
+                runningData.running = true;
             } else {
-                _runningData.running = false;
-            }
-
-            return _runningData;
-        },
-        onPause: (context, content, currentValue) => {
-            const _runningData = currentValue;
-
-            _runningData.running = false;
-
-            if (!_.isNil(_runningData.id)) {
-                context.unregister(targetScope, _runningData.id);
+                runningData.running = false;
             }
         },
-        onTeardown: (context, content, currentValue) => {
-            const _runningData = currentValue;
+        onPause: (context) => {
+            const runningData = context.data[context.id];
 
-            _runningData.running = false;
+            runningData.running = false;
 
-            if (!_.isNil(_runningData.id)) {
-                context.unregister(targetScope, _runningData.id);
+            if (!_.isNil(runningData.id)) {
+                context.unregister(targetScope, runningData.id);
+            }
+        },
+        onTeardown: (context) => {
+            const runningData = context.data[context.id];
+
+            runningData.running = false;
+
+            if (!_.isNil(runningData.id)) {
+                context.unregister(targetScope, runningData.id);
             }
 
-            if (!_.isNil(_runningData.listener)) {
-                content.removeListener('raise', _runningData.listener);
+            if (!_.isNil(runningData.disenguage)) {
+                runningData.disenguage();
+                // content.removeListener('raise', runningData.listener);
             }
         }
     };

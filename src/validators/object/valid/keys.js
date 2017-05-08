@@ -1,12 +1,12 @@
 const _ = require('lodash');
 const Rule = require('../../../rule.js');
 
-function disposeContexts(context, currentContexts) {
+function disposeContexts(context) {
     context.data.__keyData.set(context.id, false);
 
     const commits = [];
 
-    _.forEach(currentContexts, (paramContext) => {
+    _.forOwn(context.data[context.id], (paramContext) => {
         if (!_.isNil(paramContext)) {
             commits.push(paramContext.dispose().commit);
         }
@@ -44,7 +44,9 @@ function buildContexts(context, contents, keys) {
 
     context.data.__keyData.set(context.id, keyData);
 
-    return paramContexts;
+    const _context = context;
+
+    _context.data[context.id] = paramContexts;
 }
 
 function validateKeys(keys) {
@@ -80,23 +82,23 @@ function buildKeysLogicComponents(keys) {
         options: {
             useToken: true
         },
-        onRun: (context, content, params, currentContexts) => {
+        onRun: (context, content) => {
             const contents = content.contents;
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
                 // Do nothing
-                return null;
+                return;
             }
 
-            disposeContexts(context, currentContexts);
+            disposeContexts(context);
 
-            return buildContexts(context, contents, keys);
+            buildContexts(context, contents, keys);
         },
-        onPause: (context, contents, currentContexts) => {
-            disposeContexts(context, currentContexts);
+        onPause: (context) => {
+            disposeContexts(context);
         },
-        onTeardown: (context, contents, currentContexts) => {
-            disposeContexts(context, currentContexts);
+        onTeardown: (context) => {
+            disposeContexts(context);
         }
     };
 }

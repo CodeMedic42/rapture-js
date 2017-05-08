@@ -13,11 +13,11 @@ const registeredAction = require('../common/registered.js');
 
 function stringDefinition(parentRule) {
     const logic = Logic({
-        onRun: (runContext, value) => {
-            if (!_.isNil(value) && !_.isString(value)) {
-                runContext.raise('schema', 'When defined this field must be a string.', 'error');
+        onRun: (context, content) => {
+            if (!_.isNil(content) && !_.isString(content)) {
+                context.raise('schema', 'When defined this field must be a string.', 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

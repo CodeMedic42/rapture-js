@@ -2,7 +2,7 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-// function defaultPredicate = () => {}
+// const defaultPredicate = () => {};
 
 function uniqueAction(parentRule, actions) {
     const logic = Logic({
@@ -39,7 +39,7 @@ function uniqueAction(parentRule, actions) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('array-length', logic, nextActions, parentRule);
+    return Rule('array-unique', logic, nextActions, parentRule);
 }
 
 module.exports = uniqueAction;

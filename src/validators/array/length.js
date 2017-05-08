@@ -9,11 +9,11 @@ function lengthAction(parentRule, actions, lengthData) {
 
     const logic = Logic({
         define: { id: 'lengthData', value: lengthData },
-        onRun: (runContext, value, params) => {
-            if (_.isArray(value) && value.length !== params.lengthData) {
-                runContext.raise('schema', `Must be ${params.lengthData} items long.`, 'error');
+        onRun: (context, content, params) => {
+            if (_.isArray(content) && content.length !== params.lengthData) {
+                context.raise('schema', `Must be ${params.lengthData} items long.`, 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

@@ -8,11 +8,11 @@ const customAction = require('../common/custom.js');
 
 function versionDefinition(parentRule) {
     const logic = Logic({
-        onRun: (runContext, value) => {
-            if (!Semver.valid(value)) {
-                runContext.raise('schema', 'Must be a valid version string.', 'error');
+        onRun: (context, content) => {
+            if (!Semver.valid(content)) {
+                context.raise('schema', 'Must be a valid version string.', 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

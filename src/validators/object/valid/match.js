@@ -2,12 +2,12 @@ const _ = require('lodash');
 const Rule = require('../../../rule.js');
 const Logic = require('../../../logic.js');
 
-function disposeContexts(context, currentContexts) {
+function disposeContexts(context) {
     context.data.__keyData.set(context.id, false);
 
     const commits = [];
 
-    _.forEach(currentContexts, (paramContext) => {
+    _.forOwn(context.data[context.id], (paramContext) => {
         if (!_.isNil(paramContext)) {
             commits.push(paramContext.dispose().commit);
         }
@@ -51,7 +51,9 @@ function buildContexts(context, contents, matchers, rule) {
 
     context.data.__keyData.set(context.id, keyData);
 
-    return paramContexts;
+    const _context = context;
+
+    _context.data[context.id] = paramContexts;
 }
 
 function validateRule(rule) {
@@ -114,15 +116,15 @@ function buildMatchLogicComponents(matchers, rule) {
             useToken: true
         },
         define: { id: 'matchers', value: cleanedMatchers },
-        onRun: (context, content, params, currentContexts) => {
+        onRun: (context, content, params) => {
             const contents = content.contents;
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
                 // Do nothing
-                return null;
+                return;
             }
 
-            disposeContexts(context, currentContexts);
+            disposeContexts(context);
 
             let finalMatchers = params.matchers;
 
@@ -130,17 +132,17 @@ function buildMatchLogicComponents(matchers, rule) {
                 finalMatchers = validateCleanMatchers(params.matchers, true);
             }
 
-            if (_.isNil(finalMatchers)) {
-                return [];
-            }
+            // if (_.isNil(finalMatchers)) {
+            //     return [];
+            // }
 
-            return buildContexts(context, contents, finalMatchers, rule);
+            buildContexts(context, contents, finalMatchers, rule);
         },
-        onPause: (context, contents, currentContexts) => {
-            disposeContexts(context, currentContexts);
+        onPause: (context) => {
+            disposeContexts(context);
         },
-        onTeardown: (context, contents, currentContexts) => {
-            disposeContexts(context, currentContexts);
+        onTeardown: (context) => {
+            disposeContexts(context);
         }
     };
 }

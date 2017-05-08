@@ -32,10 +32,10 @@ function validAction(parentRule, actions, ...initalLogicData) {
 
     const logic = Logic({
         define: { id: 'logicData', value: logicData },
-        onRun: (context, contents, params) => {
+        onRun: (context, content, params) => {
             context.raise();
 
-            if (!_.isString(contents)) {
+            if (!_.isString(content)) {
                 return;
             }
 
@@ -44,7 +44,7 @@ function validAction(parentRule, actions, ...initalLogicData) {
             let isValid = false;
 
             _.forEach(finalData, (item) => {
-                if (contents === item) {
+                if (content === item) {
                     isValid = true;
                 }
 

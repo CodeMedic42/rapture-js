@@ -11,7 +11,9 @@ function start(currentValue) {
     currentValue.thenContext.start();
 }
 
-function onRun(context, contents, params, currentValue) {
+function onRun(context, contents) {
+    const currentValue = context.data[context.id];
+
     const isCondition = currentValue.isCondition;
 
     if (isCondition === 'string' && _.isString(contents)) {
@@ -39,7 +41,9 @@ function onRun(context, contents, params, currentValue) {
     return currentValue;
 }
 
-function onPause(control, contents, currentValue) {
+function onPause(context) {
+    const currentValue = context.data[context.id];
+
     if (!_.isNil(currentValue.nextContext)) {
         currentValue.nextContext.stop();
     }
@@ -51,11 +55,13 @@ function isLogic(isCondition, thenRule, actions, nextIs) {
     const logicDef = _.isNil(nextIs) ? null : Logic(nextIs);
 
     return {
-        onSetup: (control) => {
-            return {
+        onSetup: (context) => {
+            const _context = context;
+
+            _context.data[context.id] = {
                 isCondition,
-                thenContext: control.createRuleContext(thenRule),
-                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
+                thenContext: _context.createRuleContext(thenRule),
+                nextContext: !_.isNil(logicDef) ? _context.buildLogicContext(logicDef) : null
             };
         },
         onRun,

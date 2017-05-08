@@ -10,11 +10,11 @@ const customAction = require('../common/custom.js');
 
 module.exports = (parentRule) => {
     const logic = Logic({
-        onRun: (runContext, value) => {
-            if (!_.isNil(value) && !Common.isDate(value)) {
-                runContext.raise('schema', 'When defined this field must be a date.', 'error');
+        onRun: (context, content) => {
+            if (!_.isNil(content) && !Common.isDate(content)) {
+                context.raise('schema', 'When defined this field must be a date.', 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

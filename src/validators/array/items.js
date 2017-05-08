@@ -2,10 +2,10 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function disposeContexts(context, currentContexts) {
+function disposeContexts(currentContexts) {
     const commits = [];
 
-    _.forEach(currentContexts, (paramContext /* , propertyName */) => {
+    _.forEach(currentContexts, (paramContext) => {
         if (!_.isNil(paramContext)) {
             commits.push(paramContext.dispose().commit);
         }
@@ -26,17 +26,18 @@ function itemsAction(parentRule, actions, itemRule) {
             useToken: true
         },
         define: { id: 'itemRule', value: itemRule },
-        onRun: (context, content, params, currentContexts) => {
+        onRun: (context, content, params) => {
+            const _context = context;
             const contents = content.contents;
 
             if (_.isNil(contents) || !_.isArray(contents)) {
                 // Do nothing
-                return null;
+                return;
             }
 
-            disposeContexts(context, currentContexts);
+            disposeContexts(context.data[context.id]);
 
-            return _.reduce(contents, (contexts, propValue) => {
+            _context.data[context.id] = _.reduce(contents, (contexts, propValue) => {
                 const ruleContext = context.createRuleContext(params.itemRule, propValue);
 
                 contexts.push(ruleContext);
@@ -46,11 +47,11 @@ function itemsAction(parentRule, actions, itemRule) {
                 return contexts;
             }, []);
         },
-        onPause: (context, contents, currentContexts) => {
-            disposeContexts(context, currentContexts);
+        onPause: (context) => {
+            disposeContexts(context.data[context.id]);
         },
-        onTeardown: (context, contents, currentContexts) => {
-            disposeContexts(context, currentContexts);
+        onTeardown: (context) => {
+            disposeContexts(context.data[context.id]);
         }
     });
 

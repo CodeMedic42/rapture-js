@@ -165,7 +165,7 @@ module.exports = () => {
                             const testObject = {};
 
                             const rule = Rapture.object().valid(Rapture.logic({
-                                onRun: () => { return null; }
+                                onRun: (context) => { context.set(null); }
                             }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
@@ -174,10 +174,8 @@ module.exports = () => {
                         it('Results in a number', () => {
                             const testObject = {};
 
-                            const rule = Rapture.object().valid(Rapture.logic({
-                                onRun: () => {
-                                    return 42;
-                                }
+                            const rule = Rapture.object().strict().valid(Rapture.logic({
+                                onRun: (context) => { context.set(42); }
                             }), Rapture.any());
 
                             TestingSupport.failWithException(testObject, rule, 'Must be either a string, regular expression, an array of the former two, or a Rapture Logic definition if not already loaded through one');
@@ -207,12 +205,12 @@ module.exports = () => {
                         });
                     });
 
-                    it('Results in an array of regular expressions:', () => {
+                    describe('Results in an array of regular expressions :', () => {
                         it('Test data - Empty object', () => {
                             const testObject = {};
 
-                            const rule = Rapture.object().keys(Rapture.logic({
-                                onRun: () => { return [matchKey, matchKeyB]; }
+                            const rule = Rapture.object().strict().valid(Rapture.logic({
+                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
                             }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
@@ -221,8 +219,8 @@ module.exports = () => {
                         it('Test data - Object with key("invalidKey")', () => {
                             const testObject = { invalidKey: 'foo' };
 
-                            const rule = Rapture.object().keys(Rapture.logic({
-                                onRun: () => { return [matchKey, matchKeyB]; }
+                            const rule = Rapture.object().valid(Rapture.logic({
+                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
                             }), Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
@@ -240,24 +238,25 @@ module.exports = () => {
                         it('Test data - Object with key("validKey", "2-validKey, 1-validKey", "2-validKey",")', () => {
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo', };
 
-                            const rule = Rapture.object().keys(Rapture.logic({
-                                onRun: () => { return [matchKey, matchKeyB]; }
+                            const rule = Rapture.object().strict().valid(Rapture.logic({
+                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
                             }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
                         });
 
                         it('Test data - Object with keys("1-validKey", "2-validKey", 1-validKeyB", "2-validKeyB", "invalidKey")', () => {
+                            debugger;
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo', invalidKey: 'foo' };
 
-                            const rule = Rapture.object().keys(Rapture.logic({
-                                onRun: () => { return [matchKey, matchKeyB]; }
+                            const rule = Rapture.object().valid(Rapture.logic({
+                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
                             }), Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
                                 type: 'schema',
-                                rowStart: 2,
-                                rowEnd: 2,
+                                rowStart: 5,
+                                rowEnd: 5,
                                 columnStart: 2,
                                 columnEnd: 14,
                                 message: 'The property "invalidKey" is not allowed to exist.',

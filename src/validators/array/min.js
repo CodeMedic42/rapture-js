@@ -9,11 +9,11 @@ function minAction(parentRule, actions, minData) {
 
     const logic = Logic({
         define: { id: 'minData', value: minData },
-        onRun: (runContext, value, params) => {
-            if (_.isArray(value) && value.length < params.minData) {
-                runContext.raise('schema', `Must be greater than ${params.minData - 1} items long.`, 'error');
+        onRun: (context, content, params) => {
+            if (_.isArray(content) && content.length < params.minData) {
+                context.raise('schema', `Must be greater than ${params.minData - 1} items long.`, 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

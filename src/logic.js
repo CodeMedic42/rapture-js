@@ -158,8 +158,8 @@ Logic = function LogicDef(logicComponents) {
     }
 };
 
-Logic.prototype.buildContext = function buildContext(ruleContext, previousContext) {
-    return LogicContext(ruleContext, this.onSetup, this.onRun, this.onPause, this.onTeardown, this.params, previousContext, this.options);
+Logic.prototype.buildContext = function buildContext(name, ruleContext, previousContext) {
+    return LogicContext(name, ruleContext, this.onSetup, this.onRun, this.onPause, this.onTeardown, this.params, previousContext, this.options);
 };
 
 module.exports = Logic;

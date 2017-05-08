@@ -14,11 +14,11 @@ const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 
 const arrayLogic = Logic({
-    onRun: (runContext, value) => {
-        if (!_.isNil(value) && !_.isArray(value)) {
-            runContext.raise('schema', 'When defined this field must be an array', 'error');
+    onRun: (context, content) => {
+        if (!_.isNil(content) && !_.isArray(content)) {
+            context.raise('schema', 'When defined this field must be an array', 'error');
         } else {
-            runContext.raise();
+            context.raise();
         }
     }
 });

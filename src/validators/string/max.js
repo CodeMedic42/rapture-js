@@ -9,11 +9,11 @@ function maxAction(parentRule, actions, maxData) {
 
     const logic = Logic({
         define: { id: 'maxData', value: maxData },
-        onRun: (runContext, value, params) => {
-            if (_.isString(value) && value.length > params.maxData) {
-                runContext.raise('schema', `Must be less than ${params.maxData + 1} characters long.`, 'error');
+        onRun: (context, content, params) => {
+            if (_.isString(content) && content.length > params.maxData) {
+                context.raise('schema', `Must be less than ${params.maxData + 1} characters long.`, 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

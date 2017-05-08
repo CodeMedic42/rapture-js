@@ -9,11 +9,11 @@ const customAction = require('../common/custom.js');
 
 function numberDefinition(parentRule) {
     const logic = Logic({
-        onRun: (runContext, value) => {
-            if (!_.isNil(value) && !_.isFinite(value)) {
-                runContext.raise('schema', 'When defined this field must be a number.', 'error');
+        onRun: (context, content) => {
+            if (!_.isNil(content) && !_.isFinite(content)) {
+                context.raise('schema', 'When defined this field must be a number.', 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

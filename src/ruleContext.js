@@ -23,7 +23,7 @@ function setupOnDispose(thisRuleContext, ruleContext) {
     ruleContext.on('disposed', cb);
 }
 
-function onUpdate() {
+function onRaise() {
     const issues = _.reduce(this.logicContexts, (current, context) => {
         current.push(...context.issues());
 
@@ -77,7 +77,7 @@ RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
 
     this.logicContexts.push(logicContext);
 
-    logicContext.on('update', onUpdate, this);
+    logicContext.on('raise', onRaise, this);
 };
 
 RuleContext.prototype.createRuleContext = function createRuleContext(rule, scope) {
@@ -85,7 +85,7 @@ RuleContext.prototype.createRuleContext = function createRuleContext(rule, scope
 
     const ruleContext = RuleContext(this, rule, scope);
 
-    ruleContext.on('raise', onUpdate, this);
+    ruleContext.on('raise', onRaise, this);
 
     setupOnDispose(this, ruleContext);
 

@@ -25,16 +25,18 @@ function scopeAction(...args) {
 
     const logicComponents = {
         onSetup: (context) => {
-            return context.createRuleContextInScope(scopeId, rule);
+            const _context = context;
+
+            _context.data[context.id] = context.createRuleContextInScope(scopeId, rule);
         },
-        onRun: (context, contents, params, logicValue) => {
-            logicValue.start();
+        onRun: (context) => {
+            context.data[context.id].start();
         },
-        onPause: (context, contents, logicValue) => {
-            logicValue.stop();
+        onPause: (context) => {
+            context.data[context.id].stop();
         },
-        tearDown: (context, contents, logicValue) => {
-            logicValue.stop();
+        tearDown: (context) => {
+            context.data[context.id].stop();
         }
     };
 

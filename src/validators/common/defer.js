@@ -4,8 +4,10 @@ const Logic = require('../../logic.js');
 
 function deferAction(getRuleCb) {
     const logicComponents = {
-        onSetup: () => {
-            const runningData = {};
+        onSetup: (context) => {
+            const _context = context;
+
+            const runningData = _context.data[context.id] = {};
 
             if (_.isFunction(getRuleCb)) {
                 runningData.rule = getRuleCb();
@@ -14,63 +16,59 @@ function deferAction(getRuleCb) {
                     throw new Error('Must be an an instance of Rule');
                 }
             }
-
-            return runningData;
         },
-        onRun: (context, contents, params, runningData) => {
-            const _runningData = runningData;
+        onRun: (context, content, params) => {
+            const runningData = context.data[context.id];
 
-            if (_.isNil(_runningData.rule)) {
+            if (_.isNil(runningData.rule)) {
                 if (_.isNil(params.rule)) {
                     throw new Error('Rule has not been defined');
                 }
 
-                _runningData.rule = params.rule;
+                runningData.rule = params.rule;
             }
 
-            if (_runningData.rule === params.rule || _.isNil(params.rule)) {
+            if (runningData.rule === params.rule || _.isNil(params.rule)) {
                 // The rule has not changed so create the context if it does not exist and move on.
-                if (_.isNil(_runningData.context)) {
-                    _runningData.context = context.createRuleContext(_runningData.rule);
+                if (_.isNil(runningData.context)) {
+                    runningData.context = context.createRuleContext(runningData.rule);
 
-                    _runningData.context.start();
+                    runningData.context.start();
                 }
 
-                return _runningData;
+                return;
             }
 
             // rule must have changed
-            _runningData.rule = params.rule;
+            runningData.rule = params.rule;
 
             // destroy the context if it has changed.
-            if (!_.isNil(_runningData.context)) {
-                _runningData.context.dispose().commit();
+            if (!_.isNil(runningData.context)) {
+                runningData.context.dispose().commit();
 
-                _runningData.context = null;
+                runningData.context = null;
             }
 
-            _runningData.context = context.createRuleContext(_runningData.rule);
+            runningData.context = context.createRuleContext(runningData.rule);
 
-            _runningData.context.start();
-
-            return _runningData;
+            runningData.context.start();
         },
-        onPause: (context, contents, runningData) => {
-            const _runningData = runningData;
+        onPause: (context) => {
+            const runningData = context.data[context.id];
 
-            if (!_.isNil(_runningData.context)) {
-                _runningData.context.dispose().commit();
+            if (!_.isNil(runningData.context)) {
+                runningData.context.dispose().commit();
 
-                _runningData.context = null;
+                runningData.context = null;
             }
         },
-        tearDown: (context, contents, runningData) => {
-            const _runningData = runningData;
+        tearDown: (context) => {
+            const runningData = context.data[context.id];
 
-            if (!_.isNil(_runningData.context)) {
-                _runningData.context.dispose().commit();
+            if (!_.isNil(runningData.context)) {
+                runningData.context.dispose().commit();
 
-                _runningData.context = null;
+                runningData.context = null;
             }
         }
     };

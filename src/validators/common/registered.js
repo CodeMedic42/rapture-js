@@ -14,37 +14,37 @@ function cleanUp(logicValue) {
 function registerAction(parentRule, actions, id) {
     const logic = Logic({
         define: [{ id: 'registerID', value: id }],
-        onSetup: () => {
-            return { id: null };
+        onSetup: (context) => {
+            const _context = context;
+
+            _context.data[context.id] = { id: null };
         },
-        onRun: (context, contents, params, logicValue) => {
+        onRun: (context, contents, params) => {
+            const logicValue = context.data[context.id];
+
             if (logicValue.id === params.registerID) {
                 // The id did not change and we do not need to update anything.
 
-                return logicValue;
+                return;
             }
 
             context.raise();
 
-            const _logicValue = logicValue;
+            logicValue.id = params.registerID;
 
-            _logicValue.id = params.registerID;
-
-            _logicValue.listener = context.scope.watch(params.registerID, (status) => {
+            logicValue.listener = context.scope.watch(params.registerID, (status) => {
                 if (status === 'undefined') {
                     context.raise('data', `${params.registerID} is referenced but is never registered`);
                 } else {
                     context.raise();
                 }
             });
-
-            return logicValue;
         },
-        onPause: (context, contents, logicValue) => {
-            cleanUp(logicValue);
+        onPause: (context) => {
+            cleanUp(context.data[context.id]);
         },
-        onTeardown: (context, contents, logicValue) => {
-            cleanUp(logicValue);
+        onTeardown: (context) => {
+            cleanUp(context.data[context.id]);
         }
     });
 

@@ -9,11 +9,11 @@ const customAction = require('../common/custom.js');
 
 module.exports = (parentRule) => {
     const logic = Logic({
-        onRun: (runContext, value) => {
-            if (!_.isNil(value) && !_.isBoolean(value)) {
-                runContext.raise('schema', 'When defined this field must be a boolean.', 'error');
+        onRun: (context, content) => {
+            if (!_.isNil(content) && !_.isBoolean(content)) {
+                context.raise('schema', 'When defined this field must be a boolean.', 'error');
             } else {
-                runContext.raise();
+                context.raise();
             }
         }
     });

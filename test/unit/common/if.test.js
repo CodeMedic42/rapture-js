@@ -10,8 +10,8 @@ const expect = Chai.expect;
 function isType(type) {
     return Rapture.logic({
         require: 'typeValue',
-        onRun: (runContext, contents, params) => {
-            return params.typeValue === type;
+        onRun: (context, content, params) => {
+            context.set(params.typeValue === type);
         }
     });
 }

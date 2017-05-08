@@ -30,8 +30,8 @@ function emitPersonalIssues() {
 
 function linkContent(content) {
     content.on('update', (emitData) => {
-        this._status.raisePending = emitData.raise;
-        this._status.updatedPending = emitData.update;
+        this._status.raisePending = this._status.raisePending || emitData.raise;
+        this._status.updatedPending = this._status.updatedPending || emitData.update;
 
         emit.call(this);
     }, this);

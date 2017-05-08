@@ -43,7 +43,7 @@ Rule.prototype.applyLogic = function applyLogic(ruleContext) {
     let logicContext = null;
 
     if (!_.isNil(this.logic)) {
-        logicContext = this.logic.buildContext(ruleContext, previousContext);
+        logicContext = this.logic.buildContext(this.name, ruleContext, previousContext);
 
         ruleContext.addLogicContext(logicContext);
     }
