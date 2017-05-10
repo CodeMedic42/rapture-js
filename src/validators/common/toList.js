@@ -51,10 +51,6 @@ function customAction(parentRule, actions, id, unique) {
 
             if (unique) {
                 disenguageListener = Common.createListener(currentCount, 'change', null, () => {
-                    if (content === 'submitted') {
-                        debugger;
-                    }
-
                     if (currentCount.value() > 1) {
                         context.raise({ type: 'schema', message: 'Must be a unique id.', severity: 'error' });
                     } else {
