@@ -244,7 +244,7 @@ function buildContext() {
     };
 }
 
-function onParameterUpdate(name, status, value) {
+function _updateParameter(name, status, value) {
     this._parameters.meta[name].status = status;
 
     if (status === 'ready') {
@@ -252,6 +252,10 @@ function onParameterUpdate(name, status, value) {
     } else {
         delete this._parameters.values[name];
     }
+}
+
+function onParameterUpdate(name, status, value) {
+    _updateParameter.call(this, name, status, value);
 
     if (this._status.runStatus === 'started') {
         _run.call(this);
@@ -268,11 +272,7 @@ function processDefinition(param, name) {
     if (param.value instanceof Logic) {
         const logicContext = param.value.buildContext(this._id, this._ruleContext);
 
-        this._parameters.meta[name].status = logicContext.status();
-
-        if (this._parameters.meta[name].status === 'ready') {
-            this._parameters.values[name] = logicContext.currentValue;
-        }
+        _updateParameter.call(this, name, logicContext.status(), logicContext.value());
 
         this._parameters.listeners[name] = Common.createListener(logicContext, 'update', null, onParameterUpdate.bind(this, name));
         this._parameters.contexts[name] = logicContext;
@@ -290,6 +290,26 @@ function stopWatch(name) {
     }
 }
 
+function _onWatchUpdate(name, status, value) {
+    if (status !== 'ready') {
+        // kill the watch
+        this._parameters.meta[name].watchId = null;
+
+        stopWatch.call(this, name);
+
+        return;
+    } else if (value === this._parameters.meta[name].watchId) {
+        // Id did not change so no need to reload the watch
+        return;
+    }
+
+    stopWatch.call(this, name);
+
+    this._parameters.meta[name].watchId = value;
+
+    this._parameters.listeners[name] = this._ruleContext.scope.watch(value, onParameterUpdate.bind(this, name));
+}
+
 function processRequired(param, name) {
     const Logic = require('./logic'); // eslint-disable-line
 
@@ -302,25 +322,13 @@ function processRequired(param, name) {
     if (param.value instanceof Logic) {
         const logicContext = param.value.buildContext(this._id, this._ruleContext);
 
-        logicContext.on('update', (status, value) => {
-            if (status !== 'ready') {
-                // kill the watch
-                this._parameters.meta[name].watchId = null;
+        _updateParameter.call(this, name, 'undefined', undefined);
 
-                stopWatch.call(this, name);
+        const update = _onWatchUpdate.bind(this, name);
 
-                return;
-            } else if (value === this._parameters.meta[name].watchId) {
-                // Id did not change so no need to reload the watch
-                return;
-            }
+        logicContext.on('update', update);
 
-            stopWatch.call(this, name);
-
-            this._parameters.meta[name].watchId = value;
-
-            this._parameters.listeners[name] = this._ruleContext.scope.watch(value, onParameterUpdate.bind(this, name));
-        });
+        update(logicContext.status(), logicContext.value());
 
         this._parameters.contexts[name] = logicContext;
     } else {
@@ -484,8 +492,6 @@ LogicContext.prototype.stop = function stop() {
 
     this._status.runStatus = 'stopping';
 
-    // updateValueStatus.call(this, 'undefined');
-
     _.forOwn(this._parameters.contexts, (context) => {
         context.stop();
     });
@@ -508,6 +514,12 @@ LogicContext.prototype.status = function status() {
     Common.checkDisposed(this);
 
     return this._status.valueStatus;
+};
+
+LogicContext.prototype.value = function value() {
+    Common.checkDisposed(this);
+
+    return this._currentValue;
 };
 
 LogicContext.prototype.dispose = function dispose() {

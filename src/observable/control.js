@@ -4,6 +4,20 @@ const _ = require('lodash');
 
 let __Control;
 
+function _getRemoveFunction() {
+    if (this._type === 'object') {
+        return function removeProperty(id) {
+            delete this[id];
+        };
+    } else if (this._type === 'array') {
+        return function removeItem(id) {
+            _.pullAt(this, id);
+        };
+    }
+
+    throw new Error('Not a valid type');
+}
+
 function _emitChange(force) {
     if (!this._status.changePending) {
         return;
@@ -207,26 +221,21 @@ function _addProperty(id, value) {
     this._status.isUpdating = false;
 }
 
-function _removeProperty(id) {
+function _delete(id, use) {
+    this._content[id].disenguage();
+
+    use.call(this._content, id);
+    use.call(this._value, id);
+}
+
+function _deleteValue(id) {
     if (this._type === 'simple') {
         throw new Error('Can only remove properties from object');
     }
 
-    const target = this._content[id];
+    const use = _getRemoveFunction.call(this);
 
-    if (_.isNil(target)) {
-        return;
-    }
-
-    this._status.isUpdating = true;
-
-    target.disenguage();
-
-    this._status.changePending = true;
-
-    _emitChange.call(this, true);
-
-    this._status.isUpdating = false;
+    _delete.call(this, id, use);
 }
 
 function _get(id) {
@@ -278,6 +287,7 @@ function _set(id, value) {
     targetControl.update(value);
 }
 
+
 __Control.prototype.set = function set(id, value) {
     this._status.isUpdating = true;
 
@@ -301,13 +311,23 @@ __Control.prototype.get = function get(id) {
 };
 
 __Control.prototype.delete = function delete_(id) {
-    this._status.isUpdating = true;
+    const result = _get.call(this, id);
 
-    _removeProperty.call(this, id);
+    const target = result.targetControl._content[result.property];
 
-    _emitChange.call(this, true);
+    if (_.isNil(target)) {
+        return;
+    }
 
-    this._status.isUpdating = false;
+    try {
+        this._status.isUpdating = true;
+
+        _deleteValue.call(result.targetControl, result.property);
+
+        _emitChange.call(this, true);
+    } finally {
+        this._status.isUpdating = false;
+    }
 };
 
 __Control.prototype.remove = function remove(cb) {
@@ -325,25 +345,22 @@ __Control.prototype.remove = function remove(cb) {
         }
     });
 
-    let use;
+    const use = _getRemoveFunction.call(this);
 
-    if (this._type === 'object') {
-        use = function removeProperty(id) {
-            delete this[id];
-        };
-    } else if (this._type === 'array') {
-        use = function removeItem(id) {
-            _.pullAt(this, id);
-        };
-    }
+    // if (this._type === 'object') {
+    //     use = function removeProperty(id) {
+    //         delete this[id];
+    //     };
+    // } else if (this._type === 'array') {
+    //     use = function removeItem(id) {
+    //         _.pullAt(this, id);
+    //     };
+    // }
 
     _.forEach(toRemove, (id) => {
         this._status.changePending = true;
 
-        this._content[id].disenguage();
-
-        use.call(this._content, id);
-        use.call(this._value, id);
+        _delete.call(this, id, use);
     });
 
     _emitChange.call(this, true);

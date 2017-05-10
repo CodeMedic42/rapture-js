@@ -6,6 +6,7 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
+const toListAction = require('../common/toList');
 
 function numberDefinition(parentRule) {
     const logic = Logic({
@@ -22,7 +23,8 @@ function numberDefinition(parentRule) {
         register: registerAction,
         if: ifAction.bind(null, true),
         registered: registeredAction,
-        custom: customAction
+        custom: customAction,
+        toList: toListAction
     };
 
     return Rule('number', logic, actions, parentRule);

@@ -13,8 +13,6 @@ const expect = Chai.expect;
 describe('Register and Require Integration Tests :', () => {
     // The job of this test is to focus on registering a dynamic id and then rebuilding that id and requiring it through the _session.
     it('Test A', () => {
-        debugger;
-
         const testObjectA = {
             id: 'foo'
         };
@@ -27,9 +25,7 @@ describe('Register and Require Integration Tests :', () => {
         const ruleA = Rapture.object().valid({
             id: Rapture.string().register({
                 id: Rapture.logic({
-                    onRun: (context, content) => {
-                        context.set(`id/${content}`);
-                    }
+                    onSetup: (context, content) => `id/${content}`
                 }),
                 scope: '__session'
             })
@@ -40,9 +36,7 @@ describe('Register and Require Integration Tests :', () => {
                 require: {
                     id: 'idValue',
                     value: Rapture.logic({
-                        onRun: (context, content) => {
-                            context.set(`id/${content}`);
-                        }
+                        onSetup: (context, content) => `id/${content}`
                     })
                 },
                 onRun: (context, content, params) => {

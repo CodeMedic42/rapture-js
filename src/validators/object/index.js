@@ -3,8 +3,6 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const Observable = require('../../observable/index.js');
 
-// const keysAction = require('./keys.js');
-// const matchAction = require('./match.js');
 const validAction = require('./valid/index.js');
 const invalidAction = require('./invalid.js');
 const strictAction = require('./strict.js');
@@ -17,6 +15,7 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
+const listAction = require('../common/list.js');
 
 const objectLogic = Logic({
     onSetup: (context) => {
@@ -44,7 +43,8 @@ const objectActions = {
     register: registerAction,
     if: ifAction.bind(null, true),
     registered: registeredAction,
-    custom: customAction
+    custom: customAction,
+    list: listAction
 };
 
 function objectDefinition(parentRule) {

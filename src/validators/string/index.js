@@ -10,6 +10,7 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const customAction = require('../common/custom.js');
 const registeredAction = require('../common/registered.js');
+const toListAction = require('../common/toList');
 
 function stringDefinition(parentRule) {
     const logic = Logic({
@@ -30,7 +31,8 @@ function stringDefinition(parentRule) {
         register: registerAction,
         if: ifAction.bind(null, true),
         custom: customAction,
-        registered: registeredAction
+        registered: registeredAction,
+        toList: toListAction
     };
 
     return Rule('string', logic, actions, parentRule);

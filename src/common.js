@@ -44,8 +44,8 @@ module.exports.checkDisposed = function checkDisposed(target, asWarning) {
     }
 };
 
-module.exports.createListener = function createListener(eventer, events, context, listener, onRemove) {
-    eventer.on(events, listener, context);
+module.exports.createListener = function createListener(eventer, event, context, listener, onRemove) {
+    eventer.on(event, listener, context);
 
     return () => {
         eventer.removeListener(event, listener, context);

@@ -136,7 +136,7 @@ __Observable.prototype.delete = function delete_(id) {
         throw new Error('This object has been disposed');
     }
 
-    this[privateSymbol].control.remove(id);
+    this[privateSymbol].control.delete(id);
 };
 
 __Observable.prototype.remove = function remove(cb) {
