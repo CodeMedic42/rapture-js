@@ -57,7 +57,7 @@ function registerAction(parentRule, actions, data) {
                 return;
             }
 
-            runningData.disenguage = Common.createListener(content, 'update', () => {
+            runningData.disenguage = Common.createListener(content, 'update', null, () => {
                 if (!runningData.running) {
                     return;
                 }

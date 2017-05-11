@@ -69,7 +69,11 @@ function raise(...issueMeta) {
 
     this._status.raiseRequired = true;
 
-    const newValueStatus = this._livingIssues.length > 0 ? 'failed' : 'ready';
+    let newValueStatus = 'undefined';
+
+    if (!_.isUndefined(this._currentValue)) {
+        newValueStatus = this._livingIssues.length > 0 ? 'failed' : 'ready';
+    }
 
     if (this._status.valueStatus !== newValueStatus) {
         this._status.valueStatus = newValueStatus;
@@ -115,7 +119,6 @@ function checkParameters(parameters) {
             ready = false;
         } else if (paramStatus === 'failed') {
             // There is a context with issues here.
-            issues.push(...parameters.contexts[name].issues());
 
             ready = false;
         } else if (paramStatus === 'ready') {
@@ -168,6 +171,12 @@ function _set(value) {
         return false; // Did not result in an update
     }
 
+    this._status.valueStatus = 'undefined';
+
+    if (!_.isUndefined(value)) {
+        this._status.valueStatus = this._livingIssues.length > 0 ? 'failed' : 'ready';
+    }
+
     this._currentValue = value;
 
     this._status.updateRequired = true;
@@ -206,7 +215,11 @@ function createRuleContext(rule, tokenContext) {
 }
 
 function buildLogicContext(logicDefinition) {
-    return logicDefinition.buildContext(`${this._id}`, this._ruleContext);
+    const logicContext = logicDefinition.buildContext(`${this._id}`, this._ruleContext);
+
+    this._ruleContext.addLogicContext(logicContext);
+
+    return logicContext;
 }
 
 function register(targetScope, id, value, _status, force) {
@@ -404,7 +417,7 @@ function LogicContext(name, ruleContext, onSetup, onRun, onPause, onTeardown, pa
 
     this._status = {
         runStatus: 'stopped',
-        valueStatus: 'ready',
+        valueStatus: 'undefined',
         lastEmited: null
     };
 
@@ -429,6 +442,7 @@ function LogicContext(name, ruleContext, onSetup, onRun, onPause, onTeardown, pa
 
     if (!_.isNil(onSetup)) {
         this._currentValue = onSetup(this._context, this._content);
+        this._status.valueStatus = 'ready';
     }
 
     if (_.isNil(this._onRun)) {
@@ -449,7 +463,7 @@ LogicContext.prototype.faulted = function faulted() {
         previousFault = this._previousLogicContext.faulted();
     }
 
-    return previousFault || (this._status.valueStatus !== 'ready');
+    return previousFault || (this._status.valueStatus === 'failed');
 };
 
 LogicContext.prototype.issues = function issues() {

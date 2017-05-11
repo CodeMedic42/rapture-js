@@ -3,11 +3,7 @@ const Rule = require('../../rule.js');
 const Common = require('../../common.js');
 const Logic = require('../../logic.js');
 
-function cleanUp(logicData, disenguageListener, currentCount, list, content) {
-    const _logicData = logicData;
-
-    _logicData.ran = false;
-
+function cleanUp(disenguageListener, currentCount, list, item) {
     if (!_.isNil(disenguageListener)) {
         disenguageListener();
     }
@@ -17,10 +13,35 @@ function cleanUp(logicData, disenguageListener, currentCount, list, content) {
     if (newValue > 0) {
         currentCount.set(newValue);
     } else {
-        list.delete(content);
+        list.delete(item);
     }
 
     currentCount.dispose();
+}
+
+function theLoop(list, item, context, unique) {
+    let currentCount = list.get(item);
+
+    if (_.isNil(currentCount)) {
+        list.set(item, 0);
+        currentCount = list.get(item);
+    }
+
+    let disenguageListener;
+
+    if (unique) {
+        disenguageListener = Common.createListener(currentCount, 'change', null, () => {
+            if (currentCount.value() > 1) {
+                context.raise({ type: 'schema', message: 'Must be a unique id.', severity: 'error' });
+            } else {
+                context.raise();
+            }
+        });
+    }
+
+    currentCount.set(currentCount.value() + 1);
+
+    return cleanUp.bind(null, disenguageListener, currentCount, list, item);
 }
 
 function customAction(parentRule, actions, id, unique) {
@@ -39,47 +60,21 @@ function customAction(parentRule, actions, id, unique) {
             }
 
             logicData.ran = true;
+            const cleanUpList = [];
 
-            let currentCount = params[id].get(content);
-
-            if (_.isNil(currentCount)) {
-                params[id].set(content, 0);
-                currentCount = params[id].get(content);
-            }
-
-            let disenguageListener;
-
-            if (unique) {
-                disenguageListener = Common.createListener(currentCount, 'change', null, () => {
-                    if (currentCount.value() > 1) {
-                        context.raise({ type: 'schema', message: 'Must be a unique id.', severity: 'error' });
-                    } else {
-                        context.raise();
-                    }
+            if (_.isPlainObject(content)) {
+                _.forOwn(content, (item, name) => {
+                    cleanUpList.push(theLoop(params[id], name, context, false));
                 });
+            } else if (!_.isNil(content)) {
+                cleanUpList.push(theLoop(params[id], content, context, unique));
             }
 
-            currentCount.set(currentCount.value() + 1);
+            logicData.cleanUp = () => {
+                logicData.ran = false;
 
-            logicData.cleanUp = cleanUp.bind(null, logicData, disenguageListener, currentCount, params[id], content);
-            // () => {
-            //     logicData.ran = false;
-            //
-            //     if (!_.isNil(disenguageListener)) {
-            //         disenguageListener();
-            //     }
-            //
-            //     const newValue = currentCount.value() - 1;
-            //
-            //     if (newValue > 0) {
-            //         currentCount.set(newValue);
-            //     } else {
-            //         params[id].delete(content);
-            //     }
-            //
-            //     currentCount.dispose();
-            //     currentCount = null;
-            // };
+                _.forEach(cleanUpList, cleanUpCb => cleanUpCb());
+            };
         },
         onPause: (context) => {
             if (!_.isNil(context.data[context.id].cleanUp())) {

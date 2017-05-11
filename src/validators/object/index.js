@@ -16,6 +16,7 @@ const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 const listAction = require('../common/list.js');
+const toListAction = require('../common/toList.js');
 
 const objectLogic = Logic({
     onSetup: (context) => {
@@ -44,7 +45,8 @@ const objectActions = {
     if: ifAction.bind(null, true),
     registered: registeredAction,
     custom: customAction,
-    list: listAction
+    list: listAction,
+    toList: toListAction
 };
 
 function objectDefinition(parentRule) {

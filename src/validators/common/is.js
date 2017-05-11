@@ -35,10 +35,10 @@ function onRun(context, contents) {
 
         if (!_.isNil(currentValue.nextContext)) {
             currentValue.nextContext.start();
+        } else {
+            context.raise({ type: 'schema', message: 'Invalid value type', severity: 'error' });
         }
     }
-
-    return currentValue;
 }
 
 function onPause(context) {
@@ -51,7 +51,7 @@ function onPause(context) {
     currentValue.thenContext.stop();
 }
 
-function isLogic(isCondition, thenRule, actions, nextIs) {
+function isLogic(isCondition, thenRule, nextIs) {
     const logicDef = _.isNil(nextIs) ? null : Logic(nextIs);
 
     return {
