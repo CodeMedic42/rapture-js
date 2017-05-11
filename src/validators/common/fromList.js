@@ -3,8 +3,14 @@ const Logic = require('../../logic.js');
 const Common = require('../../common.js');
 
 module.exports = function fromList(listId, additionalItems) {
-    function set(context, segmentIDs) {
-        context.set([..._.keys(segmentIDs.value()), ...additionalItems]);
+    function set(context, list, additionalValues) {
+        context.set([..._.keys(list.value()), ...additionalValues]);
+    }
+
+    let _additionalItems = additionalItems;
+
+    if (!_.isArray(additionalItems)) {
+        _additionalItems = [];
     }
 
     return Logic({
@@ -30,14 +36,14 @@ module.exports = function fromList(listId, additionalItems) {
             }
 
             logicData.disenguage = Common.createListener(params[listId], 'change', null, () => {
-                set(context, params[listId]);
+                set(context, params[listId], _additionalItems);
             }, () => {
                 logicData.ran = false;
 
                 logicData.disenguage = null;
             });
 
-            set(context, params[listId]);
+            set(context, params[listId], _additionalItems);
         },
         onPause: (context) => {
             if (!_.isNil(context.data[context.id].disenguage)) {

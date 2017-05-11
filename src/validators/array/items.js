@@ -37,8 +37,9 @@ function itemsAction(parentRule, actions, itemRule) {
 
             disposeContexts(context.data[context.id]);
 
-            _context.data[context.id] = _.reduce(contents, (contexts, propValue) => {
+            _context.data[context.id] = _.reduce(contents, (contexts, propValue, index) => {
                 const ruleContext = context.createRuleContext(params.itemRule, propValue);
+                ruleContext.data.$index = index;
 
                 contexts.push(ruleContext);
 
