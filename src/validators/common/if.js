@@ -128,7 +128,7 @@ function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
 
             const nextActions = _.clone(actions);
 
-            return Rule('if', logic, nextActions, parentRule);
+            return Rule('if', logic, 'full', nextActions, parentRule);
         }
     };
 

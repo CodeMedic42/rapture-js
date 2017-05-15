@@ -117,7 +117,7 @@ function isAction(isCondition, thenRule) {
 
             const logic = Logic(finalLogic);
 
-            return Rule('is', logic);
+            return Rule('is', logic, 'full');
         }
     };
 

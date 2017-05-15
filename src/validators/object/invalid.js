@@ -81,7 +81,7 @@ function invalidAction(parentRule, actions, logicData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-invalid', logic, nextActions, parentRule);
+    return Rule('object-invalid', logic, 'full', nextActions, parentRule);
 }
 
 module.exports = invalidAction;

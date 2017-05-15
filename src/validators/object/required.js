@@ -59,7 +59,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
         }
     });
 
-    return Rule('object-required', logic, actions, parentRule);
+    return Rule('object-required', logic, 'full', actions, parentRule);
 }
 
 module.exports = requiredAction;

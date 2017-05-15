@@ -28,5 +28,5 @@ module.exports = (parentRule) => {
         toList: toListAction
     };
 
-    return Rule('date', logic, actions, parentRule);
+    return Rule('date', logic, 'full', actions, parentRule);
 };

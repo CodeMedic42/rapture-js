@@ -27,7 +27,7 @@ function numberDefinition(parentRule) {
         toList: toListAction
     };
 
-    return Rule('number', logic, actions, parentRule);
+    return Rule('number', logic, 'full', actions, parentRule);
 }
 
 module.exports = numberDefinition;

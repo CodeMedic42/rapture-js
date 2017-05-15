@@ -8,9 +8,9 @@ function addActions(actions) {
     });
 }
 
-function Rule(name, logic, actions, parentRule) {
+function Rule(name, logic, logicType, actions, parentRule) {
     if (!(this instanceof Rule)) {
-        return new Rule(name, logic, actions, parentRule);
+        return new Rule(name, logic, logicType, actions, parentRule);
     }
 
     if (!_.isNil(logic) && !(logic instanceof Logic)) {
@@ -19,6 +19,7 @@ function Rule(name, logic, actions, parentRule) {
 
     addActions.call(this, actions);
     this.logic = logic;
+    this.logicType = logicType;
 
     this.name = name;
     this.id = ShortId.generate();
@@ -43,7 +44,7 @@ Rule.prototype.applyLogic = function applyLogic(ruleContext) {
     let logicContext = null;
 
     if (!_.isNil(this.logic)) {
-        logicContext = this.logic.buildContext(this.name, ruleContext, previousContext);
+        logicContext = this.logic.buildContext(this.logicType, this.name, ruleContext, previousContext);
 
         ruleContext.addLogicContext(logicContext);
     }

@@ -135,7 +135,7 @@ function registerAction(parentRule, actions, data) {
 
     const logic = Logic(logicComponents);
 
-    return Rule('register', logic, actions, parentRule);
+    return Rule('register', logic, 'full', actions, parentRule);
 }
 
 module.exports = registerAction;

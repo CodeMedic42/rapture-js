@@ -37,7 +37,7 @@ const actions = {
 };
 
 function arrayDefinition(parentRule) {
-    return Rule('array', arrayLogic, actions, parentRule);
+    return Rule('array', arrayLogic, 'full', actions, parentRule);
 }
 
 module.exports = arrayDefinition;

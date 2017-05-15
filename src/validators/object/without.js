@@ -70,5 +70,5 @@ module.exports = (parentRule, actions, key, ...initalLogicData) => {
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-without', logic, nextActions, parentRule);
+    return Rule('object-without', logic, 'full', nextActions, parentRule);
 };

@@ -64,7 +64,7 @@ function strictAction(parentRule, actions) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-strict', logic, nextActions, parentRule);
+    return Rule('object-strict', logic, 'full', nextActions, parentRule);
 }
 
 module.exports = strictAction;

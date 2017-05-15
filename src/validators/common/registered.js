@@ -48,7 +48,7 @@ function registerAction(parentRule, actions, id) {
         }
     });
 
-    return Rule('register', logic, actions, parentRule);
+    return Rule('register', logic, 'full', actions, parentRule);
 }
 
 module.exports = registerAction;

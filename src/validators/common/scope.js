@@ -40,7 +40,7 @@ function scopeAction(...args) {
         }
     };
 
-    return Rule('defer', Logic(logicComponents));
+    return Rule('defer', Logic(logicComponents), 'full');
 }
 
 module.exports = scopeAction;

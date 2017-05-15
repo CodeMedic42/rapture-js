@@ -21,7 +21,7 @@ function maxAction(parentRule, actions, maxData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('array-max', logic, nextActions, parentRule);
+    return Rule('array-max', logic, 'full', nextActions, parentRule);
 }
 
 module.exports = maxAction;

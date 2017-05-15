@@ -50,7 +50,7 @@ const objectActions = {
 };
 
 function objectDefinition(parentRule) {
-    return Rule('object', objectLogic, objectActions, parentRule);
+    return Rule('object', objectLogic, 'full', objectActions, parentRule);
 }
 
 module.exports = objectDefinition;

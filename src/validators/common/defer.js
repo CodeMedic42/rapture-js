@@ -79,7 +79,7 @@ function deferAction(getRuleCb) {
         throw new Error('Invalid defer logic');
     }
 
-    return Rule('defer', Logic(logicComponents));
+    return Rule('defer', Logic(logicComponents), 'full');
 }
 
 module.exports = deferAction;

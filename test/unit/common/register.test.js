@@ -8,7 +8,7 @@ Chai.use(DirtyChai);
 
 const expect = Chai.expect;
 
-describe('Registration Tests', () => {
+describe('Registration Tests :', () => {
     it('Register at current scope', () => {
         const testObject = {
             reg: 'foo',

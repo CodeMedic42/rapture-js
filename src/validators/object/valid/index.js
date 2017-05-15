@@ -25,7 +25,7 @@ function validAction(parentRule, actions, ...logicData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-valid', Logic(logicComponents), nextActions, parentRule);
+    return Rule('object-valid', Logic(logicComponents), 'full', nextActions, parentRule);
 }
 
 module.exports = validAction;

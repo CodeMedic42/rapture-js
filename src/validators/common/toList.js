@@ -77,18 +77,18 @@ function customAction(parentRule, actions, id, unique) {
             };
         },
         onPause: (context) => {
-            if (!_.isNil(context.data[context.id].cleanUp())) {
+            if (!_.isNil(context.data[context.id].cleanUp)) {
                 context.data[context.id].cleanUp();
             }
         },
         onTeardown: (context) => {
-            if (!_.isNil(context.data[context.id].cleanUp())) {
+            if (!_.isNil(context.data[context.id].cleanUp)) {
                 context.data[context.id].cleanUp();
             }
         }
     });
 
-    return Rule('toList', logic, actions, parentRule);
+    return Rule('toList', logic, 'full', actions, parentRule);
 }
 
 module.exports = customAction;
