@@ -2,7 +2,7 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function evaluateForInvalidKeys(context, contents, keyData) {
+function evaluateForInvalidKeys(control, contents, keyData) {
     const keyStates = {};
 
     const data = keyData.value();
@@ -29,7 +29,7 @@ function evaluateForInvalidKeys(context, contents, keyData) {
         return issArray;
     }, []);
 
-    context.raise(issues);
+    control.raise(issues);
 }
 
 function strictAction(parentRule, actions) {
@@ -37,34 +37,34 @@ function strictAction(parentRule, actions) {
         options: {
             useToken: true
         },
-        onSetup: (context, content) => {
-            context.data.__keyData
+        onSetup: (control, content) => {
+            control.data.__keyData
             .on('change', function onChange() {
-                evaluateForInvalidKeys(context, content.contents, this);
+                evaluateForInvalidKeys(control, content.contents, this);
             });
         },
-        onRun: (context, content) => {
+        onRun: (control, content) => {
             const contents = content.contents;
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
-                context.data.__keyData.pause();
+                control.data.__keyData.pause();
             } else {
-                context.data.__keyData.run();
+                control.data.__keyData.run();
 
-                evaluateForInvalidKeys(context, contents, context.data.__keyData);
+                evaluateForInvalidKeys(control, contents, control.data.__keyData);
             }
         },
-        onPause: (context) => {
-            context.data.__keyData.pause();
+        onPause: (control) => {
+            control.data.__keyData.pause();
         },
-        onTeardown: (context) => {
-            context.data.__keyData.pause();
+        onTeardown: (control) => {
+            control.data.__keyData.pause();
         }
     });
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-strict', logic, 'full', nextActions, parentRule);
+    return Rule('object-strict', logic, nextActions, parentRule);
 }
 
 module.exports = strictAction;

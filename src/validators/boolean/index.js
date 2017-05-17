@@ -25,5 +25,5 @@ module.exports = (parentRule) => {
         custom: customAction
     };
 
-    return Rule('boolean', logic, 'full', actions, parentRule);
+    return Rule('boolean', logic, actions, parentRule);
 };

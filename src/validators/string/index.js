@@ -35,7 +35,7 @@ function stringDefinition(parentRule) {
         toList: toListAction
     };
 
-    return Rule('string', logic, 'full', actions, parentRule);
+    return Rule('string', logic, actions, parentRule);
 }
 
 module.exports = stringDefinition;

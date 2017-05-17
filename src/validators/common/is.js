@@ -55,13 +55,13 @@ function isLogic(isCondition, thenRule, nextIs) {
     const logicDef = _.isNil(nextIs) ? null : Logic(nextIs);
 
     return {
-        onSetup: (context) => {
-            const _context = context;
+        onSetup: (control) => {
+            const _control = control;
 
-            _context.data[context.id] = {
+            _control.data[control.id] = {
                 isCondition,
-                thenContext: _context.createRuleContext(thenRule),
-                nextContext: !_.isNil(logicDef) ? _context.buildLogicContext(logicDef) : null
+                thenContext: control.createRuleContext(thenRule),
+                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
             };
         },
         onRun,
@@ -117,7 +117,7 @@ function isAction(isCondition, thenRule) {
 
             const logic = Logic(finalLogic);
 
-            return Rule('is', logic, 'full');
+            return Rule('is', logic);
         }
     };
 

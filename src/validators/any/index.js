@@ -13,7 +13,7 @@ function anyDefinition(parentRule) {
 
     const logic = Logic({});
 
-    return Rule('any', logic, 'full', anyActions, parentRule);
+    return Rule('any', logic, anyActions, parentRule);
 }
 
 module.exports = anyDefinition;

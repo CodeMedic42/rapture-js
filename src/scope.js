@@ -45,7 +45,7 @@ function setTarget(target, value, status, force) {
 
 function internalSet(key, value, ready, owner, force) {
     let target = this.data[key];
-    const status = ready ? 'ready' : 'failed';
+    const status = ready ? 'defined' : 'failing';
 
     if (_.isNil(target)) {
         // We have no value for this in memory at this scope.
@@ -116,7 +116,7 @@ function internalRemove(key, owner) {
         }
 
         if (!_.isNil(parentData)) {
-            target = internalSet.call(this, key, parentData.value, parentData.status === 'ready', this.parentScope);
+            target = internalSet.call(this, key, parentData.value, parentData.status === 'defined', this.parentScope);
 
             if ((oldValue === target.value) && (oldStatus === target.status)) {
                 // Nothing actualy changed about the data.
@@ -143,7 +143,7 @@ function updateFromParent(parentData, force) {
         if (data.status === 'undefined') {
             target = internalRemove.call(this, key, this.parentScope);
         } else {
-            target = internalSet.call(this, key, data.value, data.status === 'ready', this.parentScope, force);
+            target = internalSet.call(this, key, data.value, data.status === 'defined', this.parentScope, force);
         }
 
         if (!_.isNil(target)) {

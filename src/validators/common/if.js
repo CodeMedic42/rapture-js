@@ -40,8 +40,7 @@ function onTeardown(context) {
     currentValue.thenContext.dispose().commit();
 }
 
-// TODO: Remove parentRule
-function ifLogic(isContinue, ifCondition, thenLogic, actions, parentRule, nextIf) {
+function ifLogic(isContinue, ifCondition, thenLogic, actions, nextIf) {
     let thenRule = null;
 
     if (isContinue) {
@@ -75,12 +74,12 @@ function ifLogic(isContinue, ifCondition, thenLogic, actions, parentRule, nextIf
     }
 
     const logicContents = {
-        onSetup: (context) => {
-            const _context = context;
+        onSetup: (control) => {
+            const _control = control;
 
-            _context.data[context.id] = {
-                thenContext: context.createRuleContext(thenRule),
-                nextContext: !_.isNil(logicDef) ? context.buildLogicContext(logicDef) : null
+            _control.data[control.id] = {
+                thenContext: control.createRuleContext(thenRule),
+                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
             };
         },
         onRun,
@@ -102,7 +101,7 @@ function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
 
     const logicList = [];
 
-    logicList.unshift(ifLogic.bind(null, isContinue, ifCondition, thenLogic, actions, parentRule));
+    logicList.unshift(ifLogic.bind(null, isContinue, ifCondition, thenLogic, actions));
 
     const ifActions = {
         elseIf: (childIfCondition, childThenLogic) => {
@@ -110,12 +109,12 @@ function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
                 throw new Error('Must provide some logic for the if component');
             }
 
-            logicList.unshift(ifLogic.bind(null, isContinue, childIfCondition, childThenLogic, actions, parentRule));
+            logicList.unshift(ifLogic.bind(null, isContinue, childIfCondition, childThenLogic, actions));
 
             return ifActions;
         },
         else: (childThenLogic) => {
-            logicList.unshift(ifLogic.bind(null, isContinue, null, childThenLogic, actions, parentRule));
+            logicList.unshift(ifLogic.bind(null, isContinue, null, childThenLogic, actions));
 
             return ifActions.endIf();
         },
@@ -128,7 +127,7 @@ function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
 
             const nextActions = _.clone(actions);
 
-            return Rule('if', logic, 'full', nextActions, parentRule);
+            return Rule('if', logic, nextActions, parentRule);
         }
     };
 

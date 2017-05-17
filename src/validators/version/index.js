@@ -26,7 +26,7 @@ function versionDefinition(parentRule) {
         toList: toListAction
     };
 
-    return Rule('version', logic, 'full', actions, parentRule);
+    return Rule('version', logic, actions, parentRule);
 }
 
 module.exports = versionDefinition;

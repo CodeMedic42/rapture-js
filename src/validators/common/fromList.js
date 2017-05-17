@@ -3,8 +3,8 @@ const Logic = require('../../logic.js');
 const Common = require('../../common.js');
 
 module.exports = function fromList(listId, additionalItems) {
-    function set(context, list, additionalValues) {
-        context.set([..._.keys(list.value()), ...additionalValues]);
+    function set(control, list, additionalValues) {
+        control.set([..._.keys(list.value()), ...additionalValues]);
     }
 
     let _additionalItems = additionalItems;
@@ -15,17 +15,17 @@ module.exports = function fromList(listId, additionalItems) {
 
     return Logic({
         require: listId,
-        onSetup: (context) => {
-            const _context = context;
+        onSetup: (control) => {
+            const _control = control;
 
-            _context.data[context.id] = {};
+            _control.data[control.id] = {};
         },
-        onRun: (context, content, params) => {
-            const logicData = context.data[context.id];
+        onRun: (control, content, params) => {
+            const logicData = control.data[control.id];
 
             if (logicData.ran) {
-                if (!_.isNil(context.data[context.id].disenguage)) {
-                    context.data[context.id].disenguage();
+                if (!_.isNil(logicData.disenguage)) {
+                    logicData.disenguage();
                 }
             }
 
@@ -36,23 +36,23 @@ module.exports = function fromList(listId, additionalItems) {
             }
 
             logicData.disenguage = Common.createListener(params[listId], 'change', null, () => {
-                set(context, params[listId], _additionalItems);
+                set(control, params[listId], _additionalItems);
             }, () => {
                 logicData.ran = false;
 
                 logicData.disenguage = null;
             });
 
-            set(context, params[listId], _additionalItems);
+            set(control, params[listId], _additionalItems);
         },
-        onPause: (context) => {
-            if (!_.isNil(context.data[context.id].disenguage)) {
-                context.data[context.id].disenguage();
+        onPause: (control) => {
+            if (!_.isNil(control.data[control.id].disenguage)) {
+                control.data[control.id].disenguage();
             }
         },
-        onTeardown: (context) => {
-            if (!_.isNil(context.data[context.id].disenguage)) {
-                context.data[context.id].disenguage();
+        onTeardown: (control) => {
+            if (!_.isNil(control.data[control.id].disenguage)) {
+                control.data[control.id].disenguage();
             }
         }
     });

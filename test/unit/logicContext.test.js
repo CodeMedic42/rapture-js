@@ -10,7 +10,7 @@ Chai.use(DirtyChai);
 
 const expect = Chai.expect;
 
-function buildSpy() {
+function buildSpy(name) {
     const spy = Sinon.spy((...args) => {
         if (spy.$calls.length <= spy.$counter) {
             return undefined;
@@ -26,6 +26,8 @@ function buildSpy() {
 
         return callItem.returns;
     });
+
+    spy.$name = name;
 
     spy.$calls = [];
 
@@ -45,7 +47,7 @@ function buildSpy() {
 }
 
 function buildInitalGetRaw(on) {
-    const spy = buildSpy();
+    const spy = buildSpy('getRaw');
 
     spy.$calls.push({
         with: null,
@@ -58,7 +60,7 @@ function buildInitalGetRaw(on) {
 }
 
 function buildInitalOnSetup() {
-    const spy = buildSpy();
+    const spy = buildSpy('onSetup');
 
     spy.$calls.push({
         with: null,
@@ -82,6 +84,29 @@ function mockRuleContext() {
     return ruleContextMock;
 }
 
+function mockLogicContext(type) {
+    const logicContextMock = {
+        state: buildSpy('statePrevious'),
+        on: buildSpy('onPrevious'),
+    };
+
+    logicContextMock.state.$calls.push({
+        on: logicContextMock,
+        args: [],
+        returns: 'passing'
+    });
+
+    if (type === 'previous') {
+        logicContextMock.on.$calls.push({
+            on: logicContextMock,
+            args: ['state', Sinon.match.func],
+            returns: undefined
+        });
+    }
+
+    return logicContextMock;
+}
+
 function buildMocks() {
     const mocks = {
         ruleContext: mockRuleContext(),
@@ -90,32 +115,33 @@ function buildMocks() {
     };
 
     mocks.onSetup = buildInitalOnSetup();
-    mocks.onRun = buildSpy();
-    mocks.onPause = buildSpy();
-    mocks.onTeardown = buildSpy();
+    mocks.onRun = buildSpy('onRun');
+    mocks.onPause = buildSpy('onPause');
+    mocks.onTeardown = buildSpy('onTeardown');
 
     return mocks;
 }
 
-function validateControl(context, id, data, state, scope) {
-    expect(context._context.data).to.equal(data);
-    expect(context._context.id).to.equal(id);
-    expect(context._context.state).to.equal(state);
-    expect(_.isFunction(context._context.set)).to.be.true();
-    expect(_.isFunction(context._context.raise)).to.be.true();
+function validateControl(context, id, data, state, paramState, scope, isFull) {
+    expect(context._control.data).to.equal(data);
+    expect(context._control.id).to.equal(id);
+    expect(context._control.state).to.equal(state);
+    expect(context._control.paramState).to.equal(paramState);
+    expect(_.isFunction(context._control.set)).to.be.true();
+    expect(_.isFunction(context._control.raise)).to.be.true();
 
-    if (context._fullControl) {
-        expect(_.isFunction(context._context.createRuleContext)).to.be.true();
-        expect(_.isFunction(context._context.createRuleContextInScope)).to.be.true();
-        expect(_.isFunction(context._context.buildLogicContext)).to.be.true();
-        expect(_.isFunction(context._context.register)).to.be.true();
-        expect(_.isFunction(context._context.unregister)).to.be.true();
+    if (isFull) {
+        expect(_.isFunction(context._control.createRuleContext)).to.be.true();
+        expect(_.isFunction(context._control.createRuleContextInScope)).to.be.true();
+        expect(_.isFunction(context._control.buildLogicContext)).to.be.true();
+        expect(_.isFunction(context._control.register)).to.be.true();
+        expect(_.isFunction(context._control.unregister)).to.be.true();
 
-        expect(context._context.scope).to.equal(scope);
+        expect(context._control.scope).to.equal(scope);
 
-        expect(_.keys(context._context).length).to.equal(11);
+        expect(_.keys(context._control).length).to.equal(12);
     } else {
-        expect(_.keys(context._context).length).to.equal(5);
+        expect(_.keys(context._control).length).to.equal(6);
     }
 }
 
@@ -154,7 +180,7 @@ function validateProperties(context, name, parent, previous) {
     expect(context._previousLogicContext).to.equal(previous);
 }
 
-function validateSpies(mocks) {
+function validateSpies(mocks, properties) {
     mocks.ruleContext.tokenContext.getRaw.$validate();
 
     if (!_.isNil(mocks.onSetup)) {
@@ -184,6 +210,10 @@ function validateSpies(mocks) {
     if (!_.isNil(mocks.onState)) {
         mocks.onState.$validate();
     }
+
+    if (!_.isNil(properties.previous)) {
+        properties.previous.on.$validate();
+    }
 }
 
 describe('LogicContext :', () => {
@@ -209,15 +239,17 @@ describe('LogicContext :', () => {
         this.control = {
             id: context._id,
             data: this.mocks.ruleContext.data,
-            state: 'pass',
+            state: 'passing',
+            paramState: 'passing',
             scope: undefined
         };
 
         this.status = {
             runState: 'stopped',
             valueState: 'undefined',
-            validateState: 'pass',
-            fullValidationState: 'pass',
+            validationState: 'passing',
+            fullValidationState: 'passing',
+            paramState: 'passing',
             valueEmitPending: false,
             raiseEmitPending: false,
             stateEmitPending: false
@@ -234,9 +266,9 @@ describe('LogicContext :', () => {
                 this.options
             );
 
-            this.mocks.onRaise = buildSpy();
-            this.mocks.onUpdate = buildSpy();
-            this.mocks.onState = buildSpy();
+            this.mocks.onRaise = buildSpy('onRaise');
+            this.mocks.onUpdate = buildSpy('onUpdate');
+            this.mocks.onState = buildSpy('onState');
 
             context.on('raise', this.mocks.onRaise);
             context.on('update', this.mocks.onUpdate);
@@ -250,7 +282,7 @@ describe('LogicContext :', () => {
             this.control.scope = this.mocks.ruleContext.scope;
 
             if (!_.isNil(this.mocks.onSetup)) {
-                this.mocks.onSetup.$calls[0].args.push(context._context, context._content);
+                this.mocks.onSetup.$calls[0].args.push(context._control, context._content);
             }
 
             validateProperties(context, this.properties.name, this.properties.parent, this.properties.previous);
@@ -261,14 +293,16 @@ describe('LogicContext :', () => {
 
             validateParameters(context, this.processedParameters);
 
-            validateControl(context, this.control.id, this.control.data, this.control.state, this.control.scope);
+            validateControl(context, this.control.id, this.control.data, this.control.state, this.control.paramState, this.control.scope, this.properties.fullControl);
 
             validateStatus(context._status, this.status);
 
-            validateSpies(this.mocks);
+            validateSpies(this.mocks, this.properties);
 
             expect(context._content).to.equal(this.mocks.ruleContext.tokenContext.getRaw.$calls[0].returns);
             expect(this._currentValue).to.equal(this.currentValue);
+
+            expect(context.state()).to.equal(this.status.fullValidationState);
         };
     });
 
@@ -296,41 +330,21 @@ describe('LogicContext :', () => {
             this.validate(context);
         });
 
-        describe('type :', () => {
-            it('raise', function test() {
-                this.type = 'raise';
-
-                const context = this.construct();
-
-                this.validate(context);
-            });
-
-            it('set', function test() {
-                this.type = 'set';
-
-                const context = this.construct();
-
-                this.validate(context);
-            });
-
+        describe('controlType :', () => {
             it('full', function test() {
-                this.type = 'full';
+                this.properties.fullControl = true;
 
                 const context = this.construct();
 
                 this.validate(context);
             });
 
-            it('other', function test() {
-                this.type = 'other';
+            it('not full', function test() {
+                this.properties.fullControl = false;
 
-                try {
-                    this.construct();
+                const context = this.construct();
 
-                    expect.fail();
-                } catch (err) {
-                    expect(err).to.exist();
-                }
+                this.validate(context);
             });
         });
 
@@ -359,9 +373,6 @@ describe('LogicContext :', () => {
 
                 this.currentValue = undefined;
                 this.status.valueState = 'undefined';
-                this.status.currentState = 'undefined';
-                this.status.determined = true;
-                this.status.fullState = 'undefined';
 
                 this.validate(context);
             });
@@ -377,10 +388,8 @@ describe('LogicContext :', () => {
                 const context = this.construct();
 
                 this.currentValue = newValue;
-                this.status.valueState = 'ready';
-                this.status.currentState = 'ready';
-                this.status.determined = true;
-                this.status.fullState = 'ready';
+                // We are not running so the value is still marked as undefined
+                this.status.valueState = 'undefined';
 
                 this.validate(context);
             });
@@ -396,17 +405,13 @@ describe('LogicContext :', () => {
                 const context = this.construct();
 
                 this.currentValue = newValue;
-                this.status.valueState = 'ready';
-                this.status.currentState = 'ready';
-                this.status.determined = true;
-                this.status.fullState = 'ready';
+                // We are not running so the value is still marked as undefined
+                this.status.valueState = 'undefined';
 
                 this.validate(context);
             });
 
             it('onSetup calls raise with issue', function test() {
-                this.properties.type = 'raise';
-
                 const issue = Issue('test', undefined, undefined, 'issue message', 'error');
 
                 this.issues.push(issue);
@@ -418,45 +423,108 @@ describe('LogicContext :', () => {
 
                 const context = this.construct();
 
-                // This is automatcily set so that it can be gathered quickly. But control should only have the that value of the previous.
-                this.status.currentState = 'failed';
-                this.status.valueState = 'failed';
-                this.status.determined = true;
-                this.status.fullState = 'failed';
+                this.status.validationState = 'failing';
+                this.status.fullValidationState = 'failing';
+
+                this.validate(context);
+            });
+
+            it('onSetup calls raise with issue and set with value', function test() {
+                const newValue = 'bar';
+
+                const issue = Issue('test', undefined, undefined, 'issue message', 'error');
+
+                this.issues.push(issue);
+
+                this.mocks.onSetup.$calls[0].returns = 'foo';
+                this.mocks.onSetup.$calls[0].with = (context) => {
+                    context.raise(issue.type, issue.message, issue.severity);
+                    context.set(newValue);
+                };
+
+                const context = this.construct();
+
+                // We are not running so the value is still marked as undefined
+                this.status.valueState = 'undefined';
+                this.status.validationState = 'failing';
+                this.status.fullValidationState = 'failing';
 
                 this.validate(context);
             });
 
             it('onSetup calls raise without issue', function test() {
-                this.properties.type = 'raise';
-
-                const issue = Issue('test', undefined, undefined, 'issue message', 'error');
-
-                this.issues.push(issue);
-
                 this.mocks.onSetup.$calls[0].returns = 'foo';
                 this.mocks.onSetup.$calls[0].with = (context) => {
-                    context.raise(issue.type, issue.message, issue.severity);
+                    context.raise();
                 };
 
                 const context = this.construct();
 
-                // This is automatcily set so that it can be gathered quickly. But control should only have the that value of the previous.
-                this.status.currentState = 'failed';
-                this.status.valueState = 'failed';
-                this.status.determined = true;
-                this.status.fullState = 'failed';
+                this.validate(context);
+            });
+        });
+
+        describe('with previous logic context :', () => {
+            it('is passing validation', function test() {
+                this.properties.previous = mockLogicContext('previous');
+
+                const context = this.construct();
+
+                this.properties.previous.on.$calls[0].args.push(context);
+
+                this.validate(context);
+            });
+
+            it('is failing validation', function test() {
+                this.properties.previous = mockLogicContext('previous');
+
+                this.properties.previous.state.$calls[0].returns = 'failing';
+                // this.properties.previous.state.$calls.push(this.properties.previous.state.$calls[0]);
+
+                const context = this.construct();
+
+                this.status.fullValidationState = 'failing';
+                this.control.state = 'failing';
+
+                this.properties.previous.on.$calls[0].args.push(context);
 
                 this.validate(context);
             });
         });
     });
 
-    describe('start', () => {
-        describe('onSetup not used', () => {
-            // describe
+    describe('start :', () => {
+        beforeEach(function beforeEach() {
+            this.mocks.onSetup = null;
+            this.mocks.onRun = null;
+            this.mocks.onPause = null;
+            this.mocks.onTeardown = null;
         });
 
-        describe('onSetup is used', () => {});
+        // it('no previousContext', function test() {
+        //     const context = this.construct();
+        //
+        //     this.validate(context);
+        //
+        //     this.status.runState = 'started';
+        //
+        //     context.start();
+        //
+        //     this.validate(context);
+        // });
+        //
+        // it('with previousContext which is passing validation', function test() {
+        //     const context = this.construct();
+        //
+        //     this.properties.previous = this.mocks.logicContext;
+        //
+        //     this.validate(context);
+        //
+        //     this.status.runState = 'started';
+        //
+        //     context.start();
+        //
+        //     this.validate(context);
+        // });
     });
 });

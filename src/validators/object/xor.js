@@ -61,5 +61,5 @@ module.exports = (parentRule, actions, ...initalLogicData) => {
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-xor', logic, 'full', nextActions, parentRule);
+    return Rule('object-xor', logic, nextActions, parentRule);
 };

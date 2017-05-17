@@ -132,10 +132,6 @@ function buildMatchLogicComponents(matchers, rule) {
                 finalMatchers = validateCleanMatchers(params.matchers, true);
             }
 
-            // if (_.isNil(finalMatchers)) {
-            //     return [];
-            // }
-
             buildContexts(context, contents, finalMatchers, rule);
         },
         onPause: (context) => {

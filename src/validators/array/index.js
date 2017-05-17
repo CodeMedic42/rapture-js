@@ -28,7 +28,6 @@ const actions = {
     max: maxAction,
     length: lengthAction,
     items: itemsAction,
-    // unique: uniqueAction,
     register: registerAction,
     if: ifAction.bind(null, true),
     registered: registeredAction,
@@ -37,7 +36,7 @@ const actions = {
 };
 
 function arrayDefinition(parentRule) {
-    return Rule('array', arrayLogic, 'full', actions, parentRule);
+    return Rule('array', arrayLogic, actions, parentRule);
 }
 
 module.exports = arrayDefinition;

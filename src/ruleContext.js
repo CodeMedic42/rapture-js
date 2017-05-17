@@ -78,15 +78,6 @@ RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
     this.logicContexts.push(logicContext);
 
     logicContext.on('raise', onRaise, this);
-
-    // const disenguage = Common.createListener(logicContext, 'raise', this, onRaise);
-    // // logicContext.on('raise', onRaise, this);
-    //
-    // logicContext.on('disposing', () => {
-    //     disenguage();
-    //
-    //     _.pull(this.logicContexts, logicContext);
-    // });
 };
 
 RuleContext.prototype.listenToLogicContext = function addLogicContext(logicContext) {

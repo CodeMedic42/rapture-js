@@ -10,7 +10,7 @@ function customAction(parentRule, actions, id, logic) {
         _logic = id;
     }
 
-    return Rule(_id, _logic, 'raise', actions, parentRule);
+    return Rule(_id, _logic, actions, parentRule);
 }
 
 module.exports = customAction;

@@ -20,7 +20,7 @@ function minAction(parentRule, actions, minData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-min', logic, 'full', nextActions, parentRule);
+    return Rule('string-min', logic, nextActions, parentRule);
 }
 
 module.exports = minAction;

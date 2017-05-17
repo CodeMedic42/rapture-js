@@ -20,7 +20,7 @@ function lengthAction(parentRule, actions, lengthData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-length', logic, 'full', nextActions, parentRule);
+    return Rule('string-length', logic, nextActions, parentRule);
 }
 
 module.exports = lengthAction;

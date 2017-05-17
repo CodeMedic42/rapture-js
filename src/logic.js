@@ -158,8 +158,20 @@ _Logic = function Logic(_LogicComponents) {
     }
 };
 
-_Logic.prototype.buildContext = function buildContext(type, name, ruleContext, previousContext) {
-    return _LogicContext(type, name, ruleContext, this.onSetup, this.onRun, this.onPause, this.onTeardown, this.params, previousContext, this.options);
+_Logic.prototype.buildContext = function buildContext(fullControl, name, ruleContext, previousContext) {
+    return _LogicContext({
+        name,
+        fullControl,
+        previous: previousContext,
+        parent: ruleContext
+    }, {
+        onSetup: this.onSetup,
+        onRun: this.onRun,
+        onPause: this.onPause,
+        onTeardown: this.onTeardown
+    },
+    this.params,
+    this.options);
 };
 
 module.exports = _Logic;

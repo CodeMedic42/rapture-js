@@ -59,7 +59,7 @@ function validAction(parentRule, actions, ...initalLogicData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-max', logic, 'full', nextActions, parentRule);
+    return Rule('string-max', logic, nextActions, parentRule);
 }
 
 module.exports = validAction;

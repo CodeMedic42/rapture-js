@@ -60,7 +60,7 @@ function itemsAction(parentRule, actions, itemRule) {
 
     delete nextActions.items;
 
-    return Rule('array-items', logic, 'full', nextActions, parentRule);
+    return Rule('array-items', logic, nextActions, parentRule);
 }
 
 module.exports = itemsAction;

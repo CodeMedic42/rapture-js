@@ -14,13 +14,13 @@ function cleanUp(logicValue) {
 function registerAction(parentRule, actions, id) {
     const logic = Logic({
         define: [{ id: 'registerID', value: id }],
-        onSetup: (context) => {
-            const _context = context;
+        onSetup: (control) => {
+            const _control = control;
 
-            _context.data[context.id] = { id: null };
+            _control.data[control.id] = { id: null };
         },
-        onRun: (context, contents, params) => {
-            const logicValue = context.data[context.id];
+        onRun: (control, contents, params) => {
+            const logicValue = control.data[control.id];
 
             if (logicValue.id === params.registerID) {
                 // The id did not change and we do not need to update anything.
@@ -28,27 +28,25 @@ function registerAction(parentRule, actions, id) {
                 return;
             }
 
-            context.raise();
-
             logicValue.id = params.registerID;
 
-            logicValue.listener = context.scope.watch(params.registerID, (status) => {
+            logicValue.listener = control.scope.watch(params.registerID, (status) => {
                 if (status === 'undefined') {
-                    context.raise('data', `${params.registerID} is referenced but is never registered`);
+                    control.raise('data', `${params.registerID} is referenced but is never registered`);
                 } else {
-                    context.raise();
+                    control.raise();
                 }
             });
         },
-        onPause: (context) => {
-            cleanUp(context.data[context.id]);
+        onPause: (control) => {
+            cleanUp(control.data[control.id]);
         },
-        onTeardown: (context) => {
-            cleanUp(context.data[context.id]);
+        onTeardown: (control) => {
+            cleanUp(control.data[control.id]);
         }
     });
 
-    return Rule('register', logic, 'full', actions, parentRule);
+    return Rule('register', logic, actions, parentRule);
 }
 
 module.exports = registerAction;

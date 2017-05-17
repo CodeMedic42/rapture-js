@@ -107,7 +107,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set(undefined, 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -115,7 +115,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set(null, 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -123,7 +123,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -185,7 +185,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', undefined, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(undefined);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -193,7 +193,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', null, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(null);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -201,7 +201,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 'foo', true, this);
 
                     expect(this.scopeA.data.key.value).to.equal('foo');
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -209,7 +209,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -217,7 +217,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', false, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(false);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -226,7 +226,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', testData, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(testData);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -235,7 +235,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', testData, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(testData);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
             });
@@ -265,7 +265,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -273,7 +273,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, false, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('failed');
+                    expect(this.scopeA.data.key.status).to.equal('failing');
                     expect(this.scopeA.data.key.owner).to.equal(this);
                 });
 
@@ -313,7 +313,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, 'foo');
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal('foo');
                 });
 
@@ -321,7 +321,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, 42);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(42);
                 });
 
@@ -330,7 +330,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, testData);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(testData);
                 });
 
@@ -339,7 +339,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, testData);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(testData);
                 });
             });
@@ -350,7 +350,7 @@ describe('Scope Tests :', () => {
                 this.scopeA.set('A', 'key', 42, true, 'foo');
 
                 expect(this.scopeA.data.key.value).to.equal(42);
-                expect(this.scopeA.data.key.status).to.equal('ready');
+                expect(this.scopeA.data.key.status).to.equal('defined');
                 expect(this.scopeA.data.key.owner).to.equal('foo');
 
                 try {
@@ -399,7 +399,7 @@ describe('Scope Tests :', () => {
             const observed = this.scopeA.get('key');
 
             expect(observed.value).to.equal(42);
-            expect(observed.status).to.equal('ready');
+            expect(observed.status).to.equal('defined');
             expect(observed.owner).to.equal(this);
         });
 
@@ -435,7 +435,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
 
                     this.scopeA.remove(undefined, 'key', this);
@@ -447,7 +447,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
 
                     this.scopeA.remove(null, 'key', this);
@@ -459,7 +459,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
 
                     this.scopeA.remove('A', 'key', this);
@@ -472,7 +472,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove('B', 'key', this);
@@ -481,7 +481,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Scope "B" does not exist');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -491,7 +491,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove(42, 'key', this);
@@ -500,7 +500,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('When defined the id must be a string');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -512,7 +512,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove('A', undefined, this);
@@ -521,7 +521,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Key must be a string');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -535,7 +535,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Key must be a string');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -545,7 +545,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove('A', 42, this);
@@ -554,7 +554,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Key must be a string');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -574,7 +574,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove('A', 'key', undefined);
@@ -583,7 +583,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Owner cannot be nil');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -593,7 +593,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove('A', 'key', null);
@@ -602,7 +602,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Owner cannot be nil');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -611,7 +611,7 @@ describe('Scope Tests :', () => {
                     this.scopeA.set('A', 'key', 42, true, this);
 
                     expect(this.scopeA.data.key.value).to.equal(42);
-                    expect(this.scopeA.data.key.status).to.equal('ready');
+                    expect(this.scopeA.data.key.status).to.equal('defined');
                     expect(this.scopeA.data.key.owner).to.equal(this);
 
                     this.scopeA.remove('A', 'key', this);
@@ -624,7 +624,7 @@ describe('Scope Tests :', () => {
                         this.scopeA.set('A', 'key', 42, true, this);
 
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
 
                         this.scopeA.remove('A', 'key', 'foo');
@@ -633,7 +633,7 @@ describe('Scope Tests :', () => {
                     } catch (err) {
                         expect(err.message).to.equal('Only owner can remove key');
                         expect(this.scopeA.data.key.value).to.equal(42);
-                        expect(this.scopeA.data.key.status).to.equal('ready');
+                        expect(this.scopeA.data.key.status).to.equal('defined');
                         expect(this.scopeA.data.key.owner).to.equal(this);
                     }
                 });
@@ -747,7 +747,7 @@ describe('Scope Tests :', () => {
                         expect(status).to.equal('undefined');
                         expect(value).to.equal(undefined);
                     } else {
-                        expect(status).to.equal('ready');
+                        expect(status).to.equal('defined');
                         expect(value).to.equal(target);
                     }
 
@@ -770,7 +770,7 @@ describe('Scope Tests :', () => {
                         expect(status).to.equal('undefined');
                         expect(value).to.equal(undefined);
                     } else {
-                        expect(status).to.equal('failed');
+                        expect(status).to.equal('failing');
                         expect(value).to.equal(target);
                     }
 
@@ -832,7 +832,7 @@ describe('Scope Tests :', () => {
                         const listner = this.scopeA.watch('key', (status, value) => {
                             called = true;
 
-                            expect(status).to.equal('ready');
+                            expect(status).to.equal('defined');
                             expect(value).to.equal(42);
                         });
 
@@ -876,7 +876,7 @@ describe('Scope Tests :', () => {
             });
 
             it('value is set to same value but is failing', function test() {
-                const expectedValue = [{ status: 'ready', value: 42 }, { status: 'failed', value: 42 }];
+                const expectedValue = [{ status: 'defined', value: 42 }, { status: 'failing', value: 42 }];
                 let counter = 0;
 
                 this.scopeA.watch('key', (status, value) => {
@@ -909,7 +909,7 @@ describe('Scope Tests :', () => {
                         expect(status).to.equal('undefined');
                         expect(value).to.equal(undefined);
                     } else {
-                        expect(status).to.equal('ready');
+                        expect(status).to.equal('defined');
                         expect(value).to.equal(target);
                     }
 
@@ -922,7 +922,7 @@ describe('Scope Tests :', () => {
             });
 
             it('value is set to different value but is failing', function test() {
-                const expectedValue = [{ status: 'ready', value: 42 }, { status: 'failed', value: 43 }];
+                const expectedValue = [{ status: 'defined', value: 42 }, { status: 'failing', value: 43 }];
                 let counter = 0;
 
                 this.scopeA.watch('key', (status, value) => {
@@ -945,7 +945,7 @@ describe('Scope Tests :', () => {
             });
 
             it('value is set to differnt value but is passing', function test() {
-                const expectedValue = [{ status: 'ready', value: 42 }, { status: 'ready', value: 43 }];
+                const expectedValue = [{ status: 'defined', value: 42 }, { status: 'defined', value: 43 }];
                 let counter = 0;
 
                 this.scopeA.watch('key', (status, value) => {
@@ -968,7 +968,7 @@ describe('Scope Tests :', () => {
             });
 
             it('does not get called when disposed', function test() {
-                const expectedValue = [{ status: 'ready', value: 42 }];
+                const expectedValue = [{ status: 'defined', value: 42 }];
                 let counter = 0;
 
                 const listener = this.scopeA.watch('key', (status, value) => {
@@ -1036,7 +1036,7 @@ describe('Scope Tests :', () => {
                 expect(gotted).to.not.exist();
             } else {
                 expect(gotted.value).to.equal(expected);
-                expect(gotted.status).to.equal('ready');
+                expect(gotted.status).to.equal('defined');
             }
         }
 
@@ -1044,7 +1044,7 @@ describe('Scope Tests :', () => {
             it('set foo at 3', function test() {
                 setupWatch(this.scope1, 'foo', [undefined]);
                 setupWatch(this.scope2, 'foo', [undefined]);
-                setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 42 }]);
+                setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 42 }]);
 
                 this.scope3.set(null, 'foo', 42, true, this);
 
@@ -1055,8 +1055,8 @@ describe('Scope Tests :', () => {
 
             it('set foo at 2', function test() {
                 setupWatch(this.scope1, 'foo', [undefined]);
-                setupWatch(this.scope2, 'foo', [undefined, { status: 'ready', value: 42 }]);
-                setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 42 }]);
+                setupWatch(this.scope2, 'foo', [undefined, { status: 'defined', value: 42 }]);
+                setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 42 }]);
 
                 this.scope2.set(null, 'foo', 42, true, this);
 
@@ -1066,9 +1066,9 @@ describe('Scope Tests :', () => {
             });
 
             it('set foo at 1', function test() {
-                setupWatch(this.scope1, 'foo', [undefined, { status: 'ready', value: 42 }]);
-                setupWatch(this.scope2, 'foo', [undefined, { status: 'ready', value: 42 }]);
-                setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 42 }]);
+                setupWatch(this.scope1, 'foo', [undefined, { status: 'defined', value: 42 }]);
+                setupWatch(this.scope2, 'foo', [undefined, { status: 'defined', value: 42 }]);
+                setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 42 }]);
 
                 this.scope1.set(null, 'foo', 42, true, this);
 
@@ -1082,7 +1082,7 @@ describe('Scope Tests :', () => {
             it('set foo at 3', function test() {
                 setupWatch(this.scope1, 'foo', [undefined]);
                 setupWatch(this.scope2, 'foo', [undefined]);
-                setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 42 }]);
+                setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 42 }]);
 
                 this.scope3.set('3', 'foo', 42, true, this);
 
@@ -1093,8 +1093,8 @@ describe('Scope Tests :', () => {
 
             it('set foo at 2', function test() {
                 setupWatch(this.scope1, 'foo', [undefined]);
-                setupWatch(this.scope2, 'foo', [undefined, { status: 'ready', value: 42 }]);
-                setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 42 }]);
+                setupWatch(this.scope2, 'foo', [undefined, { status: 'defined', value: 42 }]);
+                setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 42 }]);
 
                 this.scope2.set('2', 'foo', 42, true, this);
 
@@ -1104,9 +1104,9 @@ describe('Scope Tests :', () => {
             });
 
             it('set foo at 1', function test() {
-                setupWatch(this.scope1, 'foo', [undefined, { status: 'ready', value: 42 }]);
-                setupWatch(this.scope2, 'foo', [undefined, { status: 'ready', value: 42 }]);
-                setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 42 }]);
+                setupWatch(this.scope1, 'foo', [undefined, { status: 'defined', value: 42 }]);
+                setupWatch(this.scope2, 'foo', [undefined, { status: 'defined', value: 42 }]);
+                setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 42 }]);
 
                 this.scope1.set('1', 'foo', 42, true, this);
 
@@ -1118,9 +1118,9 @@ describe('Scope Tests :', () => {
 
         describe('override :', () => {
             it('set foo at 3', function test() {
-                const validateCount1 = setupWatch(this.scope1, 'foo', [undefined, { status: 'ready', value: 41 }]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [undefined, { status: 'ready', value: 41 }, { status: 'ready', value: 42 }]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [undefined, { status: 'ready', value: 41 }, { status: 'ready', value: 42 }, { status: 'ready', value: 43 }]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [undefined, { status: 'defined', value: 41 }]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [undefined, { status: 'defined', value: 41 }, { status: 'defined', value: 42 }]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [undefined, { status: 'defined', value: 41 }, { status: 'defined', value: 42 }, { status: 'defined', value: 43 }]);
 
                 this.scope1.set(null, 'foo', 41, true, this);
 
@@ -1154,9 +1154,9 @@ describe('Scope Tests :', () => {
             });
 
             it('remove foo at 3', function test() {
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, { status: 'ready', value: 43 }]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 43 }]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 44 }, { status: 'defined', value: 43 }]);
 
                 this.scope3.remove(null, 'foo', this);
 
@@ -1170,9 +1170,9 @@ describe('Scope Tests :', () => {
             });
 
             it('remove foo at 3 then 2', function test() {
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }, { status: 'ready', value: 42 }]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, { status: 'ready', value: 43 }, { status: 'ready', value: 42 }]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 43 }, { status: 'defined', value: 42 }]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 44 }, { status: 'defined', value: 43 }, { status: 'defined', value: 42 }]);
 
                 this.scope3.remove(null, 'foo', this);
 
@@ -1192,9 +1192,9 @@ describe('Scope Tests :', () => {
             });
 
             it('remove foo at 3 then 2 then 1', function test() {
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }, undefined]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }, { status: 'ready', value: 42 }, undefined]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, { status: 'ready', value: 43 }, { status: 'ready', value: 42 }, undefined]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }, undefined]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 43 }, { status: 'defined', value: 42 }, undefined]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 44 }, { status: 'defined', value: 43 }, { status: 'defined', value: 42 }, undefined]);
 
                 this.scope3.remove(null, 'foo', this);
 
@@ -1220,9 +1220,9 @@ describe('Scope Tests :', () => {
             });
 
             it('remove foo at 1 then 2 then 3', function test() {
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }, undefined]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }, undefined]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, undefined]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }, undefined]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 43 }, undefined]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 44 }, undefined]);
 
                 this.scope1.remove(null, 'foo', this);
 
@@ -1264,9 +1264,9 @@ describe('Scope Tests :', () => {
                 this.scope2.set(null, 'foo', 42, true, this);
                 this.scope3.remove(null, 'foo', this);
 
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 42 }]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 42 }]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 42 }]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 42 }]);
 
                 this.scope2.remove(null, 'foo', this);
 
@@ -1302,9 +1302,9 @@ describe('Scope Tests :', () => {
                 this.scope2.set(null, 'foo', 43, true, '2');
                 this.scope3.set(null, 'foo', 44, true, '3');
 
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }, undefined]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }, undefined]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, undefined]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }, undefined]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 43 }, undefined]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 44 }, undefined]);
 
                 this.scope3.dispose();
 
@@ -1342,9 +1342,9 @@ describe('Scope Tests :', () => {
                 this.scope2.set(null, 'foo', 43, true, this);
                 this.scope3.set(null, 'foo', 44, true, this);
 
-                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'ready', value: 42 }, undefined]);
-                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'ready', value: 43 }, undefined]);
-                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'ready', value: 44 }, undefined]);
+                const validateCount1 = setupWatch(this.scope1, 'foo', [{ status: 'defined', value: 42 }, undefined]);
+                const validateCount2 = setupWatch(this.scope2, 'foo', [{ status: 'defined', value: 43 }, undefined]);
+                const validateCount3 = setupWatch(this.scope3, 'foo', [{ status: 'defined', value: 44 }, undefined]);
 
                 this.scope1.dispose();
 

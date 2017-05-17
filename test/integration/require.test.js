@@ -25,7 +25,7 @@ describe('Register and Require Integration Tests :', () => {
         const ruleA = Rapture.object().valid({
             id: Rapture.string().register({
                 id: Rapture.logic({
-                    onSetup: (context, content) => `id/${content}`
+                    onSetup: (context, content) => context.set(`id/${content}`)
                 }),
                 scope: '__session'
             })
@@ -36,7 +36,7 @@ describe('Register and Require Integration Tests :', () => {
                 require: {
                     id: 'idValue',
                     value: Rapture.logic({
-                        onSetup: (context, content) => `id/${content}`
+                        onSetup: (context, content) => context.set(`id/${content}`)
                     })
                 },
                 onRun: (context, content, params) => {

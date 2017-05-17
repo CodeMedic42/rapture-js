@@ -4,10 +4,10 @@ const Logic = require('../../logic.js');
 
 function deferAction(getRuleCb) {
     const logicComponents = {
-        onSetup: (context) => {
-            const _context = context;
+        onSetup: (control) => {
+            const _control = control;
 
-            const runningData = _context.data[context.id] = {};
+            const runningData = _control.data[control.id] = {};
 
             if (_.isFunction(getRuleCb)) {
                 runningData.rule = getRuleCb();
@@ -17,8 +17,8 @@ function deferAction(getRuleCb) {
                 }
             }
         },
-        onRun: (context, content, params) => {
-            const runningData = context.data[context.id];
+        onRun: (control, content, params) => {
+            const runningData = control.data[control.id];
 
             if (_.isNil(runningData.rule)) {
                 if (_.isNil(params.rule)) {
@@ -31,7 +31,7 @@ function deferAction(getRuleCb) {
             if (runningData.rule === params.rule || _.isNil(params.rule)) {
                 // The rule has not changed so create the context if it does not exist and move on.
                 if (_.isNil(runningData.context)) {
-                    runningData.context = context.createRuleContext(runningData.rule);
+                    runningData.context = control.createRuleContext(runningData.rule);
 
                     runningData.context.start();
                 }
@@ -49,12 +49,12 @@ function deferAction(getRuleCb) {
                 runningData.context = null;
             }
 
-            runningData.context = context.createRuleContext(runningData.rule);
+            runningData.context = control.createRuleContext(runningData.rule);
 
             runningData.context.start();
         },
-        onPause: (context) => {
-            const runningData = context.data[context.id];
+        onPause: (control) => {
+            const runningData = control.data[control.id];
 
             if (!_.isNil(runningData.context)) {
                 runningData.context.dispose().commit();
@@ -62,8 +62,8 @@ function deferAction(getRuleCb) {
                 runningData.context = null;
             }
         },
-        tearDown: (context) => {
-            const runningData = context.data[context.id];
+        tearDown: (control) => {
+            const runningData = control.data[control.id];
 
             if (!_.isNil(runningData.context)) {
                 runningData.context.dispose().commit();
@@ -79,7 +79,7 @@ function deferAction(getRuleCb) {
         throw new Error('Invalid defer logic');
     }
 
-    return Rule('defer', Logic(logicComponents), 'full');
+    return Rule('defer', Logic(logicComponents));
 }
 
 module.exports = deferAction;
