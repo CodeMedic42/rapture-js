@@ -24,19 +24,19 @@ function scopeAction(...args) {
     }
 
     const logicComponents = {
-        onSetup: (context) => {
-            const _context = context;
+        onSetup: (control) => {
+            const _control = control;
 
-            _context.data[context.id] = context.createRuleContextInScope(scopeId, rule);
+            _control.data[control.id] = control.createRuleContextInScope(scopeId, rule);
         },
-        onRun: (context) => {
-            context.data[context.id].start();
+        onRun: (control) => {
+            control.data[control.id].start();
         },
-        onPause: (context) => {
-            context.data[context.id].stop();
+        onPause: (control) => {
+            control.data[control.id].stop();
         },
-        tearDown: (context) => {
-            context.data[context.id].stop();
+        tearDown: (control) => {
+            control.data[control.id].stop();
         }
     };
 

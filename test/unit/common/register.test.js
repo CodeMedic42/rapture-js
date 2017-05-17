@@ -8,7 +8,7 @@ Chai.use(DirtyChai);
 
 const expect = Chai.expect;
 
-describe('Registration Tests', () => {
+describe('Registration Tests :', () => {
     it('Register at current scope', () => {
         const testObject = {
             reg: 'foo',
@@ -67,7 +67,7 @@ describe('Registration Tests', () => {
         const artifactValue = context.scope.get('testReg');
         expect(artifactValue, 'artifactValue should exist').to.exist();
         expect(artifactValue.value, 'artifactValue value should exist and be correct').to.equal(testObject.reg);
-        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('ready');
+        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('defined');
 
         const sessionValue = context.scope.parentScope.get('testReg');
         expect(sessionValue, 'sessionValue should not exist').to.not.exist();
@@ -100,12 +100,12 @@ describe('Registration Tests', () => {
         const artifactValue = context.scope.get('testReg');
         expect(artifactValue, 'artifactValue should exist').to.exist();
         expect(artifactValue.value, 'artifactValue value should exist and be correct').to.equal(testObject.reg);
-        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('ready');
+        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('defined');
 
         const sessionValue = context.scope.parentScope.get('testReg');
         expect(sessionValue, 'sessionValue should exist').to.exist();
         expect(sessionValue.value, 'sessionValue value should exist and be correct').to.equal(testObject.reg);
-        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('ready');
+        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('defined');
     });
 
     it('Does register fails when validation fails', () => {
@@ -138,12 +138,12 @@ describe('Registration Tests', () => {
         const artifactValue = context.scope.get('testReg');
         expect(artifactValue, 'artifactValue should exist').to.exist();
         expect(artifactValue.value, 'artifactValue value should exist and be correct').to.equal(testObject.reg);
-        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('failed');
+        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('failing');
 
         const sessionValue = context.scope.parentScope.get('testReg');
         expect(sessionValue, 'sessionValue should exist').to.exist();
         expect(sessionValue.value, 'sessionValue value should exist and be correct').to.equal(testObject.reg);
-        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('failed');
+        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('failing');
     });
 
     it('Does register passes even if later rule fails', () => {
@@ -182,22 +182,22 @@ describe('Registration Tests', () => {
         const artifactValue = context.scope.get('testReg');
         expect(artifactValue, 'artifactValue should exist').to.exist();
         expect(artifactValue.value, 'artifactValue value should exist and be correct').to.equal(testObject.reg);
-        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('ready');
+        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('defined');
 
         const sessionValue = context.scope.parentScope.get('testReg');
         expect(sessionValue, 'sessionValue should exist').to.exist();
         expect(sessionValue.value, 'sessionValue value should exist and be correct').to.equal(testObject.reg);
-        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('ready');
+        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('defined');
 
         const artifactValue2 = context.scope.get('testReg2');
         expect(artifactValue2, 'artifactValue2 should exist').to.exist();
         expect(artifactValue2.value, 'artifactValue2 value should exist and be correct').to.equal(testObject.reg);
-        expect(artifactValue2.status, 'artifactValue2 status should exist and be correct').to.equal('failed');
+        expect(artifactValue2.status, 'artifactValue2 status should exist and be correct').to.equal('failing');
 
         const sessionValue2 = context.scope.parentScope.get('testReg2');
         expect(sessionValue2, 'sessionValue2 should exist').to.exist();
         expect(sessionValue2.value, 'sessionValue2 value should exist and be correct').to.equal(testObject.reg);
-        expect(sessionValue2.status, 'sessionValue2 status should exist and be correct').to.equal('failed');
+        expect(sessionValue2.status, 'sessionValue2 status should exist and be correct').to.equal('failing');
     });
 
     describe('register at different scope', () => {

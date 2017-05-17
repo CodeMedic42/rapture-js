@@ -28,7 +28,6 @@ const actions = {
     max: maxAction,
     length: lengthAction,
     items: itemsAction,
-    // unique: uniqueAction,
     register: registerAction,
     if: ifAction.bind(null, true),
     registered: registeredAction,

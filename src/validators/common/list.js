@@ -6,15 +6,15 @@ function ListAction(parentRule, actions, id) {
     return RegisterAction(parentRule, actions, {
         id,
         value: Logic({
-            onSetup: (context) => {
-                const _context = context;
+            onSetup: (control) => {
+                const _control = control;
 
-                _context.data[context.id] = Observable({});
+                _control.data[control.id] = Observable({});
 
-                return context.data[context.id];
+                control.set(control.data[control.id]);
             },
-            onTeardown: (context) => {
-                context.data[context.id].dispose();
+            onTeardown: (control) => {
+                control.data[control.id].dispose();
             }
         })
     });

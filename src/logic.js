@@ -1,8 +1,8 @@
 const _ = require('lodash');
 
-const LogicContext = require('./logicContext.js');
+const _LogicContext = require('./logicContext.js');
 
-let Logic = null;
+let _Logic = null;
 
 function validateOnSetup(onSetup) {
     if (!_.isNil(onSetup) && !_.isFunction(onSetup)) {
@@ -58,8 +58,8 @@ function convertToFullRequiredObject(item) {
 
         if (_.isNil(item.value)) {
             fullItem.value = item.id;
-        } else if (!_.isString(item.value) && !(item.value instanceof Logic)) {
-            throw new Error('Required item values must be strings or Rature logic objects');
+        } else if (!_.isString(item.value) && !(item.value instanceof _Logic)) {
+            throw new Error('Required item values must be strings or Rature _Logic objects');
         }
 
         return fullItem;
@@ -132,34 +132,46 @@ function validateDefinededItems(definedItems) {
     });
 }
 
-Logic = function LogicDef(logicComponents) {
-    if (!(this instanceof Logic)) {
-        return new Logic(logicComponents);
+_Logic = function Logic(_LogicComponents) {
+    if (!(this instanceof _Logic)) {
+        return new Logic(_LogicComponents);
     }
 
-    if (!_.isPlainObject(logicComponents)) {
-        throw new Error('logicComponents must be a an object');
+    if (!_.isPlainObject(_LogicComponents)) {
+        throw new Error('_LogicComponents must be a an object');
     }
 
     this.params = {};
 
-    validateOnSetup.call(this, logicComponents.onSetup);
-    validateOnRun.call(this, logicComponents.onRun);
-    validateOnPause.call(this, logicComponents.onPause);
-    validateOnTeardown.call(this, logicComponents.onTeardown);
+    validateOnSetup.call(this, _LogicComponents.onSetup);
+    validateOnRun.call(this, _LogicComponents.onRun);
+    validateOnPause.call(this, _LogicComponents.onPause);
+    validateOnTeardown.call(this, _LogicComponents.onTeardown);
 
-    validateRequiredItems.call(this, logicComponents.require);
-    validateDefinededItems.call(this, logicComponents.define);
+    validateRequiredItems.call(this, _LogicComponents.require);
+    validateDefinededItems.call(this, _LogicComponents.define);
 
-    this.options = logicComponents.options || {};
+    this.options = _LogicComponents.options || {};
 
     if (this.params.length <= 0 && _.isNil(this.onRun)) {
         throw new Error('onRun has not been defined even though parameters have been.');
     }
 };
 
-Logic.prototype.buildContext = function buildContext(name, ruleContext, previousContext) {
-    return LogicContext(name, ruleContext, this.onSetup, this.onRun, this.onPause, this.onTeardown, this.params, previousContext, this.options);
+_Logic.prototype.buildContext = function buildContext(fullControl, name, ruleContext, previousContext) {
+    return _LogicContext({
+        name,
+        fullControl,
+        previous: previousContext,
+        parent: ruleContext
+    }, {
+        onSetup: this.onSetup,
+        onRun: this.onRun,
+        onPause: this.onPause,
+        onTeardown: this.onTeardown
+    },
+    this.params,
+    this.options);
 };
 
-module.exports = Logic;
+module.exports = _Logic;

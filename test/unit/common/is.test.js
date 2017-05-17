@@ -41,7 +41,16 @@ describe('Is Tests :', () => {
                 }))).endIs()
             });
 
-            TestingSupport.pass(testObject, rule);
+            TestingSupport.fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 1,
+                rowEnd: 1,
+                columnStart: 2,
+                columnEnd: 7,
+                message: 'Invalid value type',
+                cause: 'foo',
+                severity: 'error'
+            });
         });
     });
 
@@ -84,7 +93,16 @@ describe('Is Tests :', () => {
                 }))).endIs()
             });
 
-            TestingSupport.pass(testObject, rule);
+            TestingSupport.fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 1,
+                rowEnd: 1,
+                columnStart: 2,
+                columnEnd: 7,
+                message: 'Invalid value type',
+                cause: 'foo',
+                severity: 'error'
+            });
         });
     });
 
@@ -127,7 +145,16 @@ describe('Is Tests :', () => {
                 }))).endIs()
             });
 
-            TestingSupport.pass(testObject, rule);
+            TestingSupport.fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 1,
+                rowEnd: 1,
+                columnStart: 2,
+                columnEnd: 7,
+                message: 'Invalid value type',
+                cause: 'foo',
+                severity: 'error'
+            });
         });
     });
 
@@ -170,7 +197,16 @@ describe('Is Tests :', () => {
                 }))).endIs()
             });
 
-            TestingSupport.pass(testObject, rule);
+            TestingSupport.fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 1,
+                rowEnd: 1,
+                columnStart: 2,
+                columnEnd: 7,
+                message: 'Invalid value type',
+                cause: 'foo',
+                severity: 'error'
+            });
         });
     });
 
@@ -213,7 +249,16 @@ describe('Is Tests :', () => {
                 }))).endIs()
             });
 
-            TestingSupport.pass(testObject, rule);
+            TestingSupport.fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 1,
+                rowEnd: 1,
+                columnStart: 2,
+                columnEnd: 7,
+                message: 'Invalid value type',
+                cause: 'foo',
+                severity: 'error'
+            });
         });
     });
 
@@ -256,7 +301,16 @@ describe('Is Tests :', () => {
                 }))).endIs()
             });
 
-            TestingSupport.pass(testObject, rule);
+            TestingSupport.fail(testObject, rule, {
+                type: 'schema',
+                rowStart: 1,
+                rowEnd: 1,
+                columnStart: 2,
+                columnEnd: 7,
+                message: 'Invalid value type',
+                cause: 'foo',
+                severity: 'error'
+            });
         });
     });
 });

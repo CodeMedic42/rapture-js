@@ -19,16 +19,16 @@ const listAction = require('../common/list.js');
 const toListAction = require('../common/toList.js');
 
 const objectLogic = Logic({
-    onSetup: (context) => {
-        const _context = context;
+    onSetup: (control) => {
+        const _control = control;
 
-        _context.data.__keyData = Observable({});
+        _control.data.__keyData = Observable({});
     },
-    onRun: (context, content) => {
+    onRun: (control, content) => {
         if (!_.isNil(content) && !_.isPlainObject(content)) {
-            context.raise('schema', 'When defined this field must be a plain object', 'error');
+            control.raise('schema', 'When defined this field must be a plain object', 'error');
         } else {
-            context.raise();
+            control.raise();
         }
     }
 });

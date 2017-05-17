@@ -246,7 +246,6 @@ module.exports = () => {
                         });
 
                         it('Test data - Object with keys("1-validKey", "2-validKey", 1-validKeyB", "2-validKeyB", "invalidKey")', () => {
-                            debugger;
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo', invalidKey: 'foo' };
 
                             const rule = Rapture.object().valid(Rapture.logic({

@@ -3,14 +3,6 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const Common = require('../../common.js');
 
-// function onTreeChange(context, content, runningData) {
-//     if (!runningData.running) {
-//         return;
-//     }
-//
-//     context.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
-// }
-
 function registerAction(parentRule, actions, data) {
     let id = data;
     let targetScope = null;
@@ -40,15 +32,15 @@ function registerAction(parentRule, actions, data) {
 
     const logicComponents = {
         options: {
-            onFaultChange: true,
+            onStateChange: true,
             useToken: true,
             runOnFailure: true
         },
         define: [{ id: 'registerID', value: id }],
-        onSetup: (context, content) => {
-            const _context = context;
+        onSetup: (control, content) => {
+            const _control = control;
 
-            const runningData = _context.data[context.id] = {
+            const runningData = _control.data[control.id] = {
                 targetScope,
                 running: false
             };
@@ -62,27 +54,23 @@ function registerAction(parentRule, actions, data) {
                     return;
                 }
 
-                context.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
+                control.register(runningData.targetScope, runningData.id, runningData.getTargetValue(), runningData.getReadyStatus(), true);
             });
-
-            // runningData.listener = onTreeChange.bind(null, context, content, runningData);
-            //
-            // content.on('update', runningData.listener);
         },
-        onRun: (context, content, params) => {
-            const runningData = context.data[context.id];
+        onRun: (control, content, params) => {
+            const runningData = control.data[control.id];
 
             runningData.running = false;
 
             if (!_.isNil(runningData.id) && runningData.id !== params.registerID) {
                 // If the old id is not the same as the new one then we need to unregister the old id.
-                context.unregister(targetScope, runningData.id);
+                control.unregister(targetScope, runningData.id);
             }
 
             runningData.getReadyStatus = () => {
-                return !context.isFailed && (when === 'always' ||
-                        (when === 'this' && !context.isFaulted) ||
-                        (when === 'tree' && content.issues().length <= 0 && !context.isFaulted));
+                return control.paramState === 'passing' && (when === 'always' ||
+                        (when === 'this' && control.state === 'passing') ||
+                        (when === 'tree' && content.issues().length <= 0 && control.state === 'passing'));
             };
 
             runningData.getTargetValue = () => {
@@ -91,11 +79,10 @@ function registerAction(parentRule, actions, data) {
 
             const valueReady = runningData.getReadyStatus();
             const targetValue = runningData.getTargetValue();
-            // }
 
             if (!_.isNil(params.registerID)) {
                 // create/update the value in the targetScope.
-                context.register(targetScope, params.registerID, targetValue, valueReady, true);
+                control.register(targetScope, params.registerID, targetValue, valueReady, true);
 
                 runningData.id = params.registerID;
                 runningData.targetValue = targetValue;
@@ -104,27 +91,26 @@ function registerAction(parentRule, actions, data) {
                 runningData.running = false;
             }
         },
-        onPause: (context) => {
-            const runningData = context.data[context.id];
+        onPause: (control) => {
+            const runningData = control.data[control.id];
 
             runningData.running = false;
 
             if (!_.isNil(runningData.id)) {
-                context.unregister(targetScope, runningData.id);
+                control.unregister(targetScope, runningData.id);
             }
         },
-        onTeardown: (context) => {
-            const runningData = context.data[context.id];
+        onTeardown: (control) => {
+            const runningData = control.data[control.id];
 
             runningData.running = false;
 
             if (!_.isNil(runningData.id)) {
-                context.unregister(targetScope, runningData.id);
+                control.unregister(targetScope, runningData.id);
             }
 
             if (!_.isNil(runningData.disenguage)) {
                 runningData.disenguage();
-                // content.removeListener('raise', runningData.listener);
             }
         }
     };

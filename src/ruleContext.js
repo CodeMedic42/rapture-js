@@ -80,6 +80,18 @@ RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
     logicContext.on('raise', onRaise, this);
 };
 
+RuleContext.prototype.listenToLogicContext = function addLogicContext(logicContext) {
+    Common.checkDisposed(this);
+
+    const disenguage = Common.createListener(logicContext, 'raise', this, onRaise);
+
+    logicContext.on('disposing', () => {
+        disenguage();
+
+        _.pull(this.logicContexts, logicContext);
+    });
+};
+
 RuleContext.prototype.createRuleContext = function createRuleContext(rule, scope) {
     Common.checkDisposed(this);
 

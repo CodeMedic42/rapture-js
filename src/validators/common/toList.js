@@ -19,7 +19,7 @@ function cleanUp(disenguageListener, currentCount, list, item) {
     currentCount.dispose();
 }
 
-function theLoop(list, item, context, unique) {
+function theLoop(list, item, token, control, unique) {
     let currentCount = list.get(item);
 
     if (_.isNil(currentCount)) {
@@ -32,9 +32,9 @@ function theLoop(list, item, context, unique) {
     if (unique) {
         disenguageListener = Common.createListener(currentCount, 'change', null, () => {
             if (currentCount.value() > 1) {
-                context.raise({ type: 'schema', message: 'Must be a unique id.', severity: 'error' });
+                control.raise({ type: 'schema', message: 'Must be a unique id.', severity: 'error', from: token.from, location: token.location });
             } else {
-                context.raise();
+                control.raise();
             }
         });
     }
@@ -46,14 +46,17 @@ function theLoop(list, item, context, unique) {
 
 function customAction(parentRule, actions, id, unique) {
     const logic = Logic({
-        require: id,
-        onSetup: (context) => {
-            const _context = context;
-
-            _context.data[context.id] = {};
+        options: {
+            useToken: true
         },
-        onRun: (context, content, params) => {
-            const logicData = context.data[context.id];
+        require: id,
+        onSetup: (control) => {
+            const _control = control;
+
+            _control.data[control.id] = {};
+        },
+        onRun: (control, content, params) => {
+            const logicData = control.data[control.id];
 
             if (logicData.ran) {
                 logicData.cleanUp();
@@ -62,12 +65,12 @@ function customAction(parentRule, actions, id, unique) {
             logicData.ran = true;
             const cleanUpList = [];
 
-            if (_.isPlainObject(content)) {
-                _.forOwn(content, (item, name) => {
-                    cleanUpList.push(theLoop(params[id], name, context, false));
+            if (_.isPlainObject(content.contents)) {
+                _.forOwn(content.contents, (item, name) => {
+                    cleanUpList.push(theLoop(params[id], name, item, control, unique));
                 });
-            } else if (!_.isNil(content)) {
-                cleanUpList.push(theLoop(params[id], content, context, unique));
+            } else if (!_.isNil(content.contents)) {
+                cleanUpList.push(theLoop(params[id], content.contents, content, control, unique));
             }
 
             logicData.cleanUp = () => {
@@ -76,14 +79,14 @@ function customAction(parentRule, actions, id, unique) {
                 _.forEach(cleanUpList, cleanUpCb => cleanUpCb());
             };
         },
-        onPause: (context) => {
-            if (!_.isNil(context.data[context.id].cleanUp())) {
-                context.data[context.id].cleanUp();
+        onPause: (control) => {
+            if (!_.isNil(control.data[control.id].cleanUp)) {
+                control.data[control.id].cleanUp();
             }
         },
-        onTeardown: (context) => {
-            if (!_.isNil(context.data[context.id].cleanUp())) {
-                context.data[context.id].cleanUp();
+        onTeardown: (control) => {
+            if (!_.isNil(control.data[control.id].cleanUp)) {
+                control.data[control.id].cleanUp();
             }
         }
     });
