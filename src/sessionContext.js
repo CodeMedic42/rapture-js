@@ -44,11 +44,13 @@ SessionContext.prototype.getArtifactContext = function getArtifactContext(id) {
 SessionContext.prototype.issues = function issues() {
     Common.checkDisposed(this);
 
-    return _.reduce(this.contexts, (issueList, context) => {
-        issueList.push(...context.issues());
+    return _.reduce(this.contexts, (results, context, contextId) => {
+        const _results = results;
 
-        return issueList;
-    }, []);
+        _results[contextId] = context.issues();
+
+        return _results;
+    }, {});
 };
 
 SessionContext.prototype.dispose = function dispose() {
