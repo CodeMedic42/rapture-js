@@ -44,12 +44,12 @@ function theLoop(list, item, token, control, unique) {
     return cleanUp.bind(null, disenguageListener, currentCount, list, item);
 }
 
-function customAction(parentRule, actions, id, unique) {
+function customAction(parentRule, actions, listId, unique) {
     const logic = Logic({
         options: {
             useToken: true
         },
-        require: id,
+        require: { id: 'listId', value: listId },
         onSetup: (control) => {
             const _control = control;
 
@@ -67,10 +67,10 @@ function customAction(parentRule, actions, id, unique) {
 
             if (_.isPlainObject(content.contents)) {
                 _.forOwn(content.contents, (item, name) => {
-                    cleanUpList.push(theLoop(params[id], name, item, control, unique));
+                    cleanUpList.push(theLoop(params.listId, name, item, control, unique));
                 });
             } else if (!_.isNil(content.contents)) {
-                cleanUpList.push(theLoop(params[id], content.contents, content, control, unique));
+                cleanUpList.push(theLoop(params.listId, content.contents, content, control, unique));
             }
 
             logicData.cleanUp = () => {
