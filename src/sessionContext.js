@@ -69,5 +69,10 @@ SessionContext.prototype.dispose = function dispose() {
     this.emit('disposed');
 };
 
+SessionContext.prototype.register = function register(key, value) {
+    Common.checkDisposed(this);
+
+    this.scope.set(null, key, value, true, this);
+};
 
 module.exports = SessionContext;
