@@ -7,6 +7,71 @@ const Issue = require('../issue.js');
 let _processObject;
 let _processArray;
 
+function calculateIssueLocation(rowStart, rowEnd, columnStart, columnEnd, text, start, length) {
+    const newRowStart = rowStart;
+    let newRowEnd;
+    let newColumnStart;
+    let newColumnEnd;
+
+    const newText = text.replace('\r\n', '\n');
+
+    const splited = newText.split(/\r|\n/g);
+
+    let counter = 0;
+
+    for (counter; counter < splited.length - 1; counter += 1) {
+        splited[counter] += ' ';
+    }
+
+    counter = 0;
+    let total = 0;
+
+    for (counter; counter < splited.length; counter += 1) {
+        const part = splited[counter];
+
+        total += part.length;
+
+        if (total >= start) {
+            break;
+        }
+    }
+
+    const leftOver = total - start;
+
+    if (counter === 0) {
+        newColumnStart = columnStart + start;
+    } else {
+        const part = splited[counter];
+
+        newColumnStart = part.length - leftOver;
+    }
+
+    let lengthToCover = length - leftOver;
+
+    if (lengthToCover <= 0) {
+        newRowEnd = newRowStart + counter;
+
+        newColumnEnd = newColumnStart + length;
+    } else {
+        for (counter += 1; counter < splited.length; counter += 1) {
+            const part = splited[counter];
+
+            lengthToCover -= part.length;
+
+            if (lengthToCover <= 0) {
+                break;
+            }
+        }
+
+        const part = splited[counter];
+
+        newRowEnd = newRowStart + counter;
+        newColumnEnd = part.length + lengthToCover;
+    }
+
+    return TokenLocation(newRowStart, newRowEnd, newColumnStart, newColumnEnd);
+}
+
 function processProperty(lexingContext, from, complexOnly) {
     const token = lexingContext.next();
 
@@ -22,7 +87,8 @@ function processProperty(lexingContext, from, complexOnly) {
         }
     } else if (!complexOnly) {
         if (!_.isNil(token.issue)) {
-            const newLocation = TokenLocation(token.location.rowStart, token.location.rowEnd, token.location.columnStart + token.issue.start, token.location.columnStart + token.issue.start + token.issue.length);
+            const newLocation = calculateIssueLocation(token.location.rowStart, token.location.rowEnd, token.location.columnStart, token.location.columnEnd, token.raw, token.issue.start, token.issue.length);
+            // const newLocation = TokenLocation(token.location.rowStart, token.location.rowEnd, token.location.columnStart + token.issue.start, token.location.columnStart + token.issue.start + token.issue.length);
 
             throw Issue('parsing', token.type, newLocation, token.issue.message);
         }
