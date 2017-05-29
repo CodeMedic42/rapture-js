@@ -43,12 +43,12 @@ function invalidAction(parentRule, actions, logicData) {
         needsCleaned = false;
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         options: {
             useToken: true
         },
         define: { id: 'keys', value: cleanedLogic },
-        onRun: (context, content, params) => {
+        onValid: (context, content, params) => {
             const contents = content.contents;
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {

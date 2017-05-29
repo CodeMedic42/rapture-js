@@ -15,22 +15,26 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
-const listAction = require('../common/list.js');
-const toListAction = require('../common/toList.js');
+const referenceAction = require('../common/reference.js');
+const toReferenceAction = require('../common/toReference.js');
 
-const objectLogic = Logic({
-    onSetup: (control) => {
-        const _control = control;
+function onBuild(control) {
+    const data = control.data;
 
-        _control.data.__keyData = Observable({});
-    },
-    onRun: (control, content) => {
-        if (!_.isNil(content) && !_.isPlainObject(content)) {
-            control.raise('schema', 'When defined this field must be a plain object', 'error');
-        } else {
-            control.raise();
-        }
+    data.$shared.__keyData = Observable({});
+}
+
+function onStart(control, content) {
+    if (!_.isNil(content) && !_.isPlainObject(content)) {
+        control.raise('schema', 'When defined this field must be a plain object', 'error');
+    } else {
+        control.clear();
     }
+}
+
+const objectLogic = Logic('raise', {
+    onBuild,
+    onStart
 });
 
 const objectActions = {
@@ -45,8 +49,8 @@ const objectActions = {
     if: ifAction.bind(null, true),
     registered: registeredAction,
     custom: customAction,
-    list: listAction,
-    toList: toListAction
+    reference: referenceAction,
+    toReference: toReferenceAction
 };
 
 function objectDefinition(parentRule) {

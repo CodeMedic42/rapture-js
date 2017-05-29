@@ -2,58 +2,61 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function disposeContexts(currentContexts) {
+function start(control, content) {
+    const data = control.data;
+
+    const contents = content.contents;
+
+    if (_.isNil(contents) || !_.isArray(contents)) {
+        // Do nothing
+        return;
+    }
+
+    data.contexts = _.reduce(contents, (contexts, propValue, index) => {
+        const ruleContext = control.createRuleContext(data.rule, propValue);
+        ruleContext.data.$index = index;
+
+        contexts.push(ruleContext);
+
+        ruleContext.start();
+
+        return contexts;
+    }, []);
+}
+
+function clean(control) {
+    const data = control.data;
+
     const commits = [];
 
-    _.forEach(currentContexts, (paramContext) => {
-        if (!_.isNil(paramContext)) {
-            commits.push(paramContext.dispose().commit);
+    _.forEach(data.contexts, (context) => {
+        if (!_.isNil(context)) {
+            commits.push(context.dispose().commit);
         }
     });
 
     _.forEach(commits, (commit) => {
         commit();
     });
+
+    data.contexts = null;
 }
 
-function itemsAction(parentRule, actions, itemRule) {
-    if (!(itemRule instanceof Rule) && !_.isFunction(itemRule)) {
-        throw new Error('ItemRule must be a Rule or setup function');
+function itemsAction(parentRule, actions, rule) {
+    if (!(rule instanceof Rule)) {
+        throw new Error('ItemRule must be a Rule');
     }
 
-    const logic = Logic({
+    const logic = Logic('full', {
         options: {
-            useToken: true
-        },
-        define: { id: 'itemRule', value: itemRule },
-        onRun: (context, content, params) => {
-            const _context = context;
-            const contents = content.contents;
-
-            if (_.isNil(contents) || !_.isArray(contents)) {
-                // Do nothing
-                return;
+            useToken: true,
+            data: {
+                rule
             }
-
-            disposeContexts(context.data[context.id]);
-
-            _context.data[context.id] = _.reduce(contents, (contexts, propValue, index) => {
-                const ruleContext = context.createRuleContext(params.itemRule, propValue);
-                ruleContext.data.$index = index;
-
-                contexts.push(ruleContext);
-
-                ruleContext.start();
-
-                return contexts;
-            }, []);
         },
-        onPause: (context) => {
-            disposeContexts(context.data[context.id]);
-        },
-        onTeardown: (context) => {
-            disposeContexts(context.data[context.id]);
-        }
+        onStart: start,
+        onStop: clean,
+        onDispose: clean
     });
 
     const nextActions = _.clone(actions);

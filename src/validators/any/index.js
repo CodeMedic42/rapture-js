@@ -11,7 +11,7 @@ function anyDefinition(parentRule) {
         registered: registeredAction
     };
 
-    const logic = Logic({});
+    const logic = Logic('raise', {});
 
     return Rule('any', logic, anyActions, parentRule);
 }

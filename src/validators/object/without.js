@@ -24,18 +24,18 @@ module.exports = (parentRule, actions, key, ...initalLogicData) => {
 
     const logicData = cleanLogicData(initalLogicData);
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         options: {
             useToken: true
         },
-        onRun: (context, content) => {
+        onValid: (context, content) => {
             const contents = content.contents;
 
             if (!_.isPlainObject(contents)) {
                 return;
             }
 
-            context.raise();
+            context.clear();
 
             if (_.isNil(contents[key])) {
                 // key does not exist so there is nothing check for.

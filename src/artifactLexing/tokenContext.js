@@ -4,6 +4,26 @@ const EventEmitter = require('eventemitter3');
 const _StringToPath = require('lodash/_stringToPath');
 const Common = require('../common.js');
 
+function determineType(content) {
+    if (_.isArray(content)) {
+        return 'array';
+    } else if (_.isPlainObject(content)) {
+        return 'object';
+    } else if (_.isString(content)) {
+        return 'string';
+    } else if (_.isFinite(content)) {
+        return 'number';
+    } else if (_.isBoolean(content)) {
+        return 'boolean';
+    } else if (_.isBoolean(content)) {
+        return 'boolean';
+    } else if (content === null) {
+        return 'unknown';
+    }
+
+    throw new Error('Unknown type');
+}
+
 function emit(force) {
     if (this._status.runStatus === 'started' || force) {
         if (this._status.raisePending || this._status.updatedPending) {
@@ -38,7 +58,7 @@ function linkContent(content) {
 }
 
 function linkContents() {
-    if (_.isPlainObject(this.contents) || _.isArray(this.contents)) {
+    if (this.type === 'object' || this.type === 'array') {
         _.forEach(this.contents, (content) => {
             linkContent.call(this, content);
         });
@@ -109,15 +129,17 @@ function updateContents(newTokenContext) {
     const newContents = newTokenContext.contents;
     const oldContents = this.contents;
 
+    const newContentsType = determineType(newContents);
+
     if (_.isNil(newContents) && _.isNil(oldContents)) {
         // Nothing needs updated;
         return;
-    } else if (_.isPlainObject(newContents) && _.isPlainObject(oldContents)) {
+    } else if (newContentsType === 'object' && this.type === 'object') {
         if (!checkContents.call(this, newContents, oldContents)) {
             // If it passed then nothing to update.
             return;
         }
-    } else if (_.isArray(newContents) && _.isArray(oldContents)) {
+    } else if (newContentsType === 'array' && this.type === 'array') {
         if (!checkContents.call(this, newContents, oldContents)) {
             // If it passed then nothing to update.
             return;
@@ -127,7 +149,7 @@ function updateContents(newTokenContext) {
         return;
     }
 
-    if (_.isPlainObject(oldContents) || _.isArray(oldContents)) {
+    if (this.type === 'object' || this.type === 'array') {
         const commits = [];
 
         _.forEach(this.contents, (content) => {
@@ -140,6 +162,8 @@ function updateContents(newTokenContext) {
     }
 
     this.contents = newContents;
+
+    this.type = newContentsType;
 
     linkContents.call(this);
 
@@ -157,6 +181,8 @@ function TokenContext(contents, location, from) {
         updatedPending: false,
         runStatus: 'started'
     };
+
+    this.type = determineType(contents);
 
     this.contents = contents;
     this.location = location;
@@ -176,7 +202,7 @@ TokenContext.prototype.issues = function issues() {
 
     const finalIssues = [];
 
-    if (_.isArray(this.contents) || _.isPlainObject(this.contents)) {
+    if (this.type === 'array' || this.type === 'object') {
         _.forEach(this.contents, (child) => {
             finalIssues.push(...child.issues());
         });
@@ -256,22 +282,20 @@ TokenContext.prototype.get = function get(path) {
 TokenContext.prototype.getRaw = function getRaw() {
     Common.checkDisposed(this);
 
-    if (!_.isNil(this.raw)) {
-        return this.raw;
-    }
-
-    if (!_.isObject(this.contents)) {
-        this.raw = this.contents;
-
+    if (!_.isUndefined(this.raw)) {
         return this.raw;
     }
 
     let type = null;
 
-    if (_.isArray(this.contents)) {
+    if (this.type === 'array') {
         type = [];
-    } else {
+    } else if (this.type === 'object') {
         type = {};
+    } else {
+        this.raw = this.contents;
+
+        return this.contents;
     }
 
     this.raw = _.reduce(this.contents, (current, item, name) => {
@@ -294,7 +318,7 @@ TokenContext.prototype.dispose = function dispose() {
 
     const commits = [];
 
-    if (_.isPlainObject(this.contents) || _.isArray(this.contents)) {
+    if (this.type === 'array' || this.type === 'object') {
         _.forEach(this.contents, (content) => {
             commits.push(content.dispose().commit);
         });

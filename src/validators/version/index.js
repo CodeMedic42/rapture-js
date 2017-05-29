@@ -5,15 +5,15 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
-const toListAction = require('../common/toList');
+const toReferenceAction = require('../common/toReference.js');
 
 function versionDefinition(parentRule) {
-    const logic = Logic({
-        onRun: (context, content) => {
+    const logic = Logic('raise', {
+        onValid: (context, content) => {
             if (!Semver.valid(content)) {
                 context.raise('schema', 'Must be a valid version string.', 'error');
             } else {
-                context.raise();
+                context.clear();
             }
         }
     });
@@ -23,7 +23,7 @@ function versionDefinition(parentRule) {
         if: ifAction.bind(null, true),
         registered: registeredAction,
         custom: customAction,
-        toList: toListAction
+        toReference: toReferenceAction
     };
 
     return Rule('version', logic, actions, parentRule);

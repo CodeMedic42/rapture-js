@@ -8,12 +8,12 @@ const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 
 module.exports = (parentRule) => {
-    const logic = Logic({
-        onRun: (context, content) => {
+    const logic = Logic('raise', {
+        onValid: (context, content) => {
             if (!_.isNil(content) && !_.isBoolean(content)) {
                 context.raise('schema', 'When defined this field must be a boolean.', 'error');
             } else {
-                context.raise();
+                context.clear();
             }
         }
     });

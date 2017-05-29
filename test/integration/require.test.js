@@ -2,8 +2,6 @@
 
 const Chai = require('chai');
 const DirtyChai = require('dirty-chai');
-// const _ = require('lodash');
-// const Console = require('console');
 const Rapture = require('../../src');
 
 Chai.use(DirtyChai);
@@ -25,26 +23,26 @@ describe('Register and Require Integration Tests :', () => {
         const ruleA = Rapture.object().valid({
             id: Rapture.string().register({
                 id: Rapture.logic({
-                    onSetup: (context, content) => context.set(`id/${content}`)
+                    onStart: (context, content) => context.set(`id/${content}`)
                 }),
                 scope: '__session'
             })
         });
 
         const ruleB = Rapture.object().valid({
-            ref: Rapture.string().custom(Rapture.logic({
+            ref: Rapture.string().custom({
                 require: {
                     id: 'idValue',
                     value: Rapture.logic({
-                        onSetup: (context, content) => context.set(`id/${content}`)
+                        onStart: (context, content) => context.set(`id/${content}`)
                     })
                 },
-                onRun: (context, content, params) => {
+                onValid: (context, content, params) => {
                     expect(params.idValue).to.equal(content);
 
                     called = true;
                 }
-            }))
+            })
         });
 
         const testDataA = JSON.stringify(testObjectA, null, 2);

@@ -2,11 +2,12 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const Symbol = require('es6-symbol');
-const Control = require('./control.js');
+const ControlLoader = require('./control.js');
 
 let __Observable;
 let __unlinkControl;
 let __linkControl;
+let __Control;
 
 const privateSymbol = Symbol('private');
 
@@ -16,6 +17,14 @@ function _emitChange() {
     }
 
     this.emit('change');
+}
+
+function _emitUpdate() {
+    if (this[privateSymbol].status !== 'running') {
+        return;
+    }
+
+    this.emit('update');
 }
 
 function _emitReplace(replacement) {
@@ -29,10 +38,12 @@ __linkControl = function _linkControl(control) {
 
     control.on('change', _emitChange, this);
     control.on('replace', _emitReplace, this);
+    control.on('update', _emitUpdate, this);
 
     this[privateSymbol].disconnectListener = () => {
         control.removeListener('change', _emitChange, this);
         control.removeListener('replace', _emitReplace, this);
+        control.removeListener('update', _emitUpdate, this);
 
         this[privateSymbol].control = null;
         this[privateSymbol].disconnectListener = null;
@@ -58,10 +69,10 @@ function _buildControl(item) {
         }
 
         control = item[privateSymbol].control;
-    } else if (item instanceof Control) {
+    } else if (item instanceof __Control) {
         control = item;
     } else {
-        control = Control(item);
+        control = __Control(item);
     }
 
     __linkControl.call(this, control);
@@ -80,6 +91,8 @@ __Observable = function Observable(...args) {
 
     _buildControl.call(this, args[0]);
 };
+
+__Control = ControlLoader(__Observable, privateSymbol);
 
 Util.inherits(__Observable, EventEmitter);
 

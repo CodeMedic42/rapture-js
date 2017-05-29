@@ -23,17 +23,17 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
         keysList = requiredKeys[0];
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         options: {
             useToken: true
         },
         define: { id: 'requiredKeys', value: keysList },
-        onRun: (context, content, params) => {
+        onValid: (control, content, params) => {
             const contents = content.contents;
 
             const issues = [];
 
-            context.raise();
+            control.clear();
 
             if (!_.isPlainObject(contents)) {
                 return;
@@ -55,7 +55,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
                 }
             });
 
-            context.raise(issues);
+            control.raise(issues);
         }
     });
 
