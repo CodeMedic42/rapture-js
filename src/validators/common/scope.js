@@ -1,6 +1,21 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
+const registerAction = require('./register.js');
+
+function stop(control) {
+    control.data.context.stop();
+}
+
+function start(control) {
+    control.data.context.start();
+}
+
+function build(control) {
+    const data = control.data;
+
+    data.context = control.createRuleContextInScope(data.scopeId, data.rule);
+}
 
 function scopeAction(...args) {
     let scopeId = null;
@@ -24,23 +39,21 @@ function scopeAction(...args) {
     }
 
     const logicComponents = {
-        onSetup: (control) => {
-            const _control = control;
-
-            _control.data[control.id] = control.createRuleContextInScope(scopeId, rule);
+        options: {
+            data: {
+                scopeId,
+                rule
+            }
         },
-        onRun: (control) => {
-            control.data[control.id].start();
-        },
-        onPause: (control) => {
-            control.data[control.id].stop();
-        },
-        tearDown: (control) => {
-            control.data[control.id].stop();
-        }
+        onBuild: build,
+        onStart: start,
+        onStop: stop,
+        onDispose: stop
     };
 
-    return Rule('defer', Logic(logicComponents));
+    return Rule('defer', Logic('full', logicComponents), {
+        register: registerAction
+    });
 }
 
 module.exports = scopeAction;

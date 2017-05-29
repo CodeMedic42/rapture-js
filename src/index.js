@@ -15,7 +15,7 @@ const scopeAction = require('./validators/common/scope.js');
 const Logic = require('./logic.js');
 const Observable = require('./observable/index.js');
 const Compile = require('./compile.js');
-const FromList = require('./validators/common/fromList.js');
+const FromReference = require('./validators/common/fromReference.js');
 
 const initialActions = {
     any,
@@ -34,9 +34,9 @@ const final = _.merge({
     is: isAction,
     if: ifAction.bind(null, false, null, initialActions),
     defer: deferAction,
-    logic: Logic,
+    logic: Logic.bind(null, 'set'),
     observable: Observable,
-    fromList: FromList
+    fromReference: FromReference
 }, initialActions);
 
 final.compile = Compile(final);

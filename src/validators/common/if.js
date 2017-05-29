@@ -2,42 +2,49 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function onRun(context, content, params) {
-    const currentValue = context.data[context.id];
+function onValid(control, content, params) {
+    const data = control.data;
 
     if (!_.isNil(params.if) && params.if) {
-        if (!_.isNil(currentValue.nextContext)) {
-            currentValue.nextContext.stop();
+        if (!_.isNil(data.nextContext)) {
+            data.nextContext.stop();
         }
 
-        currentValue.thenContext.start();
+        data.thenContext.start();
     } else {
-        currentValue.thenContext.stop();
+        data.thenContext.stop();
 
-        if (!_.isNil(currentValue.nextContext)) {
-            currentValue.nextContext.start();
+        if (!_.isNil(data.nextContext)) {
+            data.nextContext.start();
         }
     }
 }
 
-function onPause(context) {
-    const currentValue = context.data[context.id];
+function onStop(control) {
+    const data = control.data;
 
-    if (!_.isNil(currentValue.nextContext)) {
-        currentValue.nextContext.stop();
+    if (!_.isNil(data.nextContext)) {
+        data.nextContext.stop();
     }
 
-    currentValue.thenContext.stop();
+    data.thenContext.stop();
 }
 
-function onTeardown(context) {
-    const currentValue = context.data[context.id];
+function onDispose(control) {
+    const data = control.data;
 
-    if (!_.isNil(currentValue.nextContext)) {
-        currentValue.nextContext.dispose().commit();
+    if (!_.isNil(data.nextContext)) {
+        data.nextContext.dispose().commit();
     }
 
-    currentValue.thenContext.dispose().commit();
+    data.thenContext.dispose().commit();
+}
+
+function onBuild(control) {
+    const data = control.data;
+
+    data.thenContext = control.createRuleContext(data.thenRule);
+    data.nextContext = !_.isNil(data.logicDef) ? control.buildLogicContext(data.logicDef) : null;
 }
 
 function ifLogic(isContinue, ifCondition, thenLogic, actions, nextIf) {
@@ -70,28 +77,28 @@ function ifLogic(isContinue, ifCondition, thenLogic, actions, nextIf) {
     let logicDef;
 
     if (!_.isNil(nextIf)) {
-        logicDef = Logic(nextIf);
+        logicDef = Logic('full', nextIf);
     }
 
-    const logicContents = {
-        onSetup: (control) => {
-            const _control = control;
-
-            _control.data[control.id] = {
-                thenContext: control.createRuleContext(thenRule),
-                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
-            };
+    const logicComponents = {
+        options: {
+            data: {
+                thenRule,
+                logicDef
+            }
         },
-        onRun,
-        onPause,
-        onTeardown
+        onBuild,
+        onValid,
+        onInvalid: onStop,
+        onStop,
+        onDispose
     };
 
     if (!_.isNil(ifCondition)) {
-        logicContents.define = { id: 'if', value: ifCondition };
+        logicComponents.define = { id: 'if', value: ifCondition };
     }
 
-    return logicContents;
+    return logicComponents;
 }
 
 function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
@@ -123,7 +130,7 @@ function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
                 return logicFun(nextIf);
             }, null);
 
-            const logic = Logic(finalLogic);
+            const logic = Logic('full', finalLogic);
 
             const nextActions = _.clone(actions);
 

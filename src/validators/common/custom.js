@@ -1,16 +1,17 @@
 const _ = require('lodash');
+const Logic = require('../../logic.js');
 const Rule = require('../../rule.js');
 
-function customAction(parentRule, actions, id, logic) {
+function customAction(parentRule, actions, id, logicComponents) {
     let _id = id;
-    let _logic = logic;
+    let _logicComponents = logicComponents;
 
-    if (_.isNil(logic)) {
+    if (_.isNil(_logicComponents)) {
         _id = 'custom';
-        _logic = id;
+        _logicComponents = id;
     }
 
-    return Rule(_id, _logic, actions, parentRule);
+    return Rule(_id, Logic('raise', _logicComponents), actions, parentRule);
 }
 
 module.exports = customAction;

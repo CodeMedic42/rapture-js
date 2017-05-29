@@ -2,12 +2,12 @@ const _ = require('lodash');
 const Rule = require('../../../rule.js');
 const Logic = require('../../../logic.js');
 
-function disposeContexts(context) {
-    context.data.__keyData.set(context.id, false);
+function disposeContexts(control) {
+    control.data.$shared.__keyData.set(control.id, false);
 
     const commits = [];
 
-    _.forOwn(context.data[context.id], (paramContext) => {
+    _.forOwn(control.data.contexts, (paramContext) => {
         if (!_.isNil(paramContext)) {
             commits.push(paramContext.dispose().commit);
         }
@@ -18,7 +18,7 @@ function disposeContexts(context) {
     });
 }
 
-function buildContexts(context, contents, matchers, rule) {
+function buildContexts(control, contents, matchers, rule) {
     const keyData = {};
 
     const paramContexts = _.reduce(contents, (current, propValue, propertyName) => {
@@ -38,7 +38,7 @@ function buildContexts(context, contents, matchers, rule) {
 
         keyData[propertyName] = true;
 
-        ruleContext = context.createRuleContext(rule, propValue);
+        ruleContext = control.createRuleContext(rule, propValue);
 
         ruleContext.start();
 
@@ -49,11 +49,11 @@ function buildContexts(context, contents, matchers, rule) {
         return _current;
     }, {});
 
-    context.data.__keyData.set(context.id, keyData);
+    control.data.$shared.__keyData.set(control.id, keyData);
 
-    const _context = context;
+    const _control = control;
 
-    _context.data[context.id] = paramContexts;
+    _control.data.contexts = paramContexts;
 }
 
 function validateRule(rule) {
@@ -116,7 +116,7 @@ function buildMatchLogicComponents(matchers, rule) {
             useToken: true
         },
         define: { id: 'matchers', value: cleanedMatchers },
-        onRun: (context, content, params) => {
+        onValid: (control, content, params) => {
             const contents = content.contents;
 
             if (_.isNil(contents) || !_.isPlainObject(contents)) {
@@ -124,7 +124,7 @@ function buildMatchLogicComponents(matchers, rule) {
                 return;
             }
 
-            disposeContexts(context);
+            disposeContexts(control);
 
             let finalMatchers = params.matchers;
 
@@ -132,14 +132,11 @@ function buildMatchLogicComponents(matchers, rule) {
                 finalMatchers = validateCleanMatchers(params.matchers, true);
             }
 
-            buildContexts(context, contents, finalMatchers, rule);
+            buildContexts(control, contents, finalMatchers, rule);
         },
-        onPause: (context) => {
-            disposeContexts(context);
-        },
-        onTeardown: (context) => {
-            disposeContexts(context);
-        }
+        onInvalid: disposeContexts,
+        onStop: disposeContexts,
+        onDispose: disposeContexts
     };
 }
 

@@ -4,36 +4,12 @@ const _LogicContext = require('./logicContext.js');
 
 let _Logic = null;
 
-function validateOnSetup(onSetup) {
-    if (!_.isNil(onSetup) && !_.isFunction(onSetup)) {
-        throw new Error('onSetup must be a function.');
+function validateCallback(components, name) {
+    if (!_.isNil(components[name]) && !_.isFunction(components[name])) {
+        throw new Error(`${name} must be a function.`);
     }
 
-    this.onSetup = onSetup;
-}
-
-function validateOnRun(onRun) {
-    if (!_.isNil(onRun) && !_.isFunction(onRun)) {
-        throw new Error('onRun must be a function.');
-    }
-
-    this.onRun = onRun;
-}
-
-function validateOnPause(onPause) {
-    if (!_.isNil(onPause) && !_.isFunction(onPause)) {
-        throw new Error('onPause must be a function.');
-    }
-
-    this.onPause = onPause;
-}
-
-function validateOnTeardown(onTeardown) {
-    if (!_.isNil(onTeardown) && !_.isFunction(onTeardown)) {
-        throw new Error('onTeardown must be a function.');
-    }
-
-    this.onTeardown = onTeardown;
+    this.callbacks[name] = components[name];
 }
 
 function checkForParam(id) {
@@ -108,13 +84,13 @@ function validateRequiredItems(requiredItems) {
     });
 }
 
-function validateDefinededItems(definedItems) {
+function validateDefinedItems(definedItems) {
     if (_.isNil(definedItems)) {
         return;
     }
 
     if (_.isPlainObject(definedItems)) {
-        validateDefinededItems.call(this, [definedItems]);
+        validateDefinedItems.call(this, [definedItems]);
 
         return;
     }
@@ -132,44 +108,42 @@ function validateDefinededItems(definedItems) {
     });
 }
 
-_Logic = function Logic(_LogicComponents) {
+_Logic = function Logic(controlType, components) {
     if (!(this instanceof _Logic)) {
-        return new Logic(_LogicComponents);
+        return new Logic(controlType, components);
     }
 
-    if (!_.isPlainObject(_LogicComponents)) {
-        throw new Error('_LogicComponents must be a an object');
+    if (!_.isPlainObject(components)) {
+        throw new Error('logicComponents must be an object');
     }
 
+    this.id = components.id;
+    this.controlType = controlType;
     this.params = {};
+    this.callbacks = {};
 
-    validateOnSetup.call(this, _LogicComponents.onSetup);
-    validateOnRun.call(this, _LogicComponents.onRun);
-    validateOnPause.call(this, _LogicComponents.onPause);
-    validateOnTeardown.call(this, _LogicComponents.onTeardown);
+    validateCallback.call(this, components, 'onBuild');
+    validateCallback.call(this, components, 'onStart');
+    validateCallback.call(this, components, 'onValid');
+    validateCallback.call(this, components, 'onInvalid');
+    validateCallback.call(this, components, 'onStop');
+    validateCallback.call(this, components, 'onDispose');
 
-    validateRequiredItems.call(this, _LogicComponents.require);
-    validateDefinededItems.call(this, _LogicComponents.define);
+    validateRequiredItems.call(this, components.require);
+    validateDefinedItems.call(this, components.define);
 
-    this.options = _LogicComponents.options || {};
-
-    if (this.params.length <= 0 && _.isNil(this.onRun)) {
-        throw new Error('onRun has not been defined even though parameters have been.');
-    }
+    this.options = components.options || {};
 };
 
-_Logic.prototype.buildContext = function buildContext(fullControl, name, ruleContext, previousContext) {
+_Logic.prototype.buildContext = function buildContext(name, ruleContext, previousContext) {
     return _LogicContext({
         name,
-        fullControl,
+        id: this.id,
+        controlType: this.controlType,
         previous: previousContext,
         parent: ruleContext
-    }, {
-        onSetup: this.onSetup,
-        onRun: this.onRun,
-        onPause: this.onPause,
-        onTeardown: this.onTeardown
     },
+    this.callbacks,
     this.params,
     this.options);
 };

@@ -2,13 +2,40 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const ShortId = require('shortid');
+// const Console = require('console');
 const Issue = require('./issue');
 const Common = require('./common.js');
 const Scope = require('./scope.js');
 
+let __Logic;
+
 const defaultOptions = {
-    onFaultChange: false
+    state: { // Defines what makes up the state of the logic
+        content: false, // Use the state of the content to determine state. // default: false
+        parameters: true, // Use the state of the parameters to determine state. // default: true
+        rule: false // use the current state of the rule to determine state. // default: false
+    },
+    value: { // As values change onValid/onInvalid will be called as appropriate based on the state
+        content: false, // Will force a re-run of the onValid/onInvalid when the value changes. // default: 'true'
+        parameters: true // Will force a re-run of the onValid/onInvalid when any parameter value changes. // default: 'true'
+    },
+    contentWatch: 'shallow', // Defines how much of the content needs to change to trigger a re-run. // default: 'shallow'
+    useTokenAsContent: false // Define how the content is presented to onStart, onStop, onValid, onInvalid // default: false
 };
+
+function executeCallback(cbName, ...args) {
+    if (!_.isNil(this._callbacks[cbName])) {
+        this._callbacks[cbName](...args);
+    }
+}
+
+function getLogicType() {
+    if (_.isNil(__Logic)) {
+        __Logic = require('./logic.js'); // eslint-disable-line
+    }
+
+    return __Logic;
+}
 
 function runEmits(force) {
     if (!force && this._status.runState !== 'started') {
@@ -16,9 +43,9 @@ function runEmits(force) {
     }
 
     if (this._status.raiseEmitPending) {
-        this.emit('raise');
-
         this._status.raiseEmitPending = false;
+
+        this.emit('raise');
     }
 
     if (this._status.valueEmitPending) {
@@ -30,42 +57,53 @@ function runEmits(force) {
     if (this._status.stateEmitPending) {
         this._status.stateEmitPending = false;
 
-        this.emit('state', this._status.fullValidationState);
+        this.emit('state', this._status.ruleState);
     }
 }
 
-function getPreviousState() {
-    if (!_.isNil(this._previousLogicContext)) {
-        this._control.state = this._previousLogicContext.state();
+function calculateValidState() {
+    let newValidState = 'failing';
 
-        return this._control.state;
+    // Calculate the total state of this logic context
+    if ((!this._options.state.parameters || this._status.parametersState === 'passing') && // If we care about the state of the parameters
+        (!this._options.state.rule || this._status.previousRuleState === 'passing') && // If we care about the state of the rule
+        (!this._options.state.content || this._status.contentState === 'passing')) { // If we care about the state of the content
+        newValidState = 'passing';
     }
 
-    return 'passing';
+    if (this._status.validState !== newValidState) {
+        this._status.validState = newValidState;
+
+        this._status.evalPending = true;
+    }
 }
 
-function calculateFullValidationState() {
-    let finalState = this._status.validationState;
-    const prevState = getPreviousState.call(this);
+function calculateState() {
+    let newState = this._status.validState;
 
-    if (finalState === 'passing') {
-        // Anything from the previous guy overwrites this.
-        finalState = prevState;
+    if (this._status.runState === 'stopped' || this._status.runState === 'stopping') {
+        newState = 'passing';
+    } else if (this._status.validationState !== 'passing') {
+        newState = 'failing';
     }
 
-    if (this._status.fullValidationState !== finalState) {
+    if (this._status.state !== newState) {
+        this._status.state = newState;
+    }
+}
+
+function calculateRuleState() {
+    let newRuleState = this._status.previousRuleState;
+
+    if (newRuleState === 'passing') {
+        newRuleState = this._status.state;
+    }
+
+    if (this._status.ruleState !== newRuleState) {
+        this._status.ruleState = newRuleState;
+
         this._status.stateEmitPending = true;
-
-        this._status.fullValidationState = finalState;
     }
-}
-
-function calculateValidationState() {
-    this._status.validationState = this._livingIssues.length <= 0 && this._status.paramState === 'passing' ?
-        'passing' :
-        'failing';
-
-    calculateFullValidationState.call(this);
 }
 
 function calculateValueState() {
@@ -73,7 +111,7 @@ function calculateValueState() {
 
     if (this._status.runState === 'stopped' || this._status.runState === 'stopping') {
         newValueState = 'undefined';
-    } else if (this._livingIssues.length <= 0 && this._status.paramState === 'passing') {
+    } else if (this._status.state === 'passing') {
         newValueState = _.isUndefined(this._currentValue) ? 'undefined' : 'defined';
     }
 
@@ -81,6 +119,66 @@ function calculateValueState() {
         this._status.valueState = newValueState;
 
         this._status.valueEmitPending = true;
+    }
+}
+
+function calculateStates() {
+    calculateValidState.call(this);
+    calculateState.call(this);
+    calculateRuleState.call(this);
+    calculateValueState.call(this);
+}
+
+function calculatParameterState() {
+    let ready = true;
+
+    _.forOwn(this._parameters.state, (state, name) => {
+        const required = this._parameters.meta[name].required;
+
+        if (required) {
+            if (state === 'undefined') {
+                // Console.warn(`Required rule value "${name}" is not defined.`);
+                // The required value has never been defined and this is an issue.
+                // issues.push(Issue('rule', null, null, `Required rule value "${name}" is not defined.`, 'warning'));
+
+                ready = false;
+            } else if (state === 'failing') {
+                // The required value has been defined but it's validation is failing.
+                // The validation should be generating an issue for it so no need to create a new one.
+                // This still marks us as not ready to run.
+                ready = false;
+            } else if (state !== 'defined') {
+                throw new Error('Should never get here.');
+            }
+
+            return;
+        }
+
+        if (state === 'undefined') {
+            // Then for some reason the definition is not ready yet.
+            // We can no idea why so we are not going to do anything here.
+            ready = false;
+        } else if (state === 'failing') {
+            // There is a context with issues here.
+
+            ready = false;
+        } else if (state !== 'defined') {
+            throw new Error('Should never get here.');
+        }
+    });
+
+    const newParamStatus = ready ?
+        'passing' :
+        'failing';
+
+    if (newParamStatus !== this._status.parametersState) {
+        this._status.parametersState = newParamStatus;
+
+        if (this._options.state.parameters) {
+            this._status.evalPending = true;
+        }
+
+        calculateStates.call(this);
     }
 }
 
@@ -103,6 +201,8 @@ function _raise(...issueMeta) {
         return current;
     }, []);
 
+    this._status.validationState = 'failing';
+
     // If both are empty then don't emit anything. It just creates noise.
     if (newIssues.length > 0 || this._livingIssues.length > 0) {
         this._livingIssues = newIssues;
@@ -110,8 +210,21 @@ function _raise(...issueMeta) {
         this._status.raiseEmitPending = true;
     }
 
-    calculateValueState.call(this);
-    calculateValidationState.call(this);
+    calculateStates.call(this);
+
+    runEmits.call(this);
+}
+
+function _clear() {
+    if (this._livingIssues.length > 0) {
+        this._livingIssues = [];
+
+        this._status.raiseEmitPending = true;
+    }
+
+    this._status.validationState = 'passing';
+
+    calculateStates.call(this);
 
     runEmits.call(this);
 }
@@ -123,8 +236,7 @@ function _set(value) {
 
     this._currentValue = value;
 
-    calculateValueState.call(this);
-    calculateValidationState.call(this);
+    calculateStates.call(this);
 
     this._status.valueEmitPending = true;
 
@@ -133,95 +245,42 @@ function _set(value) {
     return true; // Did result in an update
 }
 
-function _checkParameters(parameters) {
-    let ready = true;
-    const issues = [];
-
-    _.forOwn(parameters.meta, (meta, name) => {
-        const paramStatus = meta.status;
-
-        if (meta.required) {
-            if (paramStatus === 'undefined') {
-                // The required value has never been defined and this is an issue.
-                issues.push(Issue('rule', null, null, `Required rule value "${name}" is not defined.`, 'warning'));
-
-                ready = false;
-            } else if (paramStatus === 'failing') {
-                // The required value has been defined but it's validation is failing.
-                // The validation should be generating an issue for it so no need to create a new one.
-                // This still marks us as not ready to run.
-                ready = false;
-            } else if (paramStatus !== 'defined') {
-                throw new Error('Should never get here.');
-            }
-
-            return;
-        }
-
-        if (paramStatus === 'undefined') {
-            // Then for some reason the definition is not ready yet.
-            // We can no idea why so we are not going to do anything here.
-            ready = false;
-        } else if (paramStatus === 'failing') {
-            // There is a context with issues here.
-
-            ready = false;
-        } else if (paramStatus !== 'defined') {
-            throw new Error('Should never get here.');
-        }
-    });
-
-    _.forOwn(parameters.contexts, (context) => {
-        issues.push(...context.issues());
-    });
-
-    if (issues.length > 0) {
-        ready = false;
+function _evaluate(force) {
+    if (!force && (this._status.runState !== 'started' || !this._status.evalPending)) {
+        return;
     }
 
-    return { ready, issues };
-}
+    this._status.evalPending = false;
 
-function _run() {
     const oldRunState = this._status.runState;
     this._status.runState = 'updating';
 
-    const paramResult = _checkParameters(this._parameters);
-
-    if (!paramResult.ready) {
-        this._status.paramState = this._control.paramState = 'failing';
-
-        if (this._options.runOnFailure && !_.isNil(this._onRun)) {
-            // TODO: need to restrict onRun as this is a failure state.
-            // TODO: No raise is allowed here.
-            this._onRun.call(null, this._control, this._content, this._parameters.values);
-        }
-
-        // This is hear because we want to set the issues after run is called
-        this._control.raise(paramResult.issues);
+    if (this._status.validState === 'passing') {
+        executeCallback.call(this, 'onValid', this._control, this._content, this._parameters.values, this._parameters.state);
     } else {
-        this._status.paramState = this._control.paramState = 'passing';
-
-        this._control.raise();
-
-        // Current value could have been set by setup.
-        // So even if onRun does not exists we will still want to emit the value when we start up..
-        if (!_.isNil(this._onRun)) {
-            this._onRun.call(null, this._control, this._content, this._parameters.values);
-        }
+        executeCallback.call(this, 'onInvalid', this._control, this._content, this._parameters.values, this._parameters.state);
     }
 
     this._status.runState = oldRunState;
 }
 
-function _onStateUpdate(state) {
-    this._control.state = state;
-
-    if (this._options.onStateChange) {
-        _run.call(this);
+function _onPreviousStateUpdate(state) {
+    if (this._status.previousRuleState === state) {
+        return;
     }
 
-    calculateFullValidationState.call(this);
+    this._status.previousRuleState = state;
+
+    if (this._options.state.rule) {
+        this._control.state.rule = this._status.previousRuleState;
+
+        calculateStates.call(this);
+
+        _evaluate.call(this);
+    }
+
+    // recalc after eval or just in general.
+    calculateStates.call(this);
 
     runEmits.call(this);
 }
@@ -255,7 +314,7 @@ function createRuleContext(rule, tokenContext) {
 }
 
 function buildLogicContext(logic) {
-    const logicContext = logic.buildContext(true, `${this._id}`, this._ruleContext);
+    const logicContext = logic.buildContext(`${this._id}`, this._ruleContext);
 
     this._ruleContext.addLogicContext(logicContext);
 
@@ -282,63 +341,68 @@ function unregister(targetScope, id) {
     this._ruleContext.scope.remove(_targetScope, id, this);
 }
 
-function _buildControl(fullControl) {
+function _buildControl() {
+    const data = _.isPlainObject(this._options.data) ? this._options.data : {};
+
+    data.$shared = this._ruleContext.data;
+
     this._control = {
-        data: this._ruleContext.data,
+        data,
         id: this._id,
-        state: 'passing',
-        set: _set.bind(this),
-        raise: _raise.bind(this),
-        paramState: 'passing'
+        name: this._name,
+        uuid: this._uuid,
+        state: {}
     };
 
-    if (fullControl) {
+    if (this._controlType === 'full') {
+        this._control.set = _set.bind(this);
+        this._control.raise = _raise.bind(this);
+        this._control.clear = _clear.bind(this);
         this._control.createRuleContext = createRuleContext.bind(this);
         this._control.createRuleContextInScope = createRuleContextInScope.bind(this);
         this._control.buildLogicContext = buildLogicContext.bind(this);
         this._control.register = register.bind(this);
         this._control.unregister = unregister.bind(this);
         this._control.scope = this._ruleContext.scope;
+    } else if (this._controlType === 'set') {
+        this._control.set = _set.bind(this);
+    } else if (this._controlType === 'raise') {
+        this._control.raise = _raise.bind(this);
+        this._control.clear = _clear.bind(this);
     }
 }
 
-function _updateParameter(name, status, value) {
-    this._parameters.meta[name].status = status;
+function _updateParameter(calculate, name, status, value) {
+    if (this._parameters.state[name] !== status) {
+        this._parameters.state[name] = status;
+
+        if (calculate) {
+            calculatParameterState.call(this);
+        }
+    }
 
     if (status === 'defined') {
-        this._parameters.values[name] = value;
-    } else {
+        if (this._parameters.values[name] !== value) {
+            this._parameters.values[name] = value;
+
+            this._status.evalPending = true;
+        }
+    } else if (!_.isUndefined(this._parameters.values[name])) {
         delete this._parameters.values[name];
+
+        this._status.evalPending = true;
     }
 }
 
 function onParameterUpdate(name, status, value) {
-    _updateParameter.call(this, name, status, value);
+    const started = this._status.runState === 'started';
 
-    if (this._status.runState === 'started') {
-        _run.call(this);
+    _updateParameter.call(this, started, name, status, value);
+
+    if (started) {
+        _evaluate.call(this);
 
         runEmits.call(this, true);
-    }
-}
-
-function processDefinition(param, name) {
-    const Logic = require('./logic'); // eslint-disable-line
-
-    this._parameters.meta[name] = {
-        required: false
-    };
-
-    if (param.value instanceof Logic) {
-        const logicContext = param.value.buildContext(false, this._id, this._ruleContext);
-
-        _updateParameter.call(this, name, logicContext.valueState(), logicContext.value());
-
-        this._parameters.listeners[name] = Common.createListener(logicContext, 'update', null, onParameterUpdate.bind(this, name));
-        this._parameters.contexts[name] = logicContext;
-    } else {
-        this._parameters.values[name] = param.value;
-        this._parameters.meta[name].status = 'defined';
     }
 }
 
@@ -357,7 +421,7 @@ function _onWatchUpdate(name, status, value) {
 
         stopWatch.call(this, name);
 
-        _updateParameter.call(this, name, status, value);
+        onParameterUpdate.call(this, name, status, value);
 
         return;
     } else if (value === this._parameters.meta[name].watchId) {
@@ -373,18 +437,17 @@ function _onWatchUpdate(name, status, value) {
 }
 
 function processRequired(param, name) {
-    const Logic = require('./logic'); // eslint-disable-line
-
     this._parameters.meta[name] = {
         required: true,
-        status: 'undefined',
         watchId: null
     };
 
-    if (param.value instanceof Logic) {
-        const logicContext = param.value.buildContext(false, this._id, this._ruleContext);
+    this._parameters.state[name] = 'undefined';
 
-        _updateParameter.call(this, name, 'undefined', undefined);
+    if (param.value instanceof getLogicType()) {
+        const logicContext = param.value.buildContext(this._id, this._ruleContext, this._previousLogicContext);
+
+        _updateParameter.call(this, false, name, 'undefined', undefined);
 
         const update = _onWatchUpdate.bind(this, name);
 
@@ -401,15 +464,36 @@ function processRequired(param, name) {
     }
 }
 
+function processDefinition(param, name) {
+    this._parameters.meta[name] = {
+        required: false,
+        // status: 'undefined',
+        watchId: null
+    };
+
+    this._parameters.state[name] = 'undefined';
+
+    if (param.value instanceof getLogicType()) {
+        const logicContext = param.value.buildContext(this._id, this._ruleContext, this._previousLogicContext);
+
+        _updateParameter.call(this, false, name, logicContext.valueState(), logicContext.value());
+
+        this._parameters.listeners[name] = Common.createListener(logicContext, 'update', null, onParameterUpdate.bind(this, name));
+        this._parameters.contexts[name] = logicContext;
+    } else {
+        this._parameters.values[name] = param.value;
+        this._parameters.state[name] = 'defined';
+    }
+}
+
 function processParameters(parameters) {
     this._parameters = {
         values: {},
         meta: {},
         contexts: {},
-        listeners: {}
+        listeners: {},
+        state: {}
     };
-
-    const Logic = require('./logic'); // eslint-disable-line
 
     _.forOwn(parameters, (param, name) => {
         if (param.required) {
@@ -426,6 +510,8 @@ function processParameters(parameters) {
             }
         });
     });
+
+    calculatParameterState.call(this);
 }
 
 function validateInput(properties, callbacks, parameters) {
@@ -446,6 +532,70 @@ function validateInput(properties, callbacks, parameters) {
     }
 }
 
+function setupRuleConnetion(previousLogic) {
+    if (_.isNil(previousLogic)) {
+        // No need to CONSTANTLY be checking to see if we have previous logic.
+        this._status.previousRuleState = 'passing';
+
+        if (this._options.state.rule) {
+            this._control.state.rule = this._status.previousRuleState;
+        }
+
+        return;
+    }
+
+    this._previousLogicContext = previousLogic;
+
+    this._disposables.push(Common.createListener(previousLogic, 'state', this, _onPreviousStateUpdate, () => {
+        this._previousLogicContext = null;
+    }));
+
+    this._status.previousRuleState = previousLogic.ruleState();
+
+    if (this._options.state.rule) {
+        this._control.state.rule = this._status.previousRuleState;
+    }
+}
+
+function updateContentState() {
+    const newState = this._tokenContext.issues().length <= 0 ?
+        'passing' :
+        'failing';
+
+    if (this._status.contentState !== newState) {
+        this._status.contentState = newState;
+        this._control.state.content = newState;
+
+        calculateStates.call(this);
+
+        this._status.evalPending = true;
+    }
+}
+
+function setupContentRequirements() {
+    if (!this._options.state.content && (!this._options.value.content || this._options.contentWatch !== 'deep')) {
+        return;
+    }
+
+    this._tokenContext.on('update', (value) => {
+        if (value.raise && this._options.state.content) {
+            updateContentState.call(this);
+        }
+
+        if (value.update && this._options.value.content && this._options.contentWatch === 'deep') {
+            this._status.evalPending = true;
+        }
+
+        _evaluate.call(this);
+
+        runEmits.call(this);
+    });
+
+    if (this._options.state.content) {
+        updateContentState.call(this);
+    }
+}
+
 function LogicContext(properties, callbacks, parameters, options) {
     if (!(this instanceof LogicContext)) {
         return new LogicContext(properties, callbacks, parameters, options);
@@ -455,25 +605,32 @@ function LogicContext(properties, callbacks, parameters, options) {
 
     validateInput(properties, callbacks, parameters, options);
 
-    this._options = _.isNil(options) ? defaultOptions : options;
+    this._options = _.merge({}, defaultOptions, options); // _.isNil(options) ? defaultOptions : options;
 
     this._disposables = [];
 
     this._ruleContext = properties.parent;
 
+    this._controlType = properties.controlType;
     this._name = properties.name;
-    this._id = `${properties.name}-${ShortId.generate()}`;
+    this._uuid = ShortId.generate();
+    this._id = properties.id || `${properties.name}-${this._uuid}`;
+    this._tokenContext = this._ruleContext.tokenContext;
 
     this._content = this._options.useToken ?
-        this._ruleContext.tokenContext :
-        this._ruleContext.tokenContext.getRaw();
+        this._tokenContext :
+        this._tokenContext.getRaw();
 
     this._status = {
         runState: 'stopped',
-        valueState: 'undefined',
-        paramState: 'passing',
-        validationState: 'passing',
-        fullValidationState: 'passing',
+        valueState: 'undefined', // Indicates the status of the logic value
+        state: 'passing', // Indicates the status of the entire logic
+        validationState: 'passing', // Indicates the status of the logic validation,
+        ruleState: 'passing',
+        parametersState: 'passing',
+        contentState: 'passing',
+        validState: 'passing',
+        evalPending: false,
         valueEmitPending: false,
         raiseEmitPending: false,
         stateEmitPending: false,
@@ -481,39 +638,25 @@ function LogicContext(properties, callbacks, parameters, options) {
 
     this._livingIssues = [];
 
-    this._onRun = callbacks.onRun;
-    this._onPause = callbacks.onPause;
-    this._onTeardown = callbacks.onTeardown;
+    this._callbacks = callbacks;
+
     this._currentValue = undefined;
 
     processParameters.call(this, parameters);
 
-    _buildControl.call(this, properties.fullControl);
+    _buildControl.call(this);
 
-    if (!_.isNil(properties.previous)) {
-        this._previousLogicContext = properties.previous;
+    setupContentRequirements.call(this);
 
-        this._disposables.push(Common.createListener(properties.previous, 'state', this, _onStateUpdate, () => {
-            this._previousLogicContext = null;
-        }));
-    }
+    setupRuleConnetion.call(this, properties.previous);
 
-    if (!_.isNil(callbacks.onSetup)) {
-        callbacks.onSetup.call(null, this._control, this._content);
-    }
-
-    calculateFullValidationState.call(this);
-
-    if (_.isNil(this._onRun)) {
-        if (parameters.length > 0) {
-            throw new Error('onRun was not defined even though define and/or required where called.');
-        }
-    }
+    executeCallback.call(this, 'onBuild', this._control);
 
     // clear these since there is no way for someone to be listening yet.
     this._status.valueEmitPending = false;
     this._status.stateEmitPending = false;
     this._status.raiseEmitPending = false;
+    this._status.evalPending = true;
 }
 
 Util.inherits(LogicContext, EventEmitter);
@@ -521,7 +664,7 @@ Util.inherits(LogicContext, EventEmitter);
 LogicContext.prototype.state = function state() {
     Common.checkDisposed(this);
 
-    return this._status.fullValidationState;
+    return this._status.state;
 };
 
 LogicContext.prototype.valueState = function state() {
@@ -546,20 +689,24 @@ LogicContext.prototype.start = function start() {
 
     this._status.runState = 'starting';
 
-    getPreviousState.call(this);
+    this.emit('starting');
+
+    executeCallback.call(this, 'onStart', this._control, this._content);
 
     _.forOwn(this._parameters.contexts, (context) => {
-        context.start();
+        context.start(null, this._control, this._content);
     });
 
-    _run.call(this);
+    calculatParameterState.call(this);
+    calculateStates.call(this);
 
-    calculateFullValidationState.call(this);
-    calculateValueState.call(this);
+    _evaluate.call(this, true);
 
     runEmits.call(this, true);
 
     this._status.runState = 'started';
+
+    this.emit('started');
 };
 
 LogicContext.prototype.stop = function stop() {
@@ -573,22 +720,23 @@ LogicContext.prototype.stop = function stop() {
 
     this._status.runState = 'stopping';
 
+    this.emit('stopping');
+
     _.forOwn(this._parameters.contexts, (context) => {
         context.stop();
     });
 
-    if (!_.isNil(this._onPause)) {
-        this._onPause.call(null, this._control, this._content, this._currentValue);
-    }
+    executeCallback.call(this, 'onStop', this._control, this._content);
 
-    this._control.raise();
+    _clear.call(this);
 
-    this._status.updateRequired = true;
-    this._status.valueState = 'undefined';
+    calculateStates.call(this);
 
     runEmits.call(this, true);
 
     this._status.runState = 'stopped';
+
+    this.emit('stopped');
 };
 
 LogicContext.prototype.value = function value() {
@@ -606,10 +754,17 @@ LogicContext.prototype.dispose = function dispose() {
         return { commit: () => {} };
     }
 
+    this._status.runState = 'stopping';
+
+    this.emit('stopping');
+
+    executeCallback.call(this, 'onStop', this._control, this._content);
+
     this._status.runState = 'disposing';
 
     this.emit('disposing');
 
+    // clean up all listeners watches and evenrs first
     _.forEach(this._disposables, (listener) => {
         listener();
     });
@@ -622,18 +777,13 @@ LogicContext.prototype.dispose = function dispose() {
 
     return {
         commit: () => {
+            executeCallback.call(this, 'onDispose', this._control);
+
             _.forEach(commits, (commit) => {
                 commit();
             });
 
-            if (!_.isNil(this._onTeardown)) {
-                this._onTeardown.call(null, this._control, this._content, this._currentValue);
-            }
-
-            this._control.raise();
-
-            this._status.updateRequired = true;
-            this._status.valueState = 'undefined';
+            _clear.call(this);
 
             runEmits.call(this, true);
 
@@ -642,6 +792,12 @@ LogicContext.prototype.dispose = function dispose() {
             this.emit('disposed');
         }
     };
+};
+
+LogicContext.prototype.ruleState = function ruleState() {
+    Common.checkDisposed(this);
+
+    return this._status.ruleState;
 };
 
 module.exports = LogicContext;

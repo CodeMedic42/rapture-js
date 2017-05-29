@@ -9,11 +9,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('string', Rapture.string().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('string', Rapture.string().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -34,11 +33,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('string', Rapture.string().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('string', Rapture.string().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -61,11 +59,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('number', Rapture.number().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('number', Rapture.number().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -86,11 +83,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('number', Rapture.number().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('number', Rapture.number().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -113,11 +109,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('boolean', Rapture.boolean().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('boolean', Rapture.boolean().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -138,11 +133,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('boolean', Rapture.boolean().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('boolean', Rapture.boolean().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -165,11 +159,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('date', Rapture.date().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('date', Rapture.date().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -190,11 +183,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('date', Rapture.date().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('date', Rapture.date().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -217,11 +209,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('object', Rapture.object().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('object', Rapture.object().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -242,11 +233,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('object', Rapture.object().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('object', Rapture.object().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -269,11 +259,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('array', Rapture.array().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('array', Rapture.array().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {
@@ -294,11 +283,10 @@ describe('Is Tests :', () => {
             };
 
             const rule = Rapture.object().valid({
-                foo: Rapture.is('array', Rapture.array().custom(Rapture.logic({
-                    onRun: (context) => {
-                        context.raise('schema', 'Is Running', 'error');
-                    }
-                }))).endIs()
+                foo: Rapture.is('array', Rapture.array().custom({
+                    onValid: control =>
+                        control.raise('schema', 'Is Running', 'error')
+                })).endIs()
             });
 
             TestingSupport.fail(testObject, rule, {

@@ -16,18 +16,18 @@ function cleanLogicData(logicData) {
 function nandAction(parentRule, actions, ...initalLogicData) {
     const logicData = cleanLogicData(initalLogicData);
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         options: {
             useToken: true
         },
-        onRun: (context, content) => {
+        onValid: (context, content) => {
             const contents = content.contents;
 
             if (!_.isPlainObject(contents)) {
                 return;
             }
 
-            context.raise();
+            context.clear();
 
             const presentItems = [];
 

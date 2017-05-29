@@ -2,84 +2,80 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function deferAction(getRuleCb) {
-    const logicComponents = {
-        onSetup: (control) => {
-            const _control = control;
+function cleanUp(control) {
+    const data = control.data;
 
-            const runningData = _control.data[control.id] = {};
+    if (!_.isNil(data.context)) {
+        data.context.dispose().commit();
 
-            if (_.isFunction(getRuleCb)) {
-                runningData.rule = getRuleCb();
+        data.context = null;
+    }
+}
 
-                if (!(runningData.rule instanceof Rule)) {
-                    throw new Error('Must be an an instance of Rule');
-                }
-            }
-        },
-        onRun: (control, content, params) => {
-            const runningData = control.data[control.id];
+function onStop(control) {
+    control.data.context.stop();
+}
 
-            if (_.isNil(runningData.rule)) {
-                if (_.isNil(params.rule)) {
-                    throw new Error('Rule has not been defined');
-                }
+function onValid(control, content, params) {
+    const data = control.data;
 
-                runningData.rule = params.rule;
-            }
+    if (!(params.rule instanceof Rule)) {
+        throw new Error('Defer must result in a rule');
+    }
 
-            if (runningData.rule === params.rule || _.isNil(params.rule)) {
-                // The rule has not changed so create the context if it does not exist and move on.
-                if (_.isNil(runningData.context)) {
-                    runningData.context = control.createRuleContext(runningData.rule);
+    if (!_.isNil(data.rule) && data.rule === params.rule) {
+        // Nothing has changed
+        return;
+    } else if (data.rule !== params.rule) {
+        // dispose of the old context
+        cleanUp(control);
+    }
 
-                    runningData.context.start();
-                }
+    data.rule = params.rule;
 
-                return;
-            }
+    data.context = control.createRuleContext(params.rule);
 
-            // rule must have changed
-            runningData.rule = params.rule;
+    data.context.start();
+}
 
-            // destroy the context if it has changed.
-            if (!_.isNil(runningData.context)) {
-                runningData.context.dispose().commit();
+function onBuild(control) {
+    const data = control.data;
 
-                runningData.context = null;
-            }
+    const rule = data.load();
 
-            runningData.context = control.createRuleContext(runningData.rule);
+    if (!(rule instanceof Rule)) {
+        throw new Error('Defer must result in a rule');
+    }
 
-            runningData.context.start();
-        },
-        onPause: (control) => {
-            const runningData = control.data[control.id];
+    data.context = control.createRuleContext(rule);
+}
 
-            if (!_.isNil(runningData.context)) {
-                runningData.context.dispose().commit();
+function onStart(control) {
+    control.data.context.start();
+}
 
-                runningData.context = null;
-            }
-        },
-        tearDown: (control) => {
-            const runningData = control.data[control.id];
+function deferAction(load) {
+    const logicComponents = {};
 
-            if (!_.isNil(runningData.context)) {
-                runningData.context.dispose().commit();
-
-                runningData.context = null;
-            }
-        }
-    };
-
-    if (getRuleCb instanceof Logic) {
-        logicComponents.define = { id: 'rule', value: getRuleCb };
-    } else if (!_.isFunction(getRuleCb)) {
+    if (load instanceof Logic) {
+        logicComponents.define = { id: 'rule', value: load };
+        logicComponents.onValid = onValid;
+        logicComponents.onInvalid = cleanUp;
+        logicComponents.onStop = cleanUp;
+        logicComponents.onDispose = cleanUp;
+    } else if (_.isFunction(load)) {
+        logicComponents.options = {
+            data: { load }
+        };
+        logicComponents.onBuild = onBuild;
+        logicComponents.onStart = onStart;
+        logicComponents.onStop = onStop;
+        logicComponents.onDispose = cleanUp;
+    } else {
         throw new Error('Invalid defer logic');
     }
 
-    return Rule('defer', Logic(logicComponents));
+    return Rule('defer', Logic('full', logicComponents));
 }
 
 module.exports = deferAction;

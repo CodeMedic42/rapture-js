@@ -165,7 +165,7 @@ module.exports = () => {
                             const testObject = {};
 
                             const rule = Rapture.object().valid(Rapture.logic({
-                                onRun: (context) => { context.set(null); }
+                                onValid: control => control.set(null)
                             }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
@@ -175,7 +175,7 @@ module.exports = () => {
                             const testObject = {};
 
                             const rule = Rapture.object().strict().valid(Rapture.logic({
-                                onRun: (context) => { context.set(42); }
+                                onValid: control => control.set(42)
                             }), Rapture.any());
 
                             TestingSupport.failWithException(testObject, rule, 'Must be either a string, regular expression, an array of the former two, or a Rapture Logic definition if not already loaded through one');
@@ -187,22 +187,12 @@ module.exports = () => {
 
                         const rule = Rapture.object().valid(Rapture.logic({
                             require: 'willNotExist',
-                            onRun: () => {
-                                // Should not call because "keys" dones not exist
+                            onValid: () => {
                                 expect.fail();
                             }
                         }), Rapture.any()).strict();
 
-                        TestingSupport.fail(testObject, rule, {
-                            type: 'rule',
-                            rowStart: 0,
-                            rowEnd: 0,
-                            columnStart: 0,
-                            columnEnd: 0,
-                            message: 'Required rule value "willNotExist" is not defined.',
-                            cause: '',
-                            severity: 'warning'
-                        });
+                        TestingSupport.pass(testObject, rule);
                     });
 
                     describe('Results in an array of regular expressions :', () => {
@@ -210,7 +200,7 @@ module.exports = () => {
                             const testObject = {};
 
                             const rule = Rapture.object().strict().valid(Rapture.logic({
-                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
+                                onValid: control => control.set([matchKey, matchKeyB])
                             }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
@@ -220,7 +210,7 @@ module.exports = () => {
                             const testObject = { invalidKey: 'foo' };
 
                             const rule = Rapture.object().valid(Rapture.logic({
-                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
+                                onValid: control => control.set([matchKey, matchKeyB])
                             }), Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {
@@ -239,7 +229,7 @@ module.exports = () => {
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo', };
 
                             const rule = Rapture.object().strict().valid(Rapture.logic({
-                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
+                                onValid: control => control.set([matchKey, matchKeyB])
                             }), Rapture.any());
 
                             TestingSupport.pass(testObject, rule);
@@ -249,7 +239,7 @@ module.exports = () => {
                             const testObject = { '1-validKey': 'foo', '2-validKey': 'foo', '1-validKeyB': 'foo', '2-validKeyB': 'foo', invalidKey: 'foo' };
 
                             const rule = Rapture.object().valid(Rapture.logic({
-                                onRun: (context) => { context.set([matchKey, matchKeyB]); }
+                                onValid: control => control.set([matchKey, matchKeyB])
                             }), Rapture.any()).strict();
 
                             TestingSupport.fail(testObject, rule, {

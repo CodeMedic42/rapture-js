@@ -19,14 +19,14 @@ describe('Registration Tests :', () => {
 
         const rule = Rapture.object().valid({
             reg: Rapture.string().register('testReg'),
-            peak: Rapture.string().custom(Rapture.logic({
+            peak: Rapture.string().custom({
                 require: 'testReg',
-                onRun: (control, contents, params) => {
+                onValid: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
                 }
-            }))
+            })
         });
 
         const context = TestingSupport.pass(testObject, rule);
@@ -50,14 +50,14 @@ describe('Registration Tests :', () => {
 
         const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__artifact' }),
-            peak: Rapture.string().custom(Rapture.logic({
+            peak: Rapture.string().custom({
                 require: 'testReg',
-                onRun: (control, contents, params) => {
+                onValid: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
                 }
-            }))
+            })
         });
 
         const context = TestingSupport.pass(testObject, rule);
@@ -83,14 +83,14 @@ describe('Registration Tests :', () => {
 
         const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }),
-            peak: Rapture.string().custom(Rapture.logic({
+            peak: Rapture.string().custom({
                 require: 'testReg',
-                onRun: (control, contents, params) => {
+                onValid: (control, contents, params) => {
                     called = true;
 
                     expect(params.testReg).to.equal(testObject.reg);
                 }
-            }))
+            })
         });
 
         const context = TestingSupport.pass(testObject, rule);
@@ -116,12 +116,12 @@ describe('Registration Tests :', () => {
 
         const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }),
-            peak: Rapture.string().custom(Rapture.logic({
+            peak: Rapture.string().custom({
                 require: 'testReg',
-                onRun: () => {
+                onValid: () => {
                     expect.fail();
                 }
-            }))
+            })
         });
 
         const context = TestingSupport.fail(testObject, rule, {
@@ -146,7 +146,7 @@ describe('Registration Tests :', () => {
         expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('failing');
     });
 
-    it('Does register passes even if later rule fails', () => {
+    it('Does register fails even if later rule fails', () => {
         const testObject = {
             reg: 'foo',
             peak: 'bar'
@@ -156,14 +156,15 @@ describe('Registration Tests :', () => {
 
         const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }).min(5).register({ id: 'testReg2', scope: '__session' }),
-            peak: Rapture.string().custom(Rapture.logic({
+            peak: Rapture.string().custom({
                 require: 'testReg',
-                onRun: (control, contents, params) => {
+                onValid: () => {
+                    expect.fail();
+                },
+                onInvalid: () => {
                     called = true;
-
-                    expect(params.testReg).to.equal(testObject.reg);
                 }
-            }))
+            })
         });
 
         const context = TestingSupport.fail(testObject, rule, {
@@ -182,12 +183,12 @@ describe('Registration Tests :', () => {
         const artifactValue = context.scope.get('testReg');
         expect(artifactValue, 'artifactValue should exist').to.exist();
         expect(artifactValue.value, 'artifactValue value should exist and be correct').to.equal(testObject.reg);
-        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('defined');
+        expect(artifactValue.status, 'artifactValue status should exist and be correct').to.equal('failing');
 
         const sessionValue = context.scope.parentScope.get('testReg');
         expect(sessionValue, 'sessionValue should exist').to.exist();
         expect(sessionValue.value, 'sessionValue value should exist and be correct').to.equal(testObject.reg);
-        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('defined');
+        expect(sessionValue.status, 'sessionValue status should exist and be correct').to.equal('failing');
 
         const artifactValue2 = context.scope.get('testReg2');
         expect(artifactValue2, 'artifactValue2 should exist').to.exist();
@@ -216,39 +217,40 @@ describe('Registration Tests :', () => {
 
             const rule = Rapture.object().valid({
                 highReg: Rapture.string().register('testRegHigh'),
-                highPeak: Rapture.string().custom(Rapture.logic({
+                highPeak: Rapture.string().custom({
                     require: ['testRegHigh', 'testRegLow'],
-                    onRun: (control, contents, params) => {
+                    onValid: (control, contents, params) => {
                         highPeakCalled = true;
 
                         expect(params.testRegHigh).to.equal(testObject.highReg);
                         expect(params.testRegLow).to.equal(testObject.lowReg);
                     }
-                })),
+                }),
                 subObj: Rapture.scope('scopeA', Rapture.object().valid({
                     lowReg: Rapture.string().register('testRegLow'),
-                    lowPeak: Rapture.string().custom(Rapture.logic({
+                    lowPeak: Rapture.string().custom({
                         require: ['testRegHigh', 'testRegLow'],
-                        onRun: (control, contents, params) => {
+                        onValid: (control, contents, params) => {
                             lowPeakCalled = true;
 
                             expect(params.testRegHigh).to.equal(testObject.highReg);
                             expect(params.testRegLow).to.equal(testObject.subObj.lowReg);
                         }
-                    }))
+                    })
                 }))
             });
 
-            const context = TestingSupport.fail(testObject, rule, {
-                type: 'rule',
-                rowStart: 2,
-                rowEnd: 2,
-                columnStart: 2,
-                columnEnd: 12,
-                message: 'Required rule value "testRegLow" is not defined.',
-                cause: 'highPeak',
-                severity: 'warning'
-            });
+            const context = TestingSupport.pass(testObject, rule);
+            // , {
+            //     type: 'rule',
+            //     rowStart: 2,
+            //     rowEnd: 2,
+            //     columnStart: 2,
+            //     columnEnd: 12,
+            //     message: 'Required rule value "testRegLow" is not defined.',
+            //     cause: 'highPeak',
+            //     severity: 'warning'
+            // });
 
             expect(highPeakCalled).to.be.false();
             expect(lowPeakCalled).to.be.true();

@@ -12,7 +12,11 @@ function validAction(parentRule, actions, ...logicData) {
     let logicComponents;
 
     if (logicData.length === 1) {
-        logicComponents = Keys(logicData[0]);
+        if (logicData[0] instanceof Rule) {
+            logicComponents = Match(/[\s\S]*/, logicData[0]);
+        } else {
+            logicComponents = Keys(logicData[0]);
+        }
     } else if (logicData.length === 2) {
         logicComponents = Match(logicData[0], logicData[1]);
     } else {
@@ -25,7 +29,7 @@ function validAction(parentRule, actions, ...logicData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('object-valid', Logic(logicComponents), nextActions, parentRule);
+    return Rule('object-valid', Logic('full', logicComponents), nextActions, parentRule);
 }
 
 module.exports = validAction;

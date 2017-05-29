@@ -1,4 +1,4 @@
-const JsonLexer = require('json-lexer');
+const JsonLexer = require('./jsonLexer.js');
 const _ = require('lodash');
 const TokenLocation = require('./tokenLocation');
 

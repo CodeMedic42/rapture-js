@@ -15,7 +15,7 @@ function cleanLogicData(logicData, allowLogic) {
     }
 
     return Common.flattenWith(logicData, (data) => {
-        if (!_.isString(data)) {
+        if (!_.isString(data) && !_.isRegExp(data)) {
             throw new Error('All static items must be either arrays or strings');
         }
 
@@ -30,10 +30,10 @@ function validAction(parentRule, actions, ...initalLogicData) {
 
     const logicData = cleanLogicData(initalLogicData, true);
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         define: { id: 'logicData', value: logicData },
-        onRun: (context, content, params) => {
-            context.raise();
+        onValid: (control, content, params) => {
+            control.clear();
 
             if (!_.isString(content)) {
                 return;
@@ -44,7 +44,11 @@ function validAction(parentRule, actions, ...initalLogicData) {
             let isValid = false;
 
             _.forEach(finalData, (item) => {
-                if (content === item) {
+                if (_.isString(item)) {
+                    if (content === item) {
+                        isValid = true;
+                    }
+                } else if (!_.isNil(content.match(item))) {
                     isValid = true;
                 }
 
@@ -52,14 +56,14 @@ function validAction(parentRule, actions, ...initalLogicData) {
             });
 
             if (!isValid) {
-                context.raise('schema', `Must be one of ${JSON.stringify(finalData)}`, 'error');
+                control.raise('schema', `Must be one of ${JSON.stringify(finalData)}`, 'error');
             }
         }
     });
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-max', logic, nextActions, parentRule);
+    return Rule('string-valid', logic, nextActions, parentRule);
 }
 
 module.exports = validAction;
