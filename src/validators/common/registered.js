@@ -2,53 +2,59 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function cleanUp(logicValue) {
-    const _logicValue = logicValue;
+function cleanUp(control) {
+    const data = control.data;
 
-    if (!_.isNil(_logicValue.listener)) {
-        _logicValue.listener();
-        _logicValue.listener = null;
+    if (!_.isNil(data.listener)) {
+        data.listener();
+
+        data.listener = null;
     }
 }
 
-function registerAction(parentRule, actions, id) {
-    const logic = Logic({
-        define: [{ id: 'registerID', value: id }],
-        onSetup: () => {
-            return { id: null };
-        },
-        onRun: (context, contents, params, logicValue) => {
-            if (logicValue.id === params.registerID) {
-                // The id did not change and we do not need to update anything.
+function onValid(control, contents, params) {
+    const data = control.data;
 
-                return logicValue;
-            }
+    // const logicValue = control.data[control.id];
 
-            context.raise();
+    if (data.id === params.registerID) {
+        // The id did not change and we do not need to update anything.
+        return;
+    }
 
-            const _logicValue = logicValue;
+    cleanUp(control);
 
-            _logicValue.id = params.registerID;
+    data.id = params.registerID;
 
-            _logicValue.listener = context.scope.watch(params.registerID, (status) => {
-                if (status === 'undefined') {
-                    context.raise('data', `${params.registerID} is referenced but is never registered`);
-                } else {
-                    context.raise();
-                }
-            });
-
-            return logicValue;
-        },
-        onPause: (context, contents, logicValue) => {
-            cleanUp(logicValue);
-        },
-        onTeardown: (context, contents, logicValue) => {
-            cleanUp(logicValue);
+    data.listener = control.scope.watch(params.registerID, (status) => {
+        if (status === 'undefined') {
+            control.raise('data', `${params.registerID} is referenced but is never registered`);
+        } else {
+            control.clear();
         }
+    });
+}
+
+function registeredAction(parentRule, actions, id) {
+    const logic = Logic('full', {
+        // options: {
+        //     data: {
+        //         id:
+        //     }
+        // },
+        define: [{ id: 'registerID', value: id }],
+        // onBuild: (control) => {
+        //     const _control = control;
+        //
+        //     _control.data[control.id] = { id: null };
+        // },
+        onValid,
+        onInvalid: cleanUp,
+        onStop: cleanUp,
+        onDispose: cleanUp
     });
 
     return Rule('register', logic, actions, parentRule);
 }
 
-module.exports = registerAction;
+module.exports = registeredAction;

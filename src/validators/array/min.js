@@ -7,13 +7,13 @@ function minAction(parentRule, actions, minData) {
         throw new Error('Must be a finite value or a setup function');
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         define: { id: 'minData', value: minData },
-        onRun: (runContext, value, params) => {
-            if (_.isArray(value) && value.length < params.minData) {
-                runContext.raise('schema', `Must be greater than ${params.minData - 1} items long.`, 'error');
+        onValid: (control, content, params) => {
+            if (_.isArray(content) && content.length < params.minData) {
+                control.raise('schema', `Must be greater than ${params.minData - 1} items long.`, 'error');
             } else {
-                runContext.raise();
+                control.clear();
             }
         }
     });

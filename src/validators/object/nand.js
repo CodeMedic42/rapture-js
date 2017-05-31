@@ -16,19 +16,24 @@ function cleanLogicData(logicData) {
 function nandAction(parentRule, actions, ...initalLogicData) {
     const logicData = cleanLogicData(initalLogicData);
 
-    const logic = Logic({
-        onRun: (context, content) => {
-            if (!_.isPlainObject(content)) {
+    const logic = Logic('raise', {
+        options: {
+            useToken: true
+        },
+        onValid: (context, content) => {
+            const contents = content.contents;
+
+            if (!_.isPlainObject(contents)) {
                 return;
             }
 
-            context.raise();
+            context.clear();
 
             const presentItems = [];
 
             _.forEach(logicData, (item) => {
-                if (Object.prototype.hasOwnProperty.call(content, item)) {
-                    presentItems.push(content[item]);
+                if (Object.prototype.hasOwnProperty.call(contents, item)) {
+                    presentItems.push(contents[item]);
                 }
             });
 
@@ -52,7 +57,7 @@ function nandAction(parentRule, actions, ...initalLogicData) {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-min', logic, nextActions, parentRule);
+    return Rule('object-nand', logic, nextActions, parentRule);
 }
 
 module.exports = nandAction;

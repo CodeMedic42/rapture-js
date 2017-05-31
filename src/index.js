@@ -11,9 +11,11 @@ const SessionContext = require('./sessionContext.js');
 const ifAction = require('./validators/common/if.js');
 const isAction = require('./validators/common/is.js');
 const deferAction = require('./validators/common/defer.js');
-const ScopeRule = require('./scopeRule.js');
+const scopeAction = require('./validators/common/scope.js');
 const Logic = require('./logic.js');
-const Observable = require('./observable.js');
+const Observable = require('./observable/index.js');
+const Compile = require('./compile.js');
+const FromReference = require('./validators/common/fromReference.js');
 
 const initialActions = {
     any,
@@ -23,17 +25,20 @@ const initialActions = {
     number,
     version,
     date,
-    boolean,
-    if: (ifCondition, thenLogic) => {
-        return ifAction(null, initialActions, ifCondition, thenLogic);
-    },
-    logic: Logic,
-    observable: Observable
+    boolean
 };
 
-module.exports = _.merge({
-    scope: ScopeRule.bind(null, initialActions),
+const final = _.merge({
+    scope: scopeAction,
     createSessionContext: SessionContext,
     is: isAction,
-    defer: deferAction
+    if: ifAction.bind(null, false, null, initialActions),
+    defer: deferAction,
+    logic: Logic.bind(null, 'set'),
+    observable: Observable,
+    fromReference: FromReference
 }, initialActions);
+
+final.compile = Compile(final);
+
+module.exports = final;

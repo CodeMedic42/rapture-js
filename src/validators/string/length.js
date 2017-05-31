@@ -7,13 +7,13 @@ function lengthAction(parentRule, actions, lengthData) {
         throw new Error('Must be a finite value or a Rapture logic instance');
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         define: { id: 'lengthData', value: lengthData },
-        onRun: (runContext, value, params) => {
-            if (_.isString(value) && value.length !== params.lengthData) {
-                runContext.raise('schema', `Must be ${params.lengthData} characters long.`, 'error');
+        onValid: (control, content, params) => {
+            if (_.isString(content) && content.length !== params.lengthData) {
+                control.raise('schema', `Must be ${params.lengthData} characters long.`, 'error');
             } else {
-                runContext.raise();
+                control.clear();
             }
         }
     });

@@ -1,37 +1,15 @@
 const _ = require('lodash');
 
-const LogicContext = require('./logicContext.js');
+const _LogicContext = require('./logicContext.js');
 
-function validateOnSetup(onSetup) {
-    if (!_.isNil(onSetup) && !_.isFunction(onSetup)) {
-        throw new Error('onSetup must be a function.');
+let _Logic = null;
+
+function validateCallback(components, name) {
+    if (!_.isNil(components[name]) && !_.isFunction(components[name])) {
+        throw new Error(`${name} must be a function.`);
     }
 
-    this.onSetup = onSetup;
-}
-
-function validateOnRun(onRun) {
-    if (!_.isNil(onRun) && !_.isFunction(onRun)) {
-        throw new Error('onRun must be a function.');
-    }
-
-    this.onRun = onRun;
-}
-
-function validateOnPause(onPause) {
-    if (!_.isNil(onPause) && !_.isFunction(onPause)) {
-        throw new Error('onPause must be a function.');
-    }
-
-    this.onPause = onPause;
-}
-
-function validateOnTeardown(onTeardown) {
-    if (!_.isNil(onTeardown) && !_.isFunction(onTeardown)) {
-        throw new Error('onTeardown must be a function.');
-    }
-
-    this.onTeardown = onTeardown;
+    this.callbacks[name] = components[name];
 }
 
 function checkForParam(id) {
@@ -40,86 +18,134 @@ function checkForParam(id) {
     }
 }
 
+function convertToFullRequiredObject(item) {
+    if (_.isString(item)) {
+        return { id: item, required: true, value: item };
+    } else if (_.isPlainObject(item)) {
+        if (_.isNil(item.id)) {
+            throw new Error('id cannot be null');
+        }
+
+        const fullItem = {
+            id: item.id,
+            value: item.value,
+            required: true
+        };
+
+        if (_.isNil(item.value)) {
+            fullItem.value = item.id;
+        } else if (!_.isString(item.value) && !(item.value instanceof _Logic)) {
+            throw new Error('Required item values must be strings or Rature _Logic objects');
+        }
+
+        return fullItem;
+    }
+
+    throw new Error('Required items must be strings or objects');
+}
+
+function convertToFullDefinedObject(item) {
+    if (!_.isPlainObject(item)) {
+        throw new Error('Defined items must be objects');
+    }
+
+    if (_.isNil(item.id)) {
+        throw new Error('id cannot be null');
+    }
+
+    return {
+        id: item.id,
+        value: item.value,
+        required: false
+    };
+}
+
 function validateRequiredItems(requiredItems) {
     if (_.isNil(requiredItems)) {
         return;
     }
 
-    if (_.isString(requiredItems)) {
-        checkForParam.call(this, requiredItems);
-
-        this.params[requiredItems] = null;
+    if (_.isString(requiredItems) || _.isPlainObject(requiredItems)) {
+        validateRequiredItems.call(this, [requiredItems]);
 
         return;
     }
 
-    if (_.isArray(requiredItems)) {
-        _.forEach(requiredItems, (item) => {
-            validateRequiredItems.call(this, item);
-        });
-
-        return;
+    if (!_.isArray(requiredItems)) {
+        throw new Error('Required items must either be a string or an array of strings.');
     }
 
-    throw new Error('Required items must either be a string or an array of strings.');
+    _.forEach(requiredItems, (item) => {
+        const fullItem = convertToFullRequiredObject(item);
+
+        checkForParam.call(this, fullItem.id);
+
+        this.params[fullItem.id] = fullItem;
+    });
 }
 
-function validateDefinededItems(defined) {
-    if (_.isNil(defined)) {
+function validateDefinedItems(definedItems) {
+    if (_.isNil(definedItems)) {
         return;
     }
 
-    if (_.isPlainObject(defined)) {
-        if (!_.isString(defined.id)) {
-            throw new Error('The id must be a string');
-        }
-
-        checkForParam.call(this, defined.id);
-
-        this.params[defined.id] = defined.value;
+    if (_.isPlainObject(definedItems)) {
+        validateDefinedItems.call(this, [definedItems]);
 
         return;
     }
 
-    if (_.isArray(defined)) {
-        _.forEach(defined, (item) => {
-            validateDefinededItems.call(this, item);
-        });
-
-        return;
+    if (!_.isArray(definedItems)) {
+        throw new Error('Required items must either be an object or an array of objects.');
     }
 
-    throw new Error('Defined items must either be a plainObject or an array of plainObjects.');
+    _.forEach(definedItems, (item) => {
+        const fullItem = convertToFullDefinedObject(item);
+
+        checkForParam.call(this, fullItem.id);
+
+        this.params[fullItem.id] = fullItem;
+    });
 }
 
-function Logic(logicComponents) {
-    if (!(this instanceof Logic)) {
-        return new Logic(logicComponents);
+_Logic = function Logic(controlType, components) {
+    if (!(this instanceof _Logic)) {
+        return new Logic(controlType, components);
     }
 
-    if (!_.isPlainObject(logicComponents)) {
-        throw new Error('logicComponents must be a an object');
+    if (!_.isPlainObject(components)) {
+        throw new Error('logicComponents must be an object');
     }
 
+    this.id = components.id;
+    this.controlType = controlType;
     this.params = {};
+    this.callbacks = {};
 
-    validateOnSetup.call(this, logicComponents.onSetup);
-    validateOnRun.call(this, logicComponents.onRun);
-    validateOnPause.call(this, logicComponents.onPause);
-    validateOnTeardown.call(this, logicComponents.onTeardown);
+    validateCallback.call(this, components, 'onBuild');
+    validateCallback.call(this, components, 'onStart');
+    validateCallback.call(this, components, 'onValid');
+    validateCallback.call(this, components, 'onInvalid');
+    validateCallback.call(this, components, 'onStop');
+    validateCallback.call(this, components, 'onDispose');
 
-    validateRequiredItems.call(this, logicComponents.require);
-    validateDefinededItems.call(this, logicComponents.define);
+    validateRequiredItems.call(this, components.require);
+    validateDefinedItems.call(this, components.define);
 
-    this.options = logicComponents.options || {};
-
-    if (this.params.length <= 0 && _.isNil(this.onRun)) {
-        throw new Error('onRun has not been defined even though parameters have been.');
-    }
-}
-
-Logic.prototype.buildContext = function buildContext(ruleContext, previousContext) {
-    return LogicContext(ruleContext, this.onSetup, this.onRun, this.onPause, this.onTeardown, this.params, previousContext, this.options);
+    this.options = components.options || {};
 };
 
-module.exports = Logic;
+_Logic.prototype.buildContext = function buildContext(name, ruleContext, previousContext) {
+    return _LogicContext({
+        name,
+        id: this.id,
+        controlType: this.controlType,
+        previous: previousContext,
+        parent: ruleContext
+    },
+    this.callbacks,
+    this.params,
+    this.options);
+};
+
+module.exports = _Logic;

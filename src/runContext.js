@@ -2,7 +2,6 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const Common = require('./common.js');
-// const Scope = require('./scope.js');
 const RuleContext = require('./ruleContext.js');
 
 function emitRaise(force) {
@@ -15,15 +14,28 @@ function emitRaise(force) {
     this.status = 'emitNeeded';
 }
 
-function RunContext(scope) {
+function setupOnDispose(runContext, ruleContext) {
+    const cb = () => {
+        _.pull(runContext.ruleContexts, ruleContext);
+
+        ruleContext.removeListener('disposed', cb);
+
+        if (runContext.ruleContexts.length <= 0) {
+            runContext.dispose().commit();
+        }
+    };
+
+    ruleContext.on('disposed', cb);
+}
+
+function RunContext() {
     if (!(this instanceof RunContext)) {
-        return new RunContext(scope);
+        return new RunContext();
     }
 
-    this.scope = scope; // Scope('__rule', scope);
     this.livingIssues = {};
     this.compacted = null;
-    this.tokenValue = undefined;
+    this.tokenContext = undefined;
     this.status = 'stopped';
     this.ruleContexts = [];
     this.data = {};
@@ -33,15 +45,15 @@ function RunContext(scope) {
 
 Util.inherits(RunContext, EventEmitter);
 
-RunContext.prototype.runWith = function runWith(tokenValue) {
+RunContext.prototype.runWith = function runWith(tokenContext) {
     Common.checkDisposed(this);
 
     this.status = 'updating';
 
-    this.tokenValue = tokenValue;
+    this.tokenContext = tokenContext;
 
     _.forEach(this.ruleContexts, (ruleContext) => {
-        ruleContext.updateTokenValue(tokenValue);
+        ruleContext.updateTokenValue(tokenContext);
     });
 
     if (this.status === 'emitNeeded') {
@@ -51,14 +63,16 @@ RunContext.prototype.runWith = function runWith(tokenValue) {
     this.status = 'started';
 };
 
-RunContext.prototype.createRuleContext = function createRuleContext(rule) {
+RunContext.prototype.createRuleContext = function createRuleContext(rule, scope) {
     Common.checkDisposed(this);
 
     this.status = 'updating';
 
-    const ruleContext = RuleContext(this, rule);
+    const ruleContext = RuleContext(this, rule, scope);
 
     ruleContext.on('raise', emitRaise, this);
+
+    setupOnDispose(this, ruleContext);
 
     this.ruleContexts.push(ruleContext);
 
@@ -125,7 +139,7 @@ RunContext.prototype.dispose = function dispose() {
             this.scope = null;
             this.livingIssues = null;
             this.compacted = null;
-            this.tokenValue = undefined;
+            this.tokenContext = undefined;
             this.status = 'disposed';
             this.ruleContexts = null;
             this.data = null;

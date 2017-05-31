@@ -2,38 +2,61 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function itemsAction(parentRule, actions, itemRule) {
-    if (!(itemRule instanceof Rule) && !_.isFunction(itemRule)) {
-        throw new Error('ItemRule must be a Rule or setup function');
+function start(control, content) {
+    const data = control.data;
+
+    const contents = content.contents;
+
+    if (_.isNil(contents) || !_.isArray(contents)) {
+        // Do nothing
+        return;
     }
 
-    const logic = Logic({
-        define: { id: 'itemRule', value: itemRule },
-        onRun: (control, contents, params, currentContexts) => {
-            if (_.isNil(contents) || !_.isArray(contents)) {
-                // Do nothing
-                return null;
-            }
+    data.contexts = _.reduce(contents, (contexts, propValue, index) => {
+        const ruleContext = control.createRuleContext(data.rule, propValue);
+        ruleContext.data.$index = index;
 
-            _.forEach(currentContexts, (context) => {
-                context.destroy();
-            });
+        contexts.push(ruleContext);
 
-            return _.reduce(contents, (contexts, propValue) => {
-                const ruleContext = control.createRuleContext(params.itemRule, propValue);
+        ruleContext.start();
 
-                contexts.push(ruleContext);
+        return contexts;
+    }, []);
+}
 
-                ruleContext.start();
+function clean(control) {
+    const data = control.data;
 
-                return contexts;
-            }, []);
-        },
-        onPause: (control, contents, currentContexts) => {
-            _.forEach(currentContexts, (context) => {
-                context.stop();
-            });
+    const commits = [];
+
+    _.forEach(data.contexts, (context) => {
+        if (!_.isNil(context)) {
+            commits.push(context.dispose().commit);
         }
+    });
+
+    _.forEach(commits, (commit) => {
+        commit();
+    });
+
+    data.contexts = null;
+}
+
+function itemsAction(parentRule, actions, rule) {
+    if (!(rule instanceof Rule)) {
+        throw new Error('ItemRule must be a Rule');
+    }
+
+    const logic = Logic('full', {
+        options: {
+            useToken: true,
+            data: {
+                rule
+            }
+        },
+        onStart: start,
+        onStop: clean,
+        onDispose: clean
     });
 
     const nextActions = _.clone(actions);

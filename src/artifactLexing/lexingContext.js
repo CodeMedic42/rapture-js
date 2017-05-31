@@ -1,4 +1,4 @@
-const JsonLexer = require('json-lexer');
+const JsonLexer = require('./jsonLexer.js');
 const _ = require('lodash');
 const TokenLocation = require('./tokenLocation');
 
@@ -7,7 +7,8 @@ function LexingContext(artifact) {
         return new LexingContext(artifact);
     }
 
-    this.tokens = JsonLexer(artifact);
+    this.tokens = JsonLexer(artifact, { throwOnError: false });
+    this.tokens.push({ type: 'end', value: null, raw: '' });
     this.index = -1;
 }
 
@@ -52,17 +53,23 @@ function calculateLocation(tokens, targetIndex) {
 }
 
 LexingContext.prototype.current = function current() {
-    const targetIndex = this.index;
+    if (this.index >= this.tokens.length) {
+        return null;
+    }
 
-    if (targetIndex < 0) {
+    if (this.index < 0) {
         throw new Error('Must call next first');
     }
 
-    return calculateLocation(this.tokens, targetIndex);
+    return calculateLocation(this.tokens, this.index);
 };
 
 LexingContext.prototype.peak = function peak() {
     let targetIndex = this.index + 1;
+
+    if (targetIndex >= this.tokens.length) {
+        return null;
+    }
 
     let token = calculateLocation(this.tokens, targetIndex);
 
@@ -80,7 +87,7 @@ LexingContext.prototype.next = function next() {
 
     let current = this.current();
 
-    while (current.type === 'whitespace') {
+    while (current && current.type === 'whitespace') {
         this.index += 1;
         current = this.current();
     }

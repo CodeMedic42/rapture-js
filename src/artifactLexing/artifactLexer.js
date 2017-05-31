@@ -7,6 +7,71 @@ const Issue = require('../issue.js');
 let _processObject;
 let _processArray;
 
+function calculateIssueLocation(rowStart, rowEnd, columnStart, columnEnd, text, start, length) {
+    const newRowStart = rowStart;
+    let newRowEnd;
+    let newColumnStart;
+    let newColumnEnd;
+
+    const newText = text.replace('\r\n', '\n');
+
+    const splited = newText.split(/\r|\n/g);
+
+    let counter = 0;
+
+    for (counter; counter < splited.length - 1; counter += 1) {
+        splited[counter] += ' ';
+    }
+
+    counter = 0;
+    let total = 0;
+
+    for (counter; counter < splited.length; counter += 1) {
+        const part = splited[counter];
+
+        total += part.length;
+
+        if (total >= start) {
+            break;
+        }
+    }
+
+    const leftOver = total - start;
+
+    if (counter === 0) {
+        newColumnStart = columnStart + start;
+    } else {
+        const part = splited[counter];
+
+        newColumnStart = part.length - leftOver;
+    }
+
+    let lengthToCover = length - leftOver;
+
+    if (lengthToCover <= 0) {
+        newRowEnd = newRowStart + counter;
+
+        newColumnEnd = newColumnStart + length;
+    } else {
+        for (counter += 1; counter < splited.length; counter += 1) {
+            const part = splited[counter];
+
+            lengthToCover -= part.length;
+
+            if (lengthToCover <= 0) {
+                break;
+            }
+        }
+
+        const part = splited[counter];
+
+        newRowEnd = newRowStart + counter;
+        newColumnEnd = part.length + lengthToCover;
+    }
+
+    return TokenLocation(newRowStart, newRowEnd, newColumnStart, newColumnEnd);
+}
+
 function processProperty(lexingContext, from, complexOnly) {
     const token = lexingContext.next();
 
@@ -21,14 +86,21 @@ function processProperty(lexingContext, from, complexOnly) {
             throw Issue('parsing', token.type, token.location, 'Invalid start punctuator');
         }
     } else if (!complexOnly) {
+        if (!_.isNil(token.issue)) {
+            const newLocation = calculateIssueLocation(token.location.rowStart, token.location.rowEnd, token.location.columnStart, token.location.columnEnd, token.raw, token.issue.start, token.issue.length);
+            // const newLocation = TokenLocation(token.location.rowStart, token.location.rowEnd, token.location.columnStart + token.issue.start, token.location.columnStart + token.issue.start + token.issue.length);
+
+            throw Issue('parsing', token.type, newLocation, token.issue.message);
+        }
+
         if (token.type === 'string') {
             contents = token.value;
         } else if (token.type === 'number') {
             contents = token.value;
         } else if (token.type === 'literal') {
             contents = token.value;
-        } else if (token.type === 'invalid') {
-            throw Issue('parsing', token.type, token.location, 'Invalid character');
+        } else if (token.type === 'end') {
+            throw Issue('parsing', null, token.location, 'Unexpected end of file');
         } else {
             throw Error(`No idea what is going on here. Got a toke type of ${token.type}`);
         }
@@ -53,6 +125,12 @@ _processObject = function processObject(lexingContext, from) {
     }
 
     while (true) { // eslint-disable-line no-constant-condition
+        if (!_.isNil(propertyNameToken.issue)) {
+            const newLocation = TokenLocation(propertyNameToken.location.rowStart, propertyNameToken.location.rowEnd, propertyNameToken.location.columnStart + propertyNameToken.issue.start, propertyNameToken.location.columnStart + propertyNameToken.issue.start + propertyNameToken.issue.length);
+
+            throw Issue('parsing', propertyNameToken.type, newLocation, propertyNameToken.issue.message);
+        }
+
         if (propertyNameToken.type !== 'string') {
             // Must be a property which is a string.
             throw Issue('parsing', propertyNameToken.type, propertyNameToken.location, 'Must be a string if not ending an object');
@@ -84,6 +162,8 @@ _processObject = function processObject(lexingContext, from) {
             } else if (endPuncToken.raw !== ',') {
                 throw Issue('parsing', endPuncToken.type, endPuncToken.location, 'Expecting "}" or ","');
             }
+        } else {
+            throw Issue('parsing', endPuncToken.type, endPuncToken.location, 'Expecting "}" or ","');
         }
 
         propertyNameToken = lexingContext.next();

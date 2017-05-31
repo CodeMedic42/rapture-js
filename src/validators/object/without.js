@@ -24,15 +24,20 @@ module.exports = (parentRule, actions, key, ...initalLogicData) => {
 
     const logicData = cleanLogicData(initalLogicData);
 
-    const logic = Logic({
-        onRun: (context, content) => {
-            if (!_.isPlainObject(content)) {
+    const logic = Logic('raise', {
+        options: {
+            useToken: true
+        },
+        onValid: (context, content) => {
+            const contents = content.contents;
+
+            if (!_.isPlainObject(contents)) {
                 return;
             }
 
-            context.raise();
+            context.clear();
 
-            if (_.isNil(content[key])) {
+            if (_.isNil(contents[key])) {
                 // key does not exist so there is nothing check for.
                 return;
             }
@@ -40,8 +45,8 @@ module.exports = (parentRule, actions, key, ...initalLogicData) => {
             const presentItems = [];
 
             _.forEach(logicData, (item) => {
-                if (Object.prototype.hasOwnProperty.call(content, item)) {
-                    presentItems.push(content[item]);
+                if (Object.prototype.hasOwnProperty.call(contents, item)) {
+                    presentItems.push(contents[item]);
                 }
             });
 
@@ -65,5 +70,5 @@ module.exports = (parentRule, actions, key, ...initalLogicData) => {
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-min', logic, nextActions, parentRule);
+    return Rule('object-without', logic, nextActions, parentRule);
 };

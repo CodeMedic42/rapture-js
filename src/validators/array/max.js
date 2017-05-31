@@ -7,14 +7,14 @@ function maxAction(parentRule, actions, maxData) {
         throw new Error('Must be a finite value or a setup function');
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         define: { id: 'maxData', value: maxData },
 
-        onRun: (runContext, value, params) => {
-            if (_.isArray(value) && value.length > params.maxData) {
-                runContext.raise('schema', `Must be less than ${params.maxData + 1} items long.`, 'error');
+        onValid: (control, content, params) => {
+            if (_.isArray(content) && content.length > params.maxData) {
+                control.raise('schema', `Must be less than ${params.maxData + 1} items long.`, 'error');
             } else {
-                runContext.raise();
+                control.clear();
             }
         }
     });

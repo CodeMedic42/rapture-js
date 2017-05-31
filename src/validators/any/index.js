@@ -7,11 +7,11 @@ const registeredAction = require('../common/registered.js');
 function anyDefinition(parentRule) {
     const anyActions = {
         register: registerAction,
-        if: ifAction,
+        if: ifAction.bind(null, true),
         registered: registeredAction
     };
 
-    const logic = Logic({});
+    const logic = Logic('raise', {});
 
     return Rule('any', logic, anyActions, parentRule);
 }

@@ -3,7 +3,7 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const Common = require('../../common.js');
 
-function cleanLogicData(logicData) {
+function cleanProperties(logicData) {
     return Common.flattenWith(logicData, (data) => {
         if (!_.isString(data)) {
             throw new Error('All static items must be either arrays or strings');
@@ -13,50 +13,56 @@ function cleanLogicData(logicData) {
     });
 }
 
-module.exports = (parentRule, actions, ...initalLogicData) => {
-    if (_.isNil(initalLogicData)) {
-        return parentRule;
+function onValid(control, content) {
+    if (!_.isPlainObject(content.contents)) {
+        return;
     }
 
-    const logicData = cleanLogicData(initalLogicData);
+    const presentItems = [];
 
-    const logic = Logic({
-        onRun: (context, content) => {
-            if (!_.isPlainObject(content)) {
-                return;
-            }
+    _.forEach(control.data.properties, (item) => {
+        if (Object.prototype.hasOwnProperty.call(content.contents, item)) {
+            presentItems.push(content.contents[item]);
+        }
+    });
 
-            context.raise();
+    if (presentItems.length > 1) {
+        const issues = [];
 
-            const presentItems = [];
-
-            _.forEach(logicData, (item) => {
-                if (Object.prototype.hasOwnProperty.call(content, item)) {
-                    presentItems.push(content[item]);
-                }
+        _.forEach(presentItems, (item) => {
+            issues.push({
+                type: 'schema',
+                message: `Only one of ${JSON.stringify(control.data.properties)} is allowed`,
+                severity: 'error',
+                from: item.from,
+                location: item.location
             });
 
-            if (presentItems.length > 1) {
-                const issues = [];
+            control.raise(issues);
+        });
+    } else if (presentItems.length < 1) {
+        control.raise('schema', `One of ${JSON.stringify(control.data.properties)} is required`, 'error');
+    } else {
+        control.clear();
+    }
+}
 
-                _.forEach(presentItems, (item) => {
-                    issues.push({
-                        type: 'schema',
-                        message: `Only one of ${JSON.stringify(logicData)} is allowed`,
-                        severity: 'error',
-                        from: item.from,
-                        location: item.location
-                    });
+module.exports = (parentRule, actions, ...properties) => {
+    if (_.isNil(properties)) {
+        throw new Error('xor requires properties');
+    }
 
-                    context.raise(issues);
-                });
-            } else if (presentItems.length < 1) {
-                context.raise('schema', `One of ${JSON.stringify(logicData)} is required`, 'error');
+    const logic = Logic('raise', {
+        options: {
+            useToken: true,
+            data: {
+                properties: cleanProperties(properties)
             }
-        }
+        },
+        onValid
     });
 
     const nextActions = _.clone(actions);
 
-    return Rule('string-min', logic, nextActions, parentRule);
+    return Rule('object-xor', logic, nextActions, parentRule);
 };

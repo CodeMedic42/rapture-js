@@ -3,63 +3,74 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const Common = require('../../common.js');
 
-function start(currentValue) {
-    if (!_.isNil(currentValue.nextContext)) {
-        currentValue.nextContext.stop();
+function start(data) {
+    if (!_.isNil(data.nextContext)) {
+        data.nextContext.stop();
     }
 
-    currentValue.thenContext.start();
+    data.thenContext.start();
 }
 
-function onRun(context, contents, params, currentValue) {
-    const isCondition = currentValue.isCondition;
+function onValid(control, contents) {
+    const data = control.data;
+
+    const isCondition = data.isCondition;
 
     if (isCondition === 'string' && _.isString(contents)) {
-        start(currentValue);
+        start(data);
     } else if (isCondition === 'number' && _.isFinite(contents)) {
-        start(currentValue);
+        start(data);
     } else if (isCondition === 'boolean' && _.isBoolean(contents)) {
-        start(currentValue);
+        start(data);
     } else if (isCondition === 'date' && Common.isDate(contents)) {
-        start(currentValue);
+        start(data);
     } else if (isCondition === 'object' && _.isPlainObject(contents)) {
-        start(currentValue);
+        start(data);
     } else if (isCondition === 'array' && _.isArray(contents)) {
-        start(currentValue);
+        start(data);
     } else if (_.isNil(isCondition)) {
-        start(currentValue);
+        start(data);
     } else {
-        currentValue.thenContext.stop();
+        data.thenContext.stop();
 
-        if (!_.isNil(currentValue.nextContext)) {
-            currentValue.nextContext.start();
+        if (!_.isNil(data.nextContext)) {
+            data.nextContext.start();
+        } else {
+            control.raise({ type: 'schema', message: 'Invalid value type', severity: 'error' });
         }
     }
-
-    return currentValue;
 }
 
-function onPause(control, contents, currentValue) {
-    if (!_.isNil(currentValue.nextContext)) {
-        currentValue.nextContext.stop();
+function onStop(control) {
+    const data = control.data;
+
+    if (!_.isNil(data.nextContext)) {
+        data.nextContext.stop();
     }
 
-    currentValue.thenContext.stop();
+    data.thenContext.stop();
 }
 
-function isLogic(isCondition, thenRule, actions, nextIs) {
-    const logicDef = _.isNil(nextIs) ? null : Logic(nextIs);
+function onBuild(control) {
+    const data = control.data;
 
+    data.thenContext = control.createRuleContext(data.thenRule);
+    data.nextContext = !_.isNil(data.logic) ? control.buildLogicContext(data.logic) : null;
+}
+
+function isLogic(isCondition, thenRule, nextIs) {
     return {
-        onSetup: (control) => {
-            return {
+        options: {
+            data: {
                 isCondition,
-                thenContext: control.createRuleContext(thenRule),
-                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
-            };
+                thenRule,
+                logic: _.isNil(nextIs) ? null : Logic('full', nextIs)
+            }
         },
-        onRun,
-        onPause
+        onBuild,
+        onValid,
+        onStop,
+        onDispose: onStop
     };
 }
 
@@ -109,7 +120,7 @@ function isAction(isCondition, thenRule) {
                 return logicFunc(nextIs);
             }, null);
 
-            const logic = Logic(finalLogic);
+            const logic = Logic('full', finalLogic);
 
             return Rule('is', logic);
         }

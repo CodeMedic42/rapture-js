@@ -33,7 +33,7 @@ module.exports.isDate = function isDate(strValue) {
 };
 
 module.exports.checkDisposed = function checkDisposed(target, asWarning) {
-    if (this.runStatus === 'disposed' || this.runStatus === 'disposing') {
+    if (this.runStatus === 'disposed' || this.runStatus === 'disposing' || (this.status && (this.status.runStatus === 'disposed' || this.status.runStatus === 'disposing'))) {
         const message = 'This object has been disposed or is being disposed.';
 
         if (asWarning) {
@@ -42,4 +42,16 @@ module.exports.checkDisposed = function checkDisposed(target, asWarning) {
             throw new Error(message);
         }
     }
+};
+
+module.exports.createListener = function createListener(eventer, event, context, listener, onRemove) {
+    eventer.on(event, listener, context);
+
+    return () => {
+        eventer.removeListener(event, listener, context);
+
+        if (_.isFunction(onRemove)) {
+            onRemove();
+        }
+    };
 };

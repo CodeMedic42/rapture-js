@@ -11,13 +11,14 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
+const referenceAction = require('../common/reference.js');
 
-const arrayLogic = Logic({
-    onRun: (runContext, value) => {
-        if (!_.isNil(value) && !_.isArray(value)) {
-            runContext.raise('schema', 'When defined this field must be an array', 'error');
+const arrayLogic = Logic('raise', {
+    onValid: (control, content) => {
+        if (!_.isNil(content) && !_.isArray(content)) {
+            control.raise('schema', 'When defined this field must be an array', 'error');
         } else {
-            runContext.raise();
+            control.clear();
         }
     }
 });
@@ -28,9 +29,10 @@ const actions = {
     length: lengthAction,
     items: itemsAction,
     register: registerAction,
-    if: ifAction,
+    if: ifAction.bind(null, true),
     registered: registeredAction,
-    custom: customAction
+    custom: customAction,
+    reference: referenceAction
 };
 
 function arrayDefinition(parentRule) {

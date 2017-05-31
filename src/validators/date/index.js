@@ -7,23 +7,25 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
+const toReferenceAction = require('../common/toReference.js');
 
 module.exports = (parentRule) => {
-    const logic = Logic({
-        onRun: (runContext, value) => {
-            if (!_.isNil(value) && !Common.isDate(value)) {
-                runContext.raise('schema', 'When defined this field must be a date.', 'error');
+    const logic = Logic('raise', {
+        onValid: (context, content) => {
+            if (!_.isNil(content) && !Common.isDate(content)) {
+                context.raise('schema', 'When defined this field must be a date.', 'error');
             } else {
-                runContext.raise();
+                context.clear();
             }
         }
     });
 
     const actions = {
         register: registerAction,
-        if: ifAction,
+        if: ifAction.bind(null, true),
         registered: registeredAction,
-        custom: customAction
+        custom: customAction,
+        toReference: toReferenceAction
     };
 
     return Rule('date', logic, actions, parentRule);

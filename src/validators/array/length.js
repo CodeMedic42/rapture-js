@@ -7,13 +7,13 @@ function lengthAction(parentRule, actions, lengthData) {
         throw new Error('Must be a finite value or a setup function');
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         define: { id: 'lengthData', value: lengthData },
-        onRun: (runContext, value, params) => {
-            if (_.isArray(value) && value.length !== params.lengthData) {
-                runContext.raise('schema', `Must be ${params.lengthData} items long.`, 'error');
+        onValid: (control, content, params) => {
+            if (_.isArray(content) && content.length !== params.lengthData) {
+                control.raise('schema', `Must be ${params.lengthData} items long.`, 'error');
             } else {
-                runContext.raise();
+                control.clear();
             }
         }
     });

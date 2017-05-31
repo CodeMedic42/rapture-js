@@ -1,112 +1,106 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
+// const Common = require('../../common.js');
 
-function onTreeRaise(context, contents, runningData) {
-    if (!runningData.running) {
+function onValid(control, value, params) {
+    const data = control.data;
+
+    if (!_.isNil(data.id) && data.id !== params.registerID) {
+        // If the old id is not the same as the new one then we need to unregister the old id.
+        control.unregister(data.scope, data.id);
+    }
+
+    data.id = params.registerID;
+
+    control.register(data.scope, params.registerID, value, true);
+}
+
+function onValidContent(control, content, params) {
+    onValid(control, content, params);
+}
+
+function onValidDefined(control, content, params) {
+    onValid(control, params.registerValue, params);
+}
+
+function onInvalid(control, value, params, paramsState) {
+    const data = control.data;
+
+    if (!_.isNil(data.id) &&
+    (paramsState.registerID === 'failing' || data.id !== params.registerID)) {
+        control.unregister(data.scope, data.id);
+
+        data.id = null;
+    }
+
+    if (paramsState.registerID === 'failing') {
         return;
     }
 
-    context.register(runningData.targetScope, runningData.id, runningData.targetValue, contents.Issues().length <= 0);
+    data.id = params.registerID;
+
+    control.register(data.scope, params.registerID, value, false);
 }
 
-function registerAction(parentRule, actions, data) {
-    let id = data;
-    let targetScope = null;
-    let value = null;
-    let when = null;
+function onInvalidContent(control, content, params, paramsState) {
+    onInvalid(control, content, params, paramsState);
+}
 
-    if (_.isPlainObject(data)) {
-        id = data.id;
-        targetScope = data.scope;
-        value = data.value;
-        when = data.when;
+function onInvalidDefined(control, content, params, paramsState) {
+    onInvalid(control, params.registerValue, params, paramsState);
+}
+
+function onStop(control) {
+    const data = control.data;
+
+    if (!_.isNil(data.id)) {
+        control.unregister(data.scope, data.id);
+
+        data.id = null;
+    }
+}
+
+function registerAction(parentRule, actions, registerData) {
+    let id = registerData;
+    let scope = null;
+    let value = null;
+
+    if (_.isPlainObject(registerData)) {
+        id = registerData.id;
+        scope = registerData.scope;
+        value = registerData.value;
     }
 
     if (!_.isString(id) && !(id instanceof Logic)) {
         throw new Error('ID must be a string or an Rapture logic object which results in a string');
     }
 
-    if (!_.isNil(targetScope) && !_.isString(targetScope)) {
+    if (!_.isNil(scope) && !_.isString(scope)) {
         throw new Error('When defined scope must be a string');
     }
 
-    if (_.isNil(when)) {
-        when = 'this';
-    } else if (when !== 'always' && when !== 'this' && when !== 'tree') {
-        throw new Error('When defined targetScope must be a string');
-    }
-
     const logicComponents = {
-        options: { onFaultChange: true },
+        options: { data: { scope } },
         define: [{ id: 'registerID', value: id }],
-        onSetup: (context, contents) => {
-            const runningData = {
-                targetScope
-            };
-
-            if (when !== 'tree') {
-                return runningData;
-            }
-
-            runningData.listener = onTreeRaise.bind(null, context, contents, runningData);
-
-            if (when === 'tree') {
-                contents.on('raise', runningData.listener);
-            }
-
-            return runningData;
-        },
-        onRun: (context, contents, params, currentValue) => {
-            const _runningData = currentValue;
-
-            if (!_.isNil(_runningData.id) && _runningData.id !== params.registerID) {
-                // If the old id is not the same as the new one then we need to unregister the old id.
-                context.unregister(targetScope, _runningData.id);
-            }
-
-            let targetValue = contents;
-
-            if (Object.prototype.hasOwnProperty.call(params, 'registerValue')) {
-                targetValue = params.registerValue;
-            }
-
-            const valueReady = when === 'always' || (when === 'this' && !context.isFaulted) || (when === 'tree' && contents.Issues().length <= 0);
-
-            // create/update the value in the targetScope.
-            context.register(targetScope, params.registerID, targetValue, valueReady);
-
-            _runningData.id = params.registerID;
-            _runningData.targetValue = targetValue;
-            _runningData.running = true;
-
-            return _runningData;
-        },
-        onPause: (context, contents, currentValue) => {
-            const _runningData = currentValue;
-
-            _runningData.running = false;
-
-            context.unregister(targetScope, _runningData.id);
-        },
-        onTeardown: (context, contents, currentValue) => {
-            const _runningData = currentValue;
-
-            _runningData.running = false;
-
-            context.unregister(targetScope, _runningData.id);
-
-            if (!_.isNil(_runningData.listener)) {
-                contents.removeListener(_runningData.listener);
-            }
-        }
+        onStop
     };
 
-    if (!_.isNil(value)) {
+    if (_.isNil(value)) {
+        logicComponents.options.state = { content: true };
+        logicComponents.options.value = { content: true };
+        logicComponents.options.contentWatch = 'deep';
+
+        logicComponents.onValid = onValidContent;
+        logicComponents.onInvalid = onInvalidContent;
+    } else {
         logicComponents.define.push({ id: 'registerValue', value });
+
+        logicComponents.onValid = onValidDefined;
+        logicComponents.onInvalid = onInvalidDefined;
     }
 
-    const logic = Logic(logicComponents);
+    const logic = Logic('full', logicComponents);
 
     return Rule('register', logic, actions, parentRule);
 }

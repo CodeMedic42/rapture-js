@@ -7,13 +7,13 @@ function minAction(parentRule, actions, minData) {
         throw new Error('Must be a finite value or a Rapture logic instance');
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
         define: { id: 'minData', value: minData },
-        onRun: (runContext, value, params) => {
-            if (_.isString(value) && value.length < params.minData) {
-                runContext.raise('schema', `Must be greater than ${params.minData - 1} characters long.`, 'error');
+        onValid: (control, content, params) => {
+            if (_.isString(content) && content.length < params.minData) {
+                control.raise('schema', `Must be greater than ${params.minData - 1} characters long.`, 'error');
             } else {
-                runContext.raise();
+                control.clear();
             }
         }
     });

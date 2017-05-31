@@ -23,19 +23,24 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
         keysList = requiredKeys[0];
     }
 
-    const logic = Logic({
+    const logic = Logic('raise', {
+        options: {
+            useToken: true
+        },
         define: { id: 'requiredKeys', value: keysList },
-        onRun: (runContext, value, params) => {
+        onValid: (control, content, params) => {
+            const contents = content.contents;
+
             const issues = [];
 
-            runContext.raise();
+            control.clear();
 
-            if (!_.isPlainObject(value)) {
+            if (!_.isPlainObject(contents)) {
                 return;
             }
 
             _.forEach(params.requiredKeys, (keyName) => {
-                const target = value[keyName];
+                const target = contents[keyName];
                 const targetContents = _.isNil(target) ? target : target.contents;
 
                 if (_.isNil(targetContents)) {
@@ -50,7 +55,7 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
                 }
             });
 
-            runContext.raise(issues);
+            control.raise(issues);
         }
     });
 

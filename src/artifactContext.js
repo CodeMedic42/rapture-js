@@ -50,25 +50,28 @@ function setToken(artifact) {
         return;
     }
 
-    this.tokenContext.on('raise', emitRaise, this);
+    this.tokenContext.on('update', (emitData) => {
+        if (!emitData.raise) {
+            return;
+        }
+
+        this.compacted = null;
+
+        emitRaise.call(this);
+    }, this);
 
     this.initalRuleScope = Scope(null, this.scope);
 
-    const runContext = RunContext(this.initalRuleScope);
+    const runContext = RunContext();
 
     this.tokenContext.addRunContext(runContext);
 
-    this.ruleContext = runContext.createRuleContext(this.rule);
+    this.ruleContext = runContext.createRuleContext(this.rule, this.initalRuleScope);
 
     this.ruleContext.start();
 }
 
 function disposeToken() {
-    // if (!_.isNil(this.ruleContext)) {
-    //     this.ruleContext.dispose();
-    //     this.ruleContext = null;
-    // }
-
     if (!_.isNil(this.tokenContext)) {
         this.tokenContext.dispose().commit();
     }
@@ -127,10 +130,12 @@ ArtifactContext.prototype.update = function update(artifact) {
 
     this.runStatus = 'updating';
 
-    this.compacted = null;
-
     if (_.isNil(this.tokenContext)) {
+        this.compacted = null;
+
         setToken.call(this, artifact);
+
+        this.runStatus = 'emitNeeded';
     } else {
         updateToken.call(this, artifact);
     }

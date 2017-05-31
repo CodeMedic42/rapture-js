@@ -2,7 +2,6 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const Common = require('./common.js');
-const Scope = require('./scope.js');
 
 function emitRaise(force) {
     if (this.status === 'started' || force) {
@@ -14,22 +13,49 @@ function emitRaise(force) {
     this.status = 'emitNeeded';
 }
 
-function RuleContext(runContext, rule) {
+function setupOnDispose(thisRuleContext, ruleContext) {
+    const cb = () => {
+        _.pull(thisRuleContext.ruleContexts, ruleContext);
+
+        ruleContext.removeListener('disposed', cb);
+    };
+
+    ruleContext.on('disposed', cb);
+}
+
+function onRaise() {
+    const issues = _.reduce(this.logicContexts, (current, context) => {
+        current.push(...context.issues());
+
+        return current;
+    }, []);
+
+    _.reduce(this.ruleContexts, (current, context) => {
+        current.push(...context.issues());
+
+        return current;
+    }, issues);
+
+    if (issues.length === 0 && this.compacted.length === 0) {
+        // raise nothing
+        return;
+    }
+
+    this.compacted = issues;
+
+    emitRaise.call(this);
+}
+
+function RuleContext(runContext, rule, scope) {
     if (!(this instanceof RuleContext)) {
-        return new RuleContext(runContext, rule);
+        return new RuleContext(runContext, rule, scope);
     }
 
-    if (!_.isUndefined(rule.ruleGroup.scopeId)) {
-        this.scope = Scope(rule.ruleGroup.scopeId, runContext.scope);
-        this.ScopeOwner = true;
-    } else {
-        this.scope = runContext.scope;
-        this.ScopeOwner = false;
-    }
-
+    this.scope = scope;
     this.logicContexts = [];
+    this.ruleContexts = [];
     this.compacted = [];
-    this.tokenValue = runContext.tokenValue;
+    this.tokenContext = runContext.tokenContext;
     this.status = 'stopped';
     this.rule = rule;
     this.runContext = runContext;
@@ -46,29 +72,42 @@ RuleContext.prototype.issues = function issues() {
     return this.compacted;
 };
 
-function onUpdate() {
-    const issues = _.reduce(this.logicContexts, (current, context) => {
-        current.push(...context.issues());
-
-        return current;
-    }, []);
-
-    if (issues.length === 0 && this.compacted.length === 0) {
-        // raise nothing
-        return;
-    }
-
-    this.compacted = issues;
-
-    emitRaise.call(this);
-}
-
 RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
     Common.checkDisposed(this);
 
     this.logicContexts.push(logicContext);
 
-    logicContext.on('update', onUpdate, this);
+    logicContext.on('raise', onRaise, this);
+};
+
+RuleContext.prototype.listenToLogicContext = function addLogicContext(logicContext) {
+    Common.checkDisposed(this);
+
+    const disenguage = Common.createListener(logicContext, 'raise', this, onRaise);
+
+    logicContext.on('disposing', () => {
+        disenguage();
+
+        _.pull(this.logicContexts, logicContext);
+    });
+};
+
+RuleContext.prototype.createRuleContext = function createRuleContext(rule, scope) {
+    Common.checkDisposed(this);
+
+    const ruleContext = RuleContext(this, rule, scope);
+
+    ruleContext.on('raise', onRaise, this);
+
+    setupOnDispose(this, ruleContext);
+
+    this.ruleContexts.push(ruleContext);
+
+    if (this.status === 'emitNeeded') {
+        emitRaise.call(this, true);
+    }
+
+    return ruleContext;
 };
 
 RuleContext.prototype.start = function start() {
@@ -116,12 +155,14 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
 
     this.status = 'updating';
 
-    this.tokenValue = newTokenValue;
-
     const commits = [];
 
     _.forEach(this.logicContexts, (logicContext) => {
         commits.push(logicContext.dispose().commit);
+    });
+
+    _.forEach(this.ruleContexts, (ruleContext) => {
+        commits.push(ruleContext.dispose().commit);
     });
 
     _.forEach(commits, (commit) => {
@@ -129,6 +170,9 @@ RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue
     });
 
     this.logicContexts = [];
+
+    // Only Update the tokenContext after disposal.
+    this.tokenContext = newTokenValue;
 
     this.rule.applyLogic(this);
 
@@ -160,16 +204,15 @@ RuleContext.prototype.dispose = function dispose() {
         commits.push(logicContext.dispose().commit);
     });
 
+    _.forEach(this.ruleContexts, (ruleContext) => {
+        commits.push(ruleContext.dispose().commit);
+    });
+
     return {
         commit: () => {
             _.forEach(commits, (commit) => {
                 commit();
             });
-
-            if (this.scopeOwner) {
-                this.scope.dispose();
-                this.scope = null;
-            }
 
             this.logicContexts = null;
 

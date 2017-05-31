@@ -1,10 +1,11 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
-const Observable = require('../../observable.js');
+const Observable = require('../../observable/index.js');
 
-const keysAction = require('./keys.js');
-const matchAction = require('./match.js');
+const validAction = require('./valid/index.js');
+const invalidAction = require('./invalid.js');
+const strictAction = require('./strict.js');
 const requiredAction = require('./required.js');
 const nandAction = require('./nand.js');
 const xorAction = require('./xor.js');
@@ -14,79 +15,42 @@ const registerAction = require('../common/register.js');
 const ifAction = require('../common/if.js');
 const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
+const referenceAction = require('../common/reference.js');
+const toReferenceAction = require('../common/toReference.js');
 
-function evaluateForInvalidKeys(runContext, value, keyData) {
-    let keyRuleRunning = false;
+function onBuild(control) {
+    const data = control.data;
 
-    _.forOwn(keyData.get('rules').value, (enabled) => {
-        keyRuleRunning = keyRuleRunning || enabled.value;
-
-        return !keyRuleRunning;
-    });
-
-    if (!keyRuleRunning) {
-        runContext.raise();
-
-        return;
-    }
-
-    const finalIssues = _.reduce(keyData.get('keys').value, (issues, propRefCount, propName) => {
-        if (propRefCount.value <= 0) {
-            const propValue = value[propName];
-            issues.push({ type: 'schema', message: `The property "${propName}" is not allowed to exist.`, severity: 'error', from: propValue.from, location: propValue.location });
-        }
-
-        return issues;
-    }, []);
-
-    runContext.raise(finalIssues);
+    data.$shared.__keyData = Observable({});
 }
 
-const objectLogic = Logic({
-    onSetup: (runContext, value) => {
-        const _runContext = runContext;
-
-        const keys = _.reduce(value, (current, childValue, childName) => {
-            const _current = current;
-
-            _current[childName] = 0;
-
-            return _current;
-        }, {});
-
-        _runContext.data.__keyData = Observable({
-            rules: {},
-            keys
-        }).on('change', function onChange() {
-            evaluateForInvalidKeys(runContext, value, this);
-        });
-    },
-    onRun: (runContext, value) => {
-        if (!_.isNil(value) && !_.isPlainObject(value)) {
-            runContext.raise('schema', 'When defined this field must be a plain object', 'error');
-        } else {
-            runContext.raise();
-            runContext.data.__keyData.unpause();
-
-            evaluateForInvalidKeys(runContext, value, runContext.data.__keyData);
-        }
-    },
-    onPause: (runContext) => {
-        runContext.data.__keyData.pause();
+function onStart(control, content) {
+    if (!_.isNil(content) && !_.isPlainObject(content)) {
+        control.raise('schema', 'When defined this field must be a plain object', 'error');
+    } else {
+        control.clear();
     }
+}
+
+const objectLogic = Logic('raise', {
+    onBuild,
+    onStart
 });
 
 const objectActions = {
-    keys: keysAction,
-    match: matchAction,
+    valid: validAction,
+    invalid: invalidAction,
+    strict: strictAction,
     nand: nandAction,
     xor: xorAction,
     without: withoutAction,
     required: requiredAction,
     register: registerAction,
-    if: ifAction,
+    if: ifAction.bind(null, true),
     registered: registeredAction,
-    custom: customAction
+    custom: customAction,
+    reference: referenceAction,
+    toReference: toReferenceAction
 };
 
 function objectDefinition(parentRule) {

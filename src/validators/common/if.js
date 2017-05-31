@@ -2,79 +2,113 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function onRun(control, value, params, currentValue) {
+function onValid(control, content, params) {
+    const data = control.data;
+
     if (!_.isNil(params.if) && params.if) {
-        if (!_.isNil(currentValue.nextContext)) {
-            currentValue.nextContext.stop();
+        if (!_.isNil(data.nextContext)) {
+            data.nextContext.stop();
         }
 
-        currentValue.thenContext.start();
+        data.thenContext.start();
     } else {
-        currentValue.thenContext.stop();
+        data.thenContext.stop();
 
-        if (!_.isNil(currentValue.nextContext)) {
-            currentValue.nextContext.start();
+        if (!_.isNil(data.nextContext)) {
+            data.nextContext.start();
         }
     }
-
-    return currentValue;
 }
 
-function onPause(control, contents, currentValue) {
-    if (!_.isNil(currentValue.nextContext)) {
-        currentValue.nextContext.stop();
+function onStop(control) {
+    const data = control.data;
+
+    if (!_.isNil(data.nextContext)) {
+        data.nextContext.stop();
     }
 
-    currentValue.thenContext.stop();
+    data.thenContext.stop();
 }
 
-function ifLogic(ifCondition, thenLogic, actions, nextIf) {
-    const newActions = _.reduce(actions, (current, action, actionName) => {
-        const _current = current;
+function onDispose(control) {
+    const data = control.data;
 
-        _current[actionName] = action.bind(null, null, actions);
+    if (!_.isNil(data.nextContext)) {
+        data.nextContext.dispose().commit();
+    }
 
-        return _current;
-    }, {});
+    data.thenContext.dispose().commit();
+}
 
-    const thenRule = thenLogic(newActions);
+function onBuild(control) {
+    const data = control.data;
 
-    if (!(thenRule instanceof Rule)) {
-        throw new Error('Must provide a rule');
+    data.thenContext = control.createRuleContext(data.thenRule);
+    data.nextContext = !_.isNil(data.logicDef) ? control.buildLogicContext(data.logicDef) : null;
+}
+
+function ifLogic(isContinue, ifCondition, thenLogic, actions, nextIf) {
+    let thenRule = null;
+
+    if (isContinue) {
+        if (!_.isFunction(thenLogic)) {
+            throw new Error('Must provide a function call in then clause.');
+        }
+
+        const continueRule = Rule('continueHook', null, actions, null);
+
+        thenRule = thenLogic(continueRule);
+
+        if (!(thenRule instanceof Rule)) {
+            throw new Error('please continue from current rule');
+        }
+
+        if (thenRule.groupId !== continueRule.groupId) {
+            throw new Error('please continue from current rule');
+        }
+    } else {
+        thenRule = thenLogic;
+
+        if (!(thenRule instanceof Rule)) {
+            throw new Error('Must provide a rule');
+        }
     }
 
     let logicDef;
 
     if (!_.isNil(nextIf)) {
-        logicDef = Logic(nextIf);
+        logicDef = Logic('full', nextIf);
     }
 
-    const logicContents = {
-        onSetup: (control) => {
-            return {
-                thenContext: control.createRuleContext(thenRule),
-                nextContext: !_.isNil(logicDef) ? control.buildLogicContext(logicDef) : null
-            };
+    const logicComponents = {
+        options: {
+            data: {
+                thenRule,
+                logicDef
+            }
         },
-        onRun,
-        onPause
+        onBuild,
+        onValid,
+        onInvalid: onStop,
+        onStop,
+        onDispose
     };
 
     if (!_.isNil(ifCondition)) {
-        logicContents.define = { id: 'if', value: ifCondition };
+        logicComponents.define = { id: 'if', value: ifCondition };
     }
 
-    return logicContents;
+    return logicComponents;
 }
 
-function ifAction(parentRule, actions, ifCondition, thenLogic) {
+function ifAction(isContinue, parentRule, actions, ifCondition, thenLogic) {
     if (!(ifCondition instanceof Logic)) {
         throw new Error('Must provide some logic for the if component');
     }
 
     const logicList = [];
 
-    logicList.unshift(ifLogic.bind(null, ifCondition, thenLogic, actions));
+    logicList.unshift(ifLogic.bind(null, isContinue, ifCondition, thenLogic, actions));
 
     const ifActions = {
         elseIf: (childIfCondition, childThenLogic) => {
@@ -82,12 +116,12 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
                 throw new Error('Must provide some logic for the if component');
             }
 
-            logicList.unshift(ifLogic.bind(null, childIfCondition, childThenLogic, actions));
+            logicList.unshift(ifLogic.bind(null, isContinue, childIfCondition, childThenLogic, actions));
 
             return ifActions;
         },
         else: (childThenLogic) => {
-            logicList.unshift(ifLogic.bind(null, null, childThenLogic, actions));
+            logicList.unshift(ifLogic.bind(null, isContinue, null, childThenLogic, actions));
 
             return ifActions.endIf();
         },
@@ -96,7 +130,7 @@ function ifAction(parentRule, actions, ifCondition, thenLogic) {
                 return logicFun(nextIf);
             }, null);
 
-            const logic = Logic(finalLogic);
+            const logic = Logic('full', finalLogic);
 
             const nextActions = _.clone(actions);
 
