@@ -25,18 +25,22 @@ function determineType(content) {
 }
 
 function emit(force) {
-    if (this._status.runStatus === 'started' || force) {
-        if (this._status.raisePending || this._status.updatedPending) {
-            const emitData = {
-                raise: this._status.raisePending,
-                update: this._status.updatedPending
-            };
+    if (this._status.runStatus !== 'started' && !force) {
+        return;
+    }
 
-            this._status.raisePending = false;
-            this._status.updatedPending = false;
+    if (this._status.raisePending || this._status.updatedPending) {
+        const emitData = {
+            raise: this._status.raisePending,
+            update: this._status.updatedPending
+        };
 
-            this.emit('update', emitData);
-        }
+        this._status.raisePending = false;
+        this._status.updatedPending = false;
+
+        this.emit('update', emitData);
+
+        emit.call(this, force);
     }
 }
 

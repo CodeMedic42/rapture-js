@@ -20,7 +20,7 @@ const defaultOptions = {
         parameters: true // Will force a re-run of the onValid/onInvalid when any parameter value changes. // default: 'true'
     },
     contentWatch: 'shallow', // Defines how much of the content needs to change to trigger a re-run. // default: 'shallow'
-    useTokenAsContent: false // Define how the content is presented to onStart, onStop, onValid, onInvalid // default: false
+    useToken: false // Define how the content is presented to onStart, onStop, onValid, onInvalid // default: false
 };
 
 function executeCallback(cbName, ...args) {
@@ -83,8 +83,8 @@ function calculateState() {
 
     if (this._status.runState === 'stopped' || this._status.runState === 'stopping') {
         newState = 'passing';
-    } else if (this._status.validationState !== 'passing') {
-        newState = 'failing';
+    } else {
+        newState = this._status.validationState;
     }
 
     if (this._status.state !== newState) {
@@ -573,17 +573,29 @@ function updateContentState() {
 }
 
 function setupContentRequirements() {
-    if (!this._options.state.content && (!this._options.value.content || this._options.contentWatch !== 'deep')) {
-        return;
+    if (this._options.useToken) {
+        this._content = this._tokenContext;
+    } else {
+        this._content = this._tokenContext.getRaw();
     }
+
+    // if (!this._options.state.content && (!this._options.value.content || this._options.contentWatch !== 'deep')) {
+    //     return;
+    // }
 
     this._tokenContext.on('update', (value) => {
         if (value.raise && this._options.state.content) {
             updateContentState.call(this);
         }
 
-        if (value.update && this._options.value.content && this._options.contentWatch === 'deep') {
-            this._status.evalPending = true;
+        if (value.update) {
+            if (this._options.value.content && this._options.contentWatch === 'deep') {
+                this._status.evalPending = true;
+            }
+
+            if (!this._options.useToken) {
+                this._content = this._tokenContext.getRaw();
+            }
         }
 
         _evaluate.call(this);
@@ -617,9 +629,9 @@ function LogicContext(properties, callbacks, parameters, options) {
     this._id = properties.id || `${properties.name}-${this._uuid}`;
     this._tokenContext = this._ruleContext.tokenContext;
 
-    this._content = this._options.useToken ?
-        this._tokenContext :
-        this._tokenContext.getRaw();
+    // this._content = this._options.useToken ?
+    //     this._tokenContext :
+    //     this._tokenContext.getRaw();
 
     this._status = {
         runState: 'stopped',

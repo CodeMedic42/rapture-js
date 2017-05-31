@@ -241,16 +241,6 @@ describe('Registration Tests :', () => {
             });
 
             const context = TestingSupport.pass(testObject, rule);
-            // , {
-            //     type: 'rule',
-            //     rowStart: 2,
-            //     rowEnd: 2,
-            //     columnStart: 2,
-            //     columnEnd: 12,
-            //     message: 'Required rule value "testRegLow" is not defined.',
-            //     cause: 'highPeak',
-            //     severity: 'warning'
-            // });
 
             expect(highPeakCalled).to.be.false();
             expect(lowPeakCalled).to.be.true();
