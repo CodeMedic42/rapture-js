@@ -2,10 +2,8 @@ const EventEmitter = require('eventemitter3');
 const Util = require('util');
 const _ = require('lodash');
 const ShortId = require('shortid');
-// const Console = require('console');
 const Issue = require('./issue');
 const Common = require('./common.js');
-const Scope = require('./scope.js');
 
 let __Logic;
 
@@ -285,34 +283,6 @@ function _onPreviousStateUpdate(state) {
     runEmits.call(this);
 }
 
-function createRuleContextInScope(scopeId, rule) {
-    const ruleContext = this._ruleContext;
-
-    const newScope = Scope(scopeId, this._ruleContext.scope);
-
-    const newRuleContext = ruleContext.createRuleContext(rule, newScope);
-
-    newRuleContext.on('disposed', () => {
-        newScope.dispose();
-    });
-
-    return newRuleContext;
-}
-
-function createRuleContext(rule, tokenContext) {
-    if (_.isNil(tokenContext)) {
-        const ruleContext = this._ruleContext;
-
-        return ruleContext.createRuleContext(rule, this._ruleContext.scope);
-    }
-
-    const runContext = require('./runContext.js')(); // eslint-disable-line
-
-    tokenContext.addRunContext(runContext);
-
-    return runContext.createRuleContext(rule, this._ruleContext.scope);
-}
-
 function buildLogicContext(logic) {
     const logicContext = logic.buildContext(`${this._id}`, this._ruleContext);
 
@@ -351,19 +321,18 @@ function _buildControl() {
         id: this._id,
         name: this._name,
         uuid: this._uuid,
-        state: {}
+        state: {},
+        contentContext: this._tokenContext,
+        scope: this._ruleContext.scope
     };
 
     if (this._controlType === 'full') {
         this._control.set = _set.bind(this);
         this._control.raise = _raise.bind(this);
         this._control.clear = _clear.bind(this);
-        this._control.createRuleContext = createRuleContext.bind(this);
-        this._control.createRuleContextInScope = createRuleContextInScope.bind(this);
         this._control.buildLogicContext = buildLogicContext.bind(this);
         this._control.register = register.bind(this);
         this._control.unregister = unregister.bind(this);
-        this._control.scope = this._ruleContext.scope;
     } else if (this._controlType === 'set') {
         this._control.set = _set.bind(this);
     } else if (this._controlType === 'raise') {
@@ -467,7 +436,6 @@ function processRequired(param, name) {
 function processDefinition(param, name) {
     this._parameters.meta[name] = {
         required: false,
-        // status: 'undefined',
         watchId: null
     };
 
@@ -579,10 +547,6 @@ function setupContentRequirements() {
         this._content = this._tokenContext.getRaw();
     }
 
-    // if (!this._options.state.content && (!this._options.value.content || this._options.contentWatch !== 'deep')) {
-    //     return;
-    // }
-
     this._tokenContext.on('update', (value) => {
         if (value.raise && this._options.state.content) {
             updateContentState.call(this);
@@ -617,7 +581,7 @@ function LogicContext(properties, callbacks, parameters, options) {
 
     validateInput(properties, callbacks, parameters, options);
 
-    this._options = _.merge({}, defaultOptions, options); // _.isNil(options) ? defaultOptions : options;
+    this._options = _.merge({}, defaultOptions, options);
 
     this._disposables = [];
 
@@ -628,10 +592,6 @@ function LogicContext(properties, callbacks, parameters, options) {
     this._uuid = ShortId.generate();
     this._id = properties.id || `${properties.name}-${this._uuid}`;
     this._tokenContext = this._ruleContext.tokenContext;
-
-    // this._content = this._options.useToken ?
-    //     this._tokenContext :
-    //     this._tokenContext.getRaw();
 
     this._status = {
         runState: 'stopped',

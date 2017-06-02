@@ -54,7 +54,12 @@ function onStop(control) {
 function onBuild(control) {
     const data = control.data;
 
-    data.thenContext = control.createRuleContext(data.thenRule);
+    const RuleContext = require('../../ruleContext.js'); // eslint-disable-line
+
+    data.thenContext = RuleContext(control.contentContext, data.thenRule, control.scope);
+
+    control.contentContext.addRuleContext(data.thenContext);
+
     data.nextContext = !_.isNil(data.logic) ? control.buildLogicContext(data.logic) : null;
 }
 

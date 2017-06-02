@@ -3,7 +3,7 @@ const Util = require('util');
 const _ = require('lodash');
 const ArtifactLexor = require('./artifactLexing/artifactLexer.js');
 const Scope = require('./scope.js');
-const RunContext = require('./runContext.js');
+const RuleContext = require('./ruleContext.js');
 const Issue = require('./issue.js');
 const Common = require('./common.js');
 
@@ -62,11 +62,9 @@ function setToken(artifact) {
 
     this.initalRuleScope = Scope(null, this.scope);
 
-    const runContext = RunContext();
+    this.ruleContext = RuleContext(this.tokenContext, this.rule, this.initalRuleScope);
 
-    this.tokenContext.addRunContext(runContext);
-
-    this.ruleContext = runContext.createRuleContext(this.rule, this.initalRuleScope);
+    this.tokenContext.addRuleContext(this.ruleContext);
 
     this.ruleContext.start();
 }

@@ -2,7 +2,7 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
-function cleanUp(control) {
+function onDispose(control) {
     const data = control.data;
 
     if (!_.isNil(data.context)) {
@@ -16,28 +16,6 @@ function onStop(control) {
     control.data.context.stop();
 }
 
-function onValid(control, content, params) {
-    const data = control.data;
-
-    if (!(params.rule instanceof Rule)) {
-        throw new Error('Defer must result in a rule');
-    }
-
-    if (!_.isNil(data.rule) && data.rule === params.rule) {
-        // Nothing has changed
-        return;
-    } else if (data.rule !== params.rule) {
-        // dispose of the old context
-        cleanUp(control);
-    }
-
-    data.rule = params.rule;
-
-    data.context = control.createRuleContext(params.rule);
-
-    data.context.start();
-}
-
 function onBuild(control) {
     const data = control.data;
 
@@ -47,7 +25,11 @@ function onBuild(control) {
         throw new Error('Defer must result in a rule');
     }
 
-    data.context = control.createRuleContext(rule);
+    const RuleContext = require('../../ruleContext.js'); // eslint-disable-line
+
+    data.context = RuleContext(control.contentContext, rule, control.scope);
+
+    control.contentContext.addRuleContext(data.context);
 }
 
 function onStart(control) {
@@ -55,23 +37,18 @@ function onStart(control) {
 }
 
 function deferAction(load) {
-    const logicComponents = {};
+    const logicComponents = {
+        options: {
+            data: { load },
+            useToken: true
+        },
+        onBuild,
+        onStart,
+        onStop,
+        onDispose
+    };
 
-    if (load instanceof Logic) {
-        logicComponents.define = { id: 'rule', value: load };
-        logicComponents.onValid = onValid;
-        logicComponents.onInvalid = cleanUp;
-        logicComponents.onStop = cleanUp;
-        logicComponents.onDispose = cleanUp;
-    } else if (_.isFunction(load)) {
-        logicComponents.options = {
-            data: { load }
-        };
-        logicComponents.onBuild = onBuild;
-        logicComponents.onStart = onStart;
-        logicComponents.onStop = onStop;
-        logicComponents.onDispose = cleanUp;
-    } else {
+    if (!_.isFunction(load)) {
         throw new Error('Invalid defer logic');
     }
 

@@ -13,16 +13,6 @@ function emitRaise(force) {
     this.status = 'emitNeeded';
 }
 
-function setupOnDispose(thisRuleContext, ruleContext) {
-    const cb = () => {
-        _.pull(thisRuleContext.ruleContexts, ruleContext);
-
-        ruleContext.removeListener('disposed', cb);
-    };
-
-    ruleContext.on('disposed', cb);
-}
-
 function onRaise() {
     const issues = _.reduce(this.logicContexts, (current, context) => {
         current.push(...context.issues());
@@ -46,24 +36,23 @@ function onRaise() {
     emitRaise.call(this);
 }
 
-function RuleContext(runContext, rule, scope) {
+function RuleContext(tokenContext, rule, scope, sharedData) {
     if (!(this instanceof RuleContext)) {
-        return new RuleContext(runContext, rule, scope);
+        return new RuleContext(tokenContext, rule, scope, sharedData);
     }
+
+    EventEmitter.call(this);
 
     this.scope = scope;
     this.logicContexts = [];
     this.ruleContexts = [];
     this.compacted = [];
-    this.tokenContext = runContext.tokenContext;
+    this.tokenContext = tokenContext;
     this.status = 'stopped';
     this.rule = rule;
-    this.runContext = runContext;
-    this.data = runContext.data;
+    this.data = sharedData || {};
 
     rule.applyLogic(this);
-
-    EventEmitter.call(this);
 }
 
 Util.inherits(RuleContext, EventEmitter);
@@ -78,36 +67,6 @@ RuleContext.prototype.addLogicContext = function addLogicContext(logicContext) {
     this.logicContexts.push(logicContext);
 
     logicContext.on('raise', onRaise, this);
-};
-
-RuleContext.prototype.listenToLogicContext = function addLogicContext(logicContext) {
-    Common.checkDisposed(this);
-
-    const disenguage = Common.createListener(logicContext, 'raise', this, onRaise);
-
-    logicContext.on('disposing', () => {
-        disenguage();
-
-        _.pull(this.logicContexts, logicContext);
-    });
-};
-
-RuleContext.prototype.createRuleContext = function createRuleContext(rule, scope) {
-    Common.checkDisposed(this);
-
-    const ruleContext = RuleContext(this, rule, scope);
-
-    ruleContext.on('raise', onRaise, this);
-
-    setupOnDispose(this, ruleContext);
-
-    this.ruleContexts.push(ruleContext);
-
-    if (this.status === 'emitNeeded') {
-        emitRaise.call(this, true);
-    }
-
-    return ruleContext;
 };
 
 RuleContext.prototype.start = function start() {

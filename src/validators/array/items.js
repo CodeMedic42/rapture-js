@@ -13,7 +13,12 @@ function start(control, content) {
     }
 
     data.contexts = _.reduce(contents, (contexts, propValue, index) => {
-        const ruleContext = control.createRuleContext(data.rule, propValue);
+        const RuleContext = require('../../ruleContext.js'); // eslint-disable-line
+
+        const ruleContext = RuleContext(propValue, data.rule, control.scope);
+
+        propValue.addRuleContext(ruleContext);
+
         ruleContext.data.$index = index;
 
         contexts.push(ruleContext);

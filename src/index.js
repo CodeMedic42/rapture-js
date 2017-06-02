@@ -14,7 +14,7 @@ const deferAction = require('./validators/common/defer.js');
 const scopeAction = require('./validators/common/scope.js');
 const Logic = require('./logic.js');
 const Observable = require('./observable/index.js');
-const Compile = require('./compile.js');
+const FromSchemaSetup = require('./validators/common/fromSchema.js');
 const FromReference = require('./validators/common/fromReference.js');
 
 const initialActions = {
@@ -36,9 +36,9 @@ const final = _.merge({
     defer: deferAction,
     logic: Logic.bind(null, 'set'),
     observable: Observable,
-    fromReference: FromReference
+    fromReference: FromReference,
 }, initialActions);
 
-final.compile = Compile(final);
+final.fromSchema = FromSchemaSetup(final);
 
 module.exports = final;

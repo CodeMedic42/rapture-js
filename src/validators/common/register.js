@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
-// const Common = require('../../common.js');
 
 function onValid(control, value, params) {
     const data = control.data;
@@ -34,7 +33,7 @@ function onInvalid(control, value, params, paramsState) {
         data.id = null;
     }
 
-    if (paramsState.registerID === 'failing') {
+    if (paramsState.registerID !== 'passing') {
         return;
     }
 

@@ -38,7 +38,13 @@ function buildContexts(control, contents, matchers, rule) {
 
         keyData[propertyName] = true;
 
-        ruleContext = control.createRuleContext(rule, propValue);
+        // ruleContext = control.createRuleContext(rule, propValue);
+
+        const RuleContext = require('../../../ruleContext.js'); // eslint-disable-line
+
+        ruleContext = RuleContext(propValue, rule, control.scope);
+
+        propValue.addRuleContext(ruleContext);
 
         ruleContext.start();
 

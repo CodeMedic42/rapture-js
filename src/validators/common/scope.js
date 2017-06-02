@@ -2,19 +2,30 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const registerAction = require('./register.js');
+const Scope = require('../../scope.js');
 
-function stop(control) {
+function onDispose(control) {
+    control.data.context.dispose().commit();
+}
+
+function onStop(control) {
     control.data.context.stop();
 }
 
-function start(control) {
+function onStart(control) {
     control.data.context.start();
 }
 
-function build(control) {
+function onBuild(control) {
     const data = control.data;
 
-    data.context = control.createRuleContextInScope(data.scopeId, data.rule);
+    const RuleContext = require('../../ruleContext.js'); // eslint-disable-line
+
+    const newScope = Scope(data.scopeId, control.scope);
+
+    data.context = RuleContext(control.contentContext, data.rule, newScope);
+
+    control.contentContext.addRuleContext(data.context);
 }
 
 function scopeAction(...args) {
@@ -45,10 +56,10 @@ function scopeAction(...args) {
                 rule
             }
         },
-        onBuild: build,
-        onStart: start,
-        onStop: stop,
-        onDispose: stop
+        onBuild,
+        onStart,
+        onStop,
+        onDispose
     };
 
     return Rule('defer', Logic('full', logicComponents), {

@@ -69,19 +69,19 @@ function linkContents() {
     }
 }
 
-function setupOnDispose(tokenContext, runContext) {
+function setupOnDispose(tokenContext, ruleContext) {
     const cb = () => {
-        _.pull(tokenContext.runContexts, runContext);
+        _.pull(tokenContext.ruleContexts, ruleContext);
 
-        runContext.removeListener('disposed', cb);
+        ruleContext.removeListener('disposed', cb);
     };
 
-    runContext.on('disposed', cb);
+    ruleContext.on('disposed', cb);
 }
 
 function updateContexts() {
-    _.forEach(this.runContexts, (runContext) => {
-        runContext.runWith(this);
+    _.forEach(this.ruleContexts, (ruleContext) => {
+        ruleContext.updateTokenValue(this);
     });
 }
 
@@ -191,7 +191,7 @@ function TokenContext(contents, location, from) {
     this.contents = contents;
     this.location = location;
     this.from = from;
-    this.runContexts = [];
+    this.ruleContexts = [];
     this.compactedIssues = null;
 
     EventEmitter.call(this);
@@ -213,8 +213,8 @@ TokenContext.prototype.issues = function issues() {
     }
 
     if (_.isNil(this.compactedIssues)) {
-        this.compactedIssues = _.reduce(this.runContexts, (compactedIssues, runContext) => {
-            _.forEach(runContext.issues(), (issue) => {
+        this.compactedIssues = _.reduce(this.ruleContexts, (compactedIssues, ruleContext) => {
+            _.forEach(ruleContext.issues(), (issue) => {
                 const _issue = issue;
 
                 if (_.isNil(_issue.location)) {
@@ -238,16 +238,14 @@ TokenContext.prototype.issues = function issues() {
     return finalIssues;
 };
 
-TokenContext.prototype.addRunContext = function addRunContext(runContext) {
+TokenContext.prototype.addRuleContext = function addRuleContext(ruleContext) {
     Common.checkDisposed(this);
 
-    runContext.on('raise', emitPersonalIssues, this);
+    ruleContext.on('raise', emitPersonalIssues, this);
 
-    setupOnDispose(this, runContext);
+    setupOnDispose(this, ruleContext);
 
-    runContext.runWith(this);
-
-    this.runContexts.push(runContext);
+    this.ruleContexts.push(ruleContext);
 };
 
 TokenContext.prototype.update = function update(newTokenContext) {
@@ -328,9 +326,13 @@ TokenContext.prototype.dispose = function dispose() {
         });
     }
 
-    _.forEach(this.runContexts, (runContext) => {
-        commits.push(runContext.dispose().commit);
-    });
+    let counter = 0;
+
+    while (counter < this.ruleContexts.length) {
+        commits.push(this.ruleContexts[counter].dispose().commit);
+
+        counter += 1;
+    }
 
     return {
         commit: () => {
