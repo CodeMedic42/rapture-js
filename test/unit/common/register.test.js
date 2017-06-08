@@ -117,8 +117,10 @@ describe('Registration Tests :', () => {
         const rule = Rapture.object().valid({
             reg: Rapture.string().register({ id: 'testReg', scope: '__session' }),
             peak: Rapture.string().custom({
+                id: 'custom',
                 require: 'testReg',
                 onValid: () => {
+                    debugger;
                     expect.fail();
                 }
             })

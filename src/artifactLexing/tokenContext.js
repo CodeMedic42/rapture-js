@@ -32,11 +32,15 @@ function emit(force) {
     if (this._status.raisePending || this._status.updatedPending) {
         const emitData = {
             raise: this._status.raisePending,
-            update: this._status.updatedPending
+            update: this._status.updatedPending,
+            isShallow: this._status.shallowUpdate,
+            isDeep: this._status.deepUpdate,
         };
 
         this._status.raisePending = false;
         this._status.updatedPending = false;
+        this._status.shallowUpdate = false;
+        this._status.deepUpdate = false;
 
         this.emit('update', emitData);
 
@@ -55,7 +59,11 @@ function emitPersonalIssues() {
 function linkContent(content) {
     content.on('update', (emitData) => {
         this._status.raisePending = this._status.raisePending || emitData.raise;
-        this._status.updatedPending = this._status.updatedPending || emitData.update;
+
+        if (emitData.update) {
+            this._status.updatedPending = true;
+            this._status.deepUpdate = emitData.isShallow || emitData.isDeep;
+        }
 
         emit.call(this);
     }, this);
@@ -79,11 +87,11 @@ function setupOnDispose(tokenContext, ruleContext) {
     ruleContext.on('disposed', cb);
 }
 
-function updateContexts() {
-    _.forEach(this.ruleContexts, (ruleContext) => {
-        ruleContext.updateTokenValue(this);
-    });
-}
+// function updateContexts() {
+//     _.forEach(this.ruleContexts, (ruleContext) => {
+//         ruleContext.updateTokenValue(this);
+//     });
+// }
 
 function checkContents(newContents, oldContents) {
     let requiresContentUpdate = false;
@@ -153,25 +161,26 @@ function updateContents(newTokenContext) {
         return;
     }
 
-    if (this.type === 'object' || this.type === 'array') {
-        const commits = [];
-
-        _.forEach(this.contents, (content) => {
-            commits.push(content.dispose().commit);
-        });
-
-        _.forEach(commits, (commit) => {
-            commit();
-        });
-    }
+    // if (this.type === 'object' || this.type === 'array') {
+    //     const commits = [];
+    //
+    //     _.forEach(this.contents, (content) => {
+    //         commits.push(content.dispose().commit);
+    //     });
+    //
+    //     _.forEach(commits, (commit) => {
+    //         commit();
+    //     });
+    // }
 
     this.contents = newContents;
 
     this.type = newContentsType;
 
     linkContents.call(this);
+    this._status.shallowUpdate = true;
 
-    updateContexts.call(this);
+    // updateContexts.call(this);
 
     this._status.updatedPending = true;
 }
@@ -183,7 +192,9 @@ function TokenContext(contents, location, from) {
 
     this._status = {
         updatedPending: false,
-        runStatus: 'started'
+        runStatus: 'started',
+        deepUpdate: false,
+        shallowUpdate: false
     };
 
     this.type = determineType(contents);
