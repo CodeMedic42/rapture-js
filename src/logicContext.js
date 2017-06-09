@@ -77,12 +77,12 @@ function calculateValidState() {
 }
 
 function calculateState() {
-    let newState = this._status.validState;
+    let newState = this._status.validationState;
 
     if (this._status.runState === 'stopped' || this._status.runState === 'stopping') {
         newState = 'passing';
-    } else {
-        newState = this._status.validationState;
+    } else if (this._status.validState === 'failing') {
+        newState = 'failing';
     }
 
     if (this._status.state !== newState) {
@@ -286,7 +286,7 @@ function _onPreviousStateUpdate(state) {
 function buildLogicContext(logic) {
     const logicContext = logic.buildContext(`${this._id}`, this._ruleContext);
 
-    this._ruleContext.addLogicContext(logicContext);
+    // this._ruleContext.addLogicContext(logicContext);
 
     return logicContext;
 }
@@ -552,8 +552,9 @@ function setupContentRequirements() {
             updateContentState.call(this);
         }
 
-        if (value.update) {
-            if (this._options.value.content && this._options.contentWatch === 'deep') {
+        if (value.update && this._options.value.content) {
+            if ((this._options.contentWatch === 'shallow' && value.isShallow) ||
+                (this._options.contentWatch === 'deep' && (value.isDeep || value.isShallow))) {
                 this._status.evalPending = true;
             }
 

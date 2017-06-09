@@ -33,7 +33,7 @@ function onInvalid(control, value, params, paramsState) {
         data.id = null;
     }
 
-    if (paramsState.registerID !== 'passing') {
+    if (paramsState.registerID !== 'defined') {
         return;
     }
 

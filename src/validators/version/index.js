@@ -7,17 +7,31 @@ const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 const toReferenceAction = require('../common/toReference.js');
 
-function versionDefinition(parentRule) {
-    const logic = Logic('raise', {
-        onValid: (context, content) => {
-            if (!Semver.valid(content)) {
-                context.raise('schema', 'Must be a valid version string.', 'error');
-            } else {
-                context.clear();
-            }
-        }
-    });
+function onValid(context, content) {
+    if (!Semver.valid(content)) {
+        context.raise('schema', 'Must be a valid version string.', 'error');
+    } else {
+        context.clear();
+    }
+}
 
+// const logic = Logic('raise', {
+//     positional: true,
+//     content: {
+//         state: true,
+//         watch: 'shallow',
+//         type: 'token' || 'raw'
+//     },
+//     require: {},
+//     define: {},
+//     onValid
+// });
+
+const logic = Logic('raise', {
+    onValid
+});
+
+function versionDefinition(parentRule) {
     const actions = {
         register: registerAction,
         if: ifAction.bind(null, true),

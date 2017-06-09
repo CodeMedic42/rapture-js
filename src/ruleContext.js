@@ -107,46 +107,46 @@ RuleContext.prototype.stop = function stop() {
     this.status = 'stopped';
 };
 
-RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue) {
-    Common.checkDisposed(this);
-
-    const oldStatus = this.status;
-
-    this.status = 'updating';
-
-    const commits = [];
-
-    _.forEach(this.logicContexts, (logicContext) => {
-        commits.push(logicContext.dispose().commit);
-    });
-
-    _.forEach(this.ruleContexts, (ruleContext) => {
-        commits.push(ruleContext.dispose().commit);
-    });
-
-    _.forEach(commits, (commit) => {
-        commit();
-    });
-
-    this.logicContexts = [];
-
-    // Only Update the tokenContext after disposal.
-    this.tokenContext = newTokenValue;
-
-    this.rule.applyLogic(this);
-
-    if (oldStatus === 'started') {
-        _.forEach(this.logicContexts, (logicContext) => {
-            logicContext.start();
-        });
-    }
-
-    if (this.status === 'emitNeeded') {
-        emitRaise.call(this, true);
-    }
-
-    this.status = oldStatus;
-};
+// RuleContext.prototype.updateTokenValue = function updateTokenValue(newTokenValue) {
+//     Common.checkDisposed(this);
+//
+//     const oldStatus = this.status;
+//
+//     this.status = 'updating';
+//
+//     const commits = [];
+//
+//     _.forEach(this.logicContexts, (logicContext) => {
+//         commits.push(logicContext.dispose().commit);
+//     });
+//
+//     _.forEach(this.ruleContexts, (ruleContext) => {
+//         commits.push(ruleContext.dispose().commit);
+//     });
+//
+//     _.forEach(commits, (commit) => {
+//         commit();
+//     });
+//
+//     this.logicContexts = [];
+//
+//     // Only Update the tokenContext after disposal.
+//     this.tokenContext = newTokenValue;
+//
+//     this.rule.applyLogic(this);
+//
+//     if (oldStatus === 'started') {
+//         _.forEach(this.logicContexts, (logicContext) => {
+//             logicContext.start();
+//         });
+//     }
+//
+//     if (this.status === 'emitNeeded') {
+//         emitRaise.call(this, true);
+//     }
+//
+//     this.status = oldStatus;
+// };
 
 RuleContext.prototype.dispose = function dispose() {
     Common.checkDisposed(this, true);
