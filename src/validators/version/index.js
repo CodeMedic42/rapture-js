@@ -15,15 +15,19 @@ function onValid(context, content) {
     }
 }
 
+// const logic = Logic('raise', {
+//     positional: true,
+//     content: {
+//         state: true,
+//         watch: 'shallow',
+//         type: 'token' || 'raw'
+//     },
+//     require: {},
+//     define: {},
+//     onValid
+// });
+
 const logic = Logic('raise', {
-    positional: true,
-    content: {
-        state: true,
-        watch: 'shallow',
-        type: 'token' || 'raw'
-    },
-    require: {},
-    define: {},
     onValid
 });
 
