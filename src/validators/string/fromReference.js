@@ -70,6 +70,28 @@ function cleanUp(control) {
     }
 }
 
+function onValid(control, content, params) {
+    const data = control.data;
+
+    if (!_.isString(content.contents)) {
+        control.clear();
+
+        return;
+    }
+
+    cleanUp(control);
+
+    theLoop(params.refID, content.contents, content, control, data.onlyReference);
+
+    data.cleanUp = () => {
+        if (!_.isNil(data.mainListenerDisenguage)) {
+            data.mainListenerDisenguage();
+        }
+
+        data.cleanUp = null;
+    };
+}
+
 function fromReferenceAction(parentRule, actions, refereneId, onlyReference) {
     if (!_.isString(refereneId) && !(refereneId instanceof Logic)) {
         throw new Error('refereneId must be a string');
@@ -77,30 +99,15 @@ function fromReferenceAction(parentRule, actions, refereneId, onlyReference) {
 
     const logic = Logic('raise', {
         options: {
-            useToken: true
+            data: {
+                onlyReference
+            },
+            content: {
+                asToken: true
+            }
         },
         require: { id: 'refID', value: refereneId },
-        onValid: (control, content, params) => {
-            if (!_.isString(content.contents)) {
-                control.clear();
-
-                return;
-            }
-
-            cleanUp(control);
-
-            theLoop(params.refID, content.contents, content, control, onlyReference);
-
-            const data = control.data;
-
-            data.cleanUp = () => {
-                if (!_.isNil(data.mainListenerDisenguage)) {
-                    data.mainListenerDisenguage();
-                }
-
-                data.cleanUp = null;
-            };
-        },
+        onValid,
         onInvalid: cleanUp,
         onStop: cleanUp,
         onDispose: cleanUp

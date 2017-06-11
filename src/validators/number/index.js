@@ -8,17 +8,19 @@ const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 const toReferenceAction = require('../common/toReference.js');
 
-function numberDefinition(parentRule) {
-    const logic = Logic('raise', {
-        onValid: (context, content) => {
-            if (!_.isNil(content) && !_.isFinite(content)) {
-                context.raise('schema', 'When defined this field must be a number.', 'error');
-            } else {
-                context.clear();
-            }
-        }
-    });
+function onValid(control, content) {
+    if (!_.isNil(content) && !_.isFinite(content)) {
+        control.raise('schema', 'When defined this field must be a number.', 'error');
+    } else {
+        control.clear();
+    }
+}
 
+const logic = Logic('raise', {
+    onValid
+});
+
+function numberDefinition(parentRule) {
     const actions = {
         register: registerAction,
         if: ifAction.bind(null, true),

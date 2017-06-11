@@ -89,7 +89,7 @@ module.exports = function setup(rapture) {
             onDispose: cleanUp
         };
 
-        return Rule('defer', Logic('full', logicComponents), {
+        return Rule('fromSchema', Logic('full', logicComponents), {
             register: registerAction
         });
     };

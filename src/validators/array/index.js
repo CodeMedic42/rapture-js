@@ -13,14 +13,16 @@ const registeredAction = require('../common/registered.js');
 const customAction = require('../common/custom.js');
 const referenceAction = require('../common/reference.js');
 
-const arrayLogic = Logic('raise', {
-    onValid: (control, content) => {
-        if (!_.isNil(content) && !_.isArray(content)) {
-            control.raise('schema', 'When defined this field must be an array', 'error');
-        } else {
-            control.clear();
-        }
+function onValid(control, content) {
+    if (!_.isNil(content) && !_.isArray(content)) {
+        control.raise('schema', 'When defined this field must be an array', 'error');
+    } else {
+        control.clear();
     }
+}
+
+const arrayLogic = Logic('raise', {
+    onValid
 });
 
 const actions = {

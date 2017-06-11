@@ -3,7 +3,8 @@ const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 const Common = require('../../common.js');
 
-function evaluateForInvalidKeys(control, contents, keyData) {
+function evaluateForInvalidKeys(control, contentContext, keyData) {
+    const contents = contentContext.contents;
     const keyStates = {};
 
     const data = keyData.value();
@@ -33,7 +34,36 @@ function evaluateForInvalidKeys(control, contents, keyData) {
     control.raise(issues);
 }
 
-function stop(control) {
+function onBuild(control) {
+    const data = control.data;
+
+    data.validate = evaluateForInvalidKeys.bind(null, control, control.contentContext, data.$shared.__keyData);
+
+    data.stop = Common.createListener(data.$shared.__keyData, 'change', null, data.validate);
+}
+
+function onValid(control, content) {
+    const contents = content.contents;
+    const data = control.data;
+
+    if (_.isNil(contents) || !_.isPlainObject(contents)) {
+        control.data.$shared.__keyData.pause();
+    } else {
+        control.data.$shared.__keyData.run();
+
+        data.validate();
+    }
+}
+
+function onInvalid(control) {
+    control.data.$shared.__keyData.pause();
+}
+
+function onStop(control) {
+    control.data.$shared.__keyData.pause();
+}
+
+function onDispose(control) {
     const data = control.data;
 
     if (!_.isNil(data.stop)) {
@@ -41,33 +71,21 @@ function stop(control) {
 
         data.stop = null;
     }
-}
 
-function onStart(control, content) {
-    const data = control.data;
-
-    data.stop = Common.createListener(data.$shared.__keyData, 'change', null, evaluateForInvalidKeys.bind(null, control, content.contents, data.$shared.__keyData));
-}
-
-function onValid(control, content) {
-    const contents = content.contents;
-
-    if (_.isNil(contents) || !_.isPlainObject(contents)) {
-        control.data.$shared.__keyData.pause();
-    } else {
-        control.data.$shared.__keyData.run();
-
-        evaluateForInvalidKeys(control, contents, control.data.$shared.__keyData);
-    }
+    data.validate = null;
 }
 
 const logic = Logic('raise', {
     options: {
-        useToken: true
+        content: {
+            asToken: true
+        }
     },
-    onStart,
+    onBuild,
     onValid,
-    onStop: stop,
+    onInvalid,
+    onStop,
+    onDispose,
 });
 
 function strictAction(parentRule, actions) {

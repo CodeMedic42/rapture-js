@@ -18,7 +18,9 @@ function nandAction(parentRule, actions, ...initalLogicData) {
 
     const logic = Logic('raise', {
         options: {
-            useToken: true
+            content: {
+                asToken: true
+            }
         },
         onValid: (context, content) => {
             const contents = content.contents;

@@ -119,7 +119,9 @@ function buildMatchLogicComponents(matchers, rule) {
 
     return {
         options: {
-            useToken: true
+            content: {
+                asToken: true
+            }
         },
         define: { id: 'matchers', value: cleanedMatchers },
         onValid: (control, content, params) => {

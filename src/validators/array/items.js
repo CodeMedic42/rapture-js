@@ -54,7 +54,9 @@ function itemsAction(parentRule, actions, rule) {
 
     const logic = Logic('full', {
         options: {
-            useToken: true,
+            content: {
+                asToken: true
+            },
             data: {
                 rule
             }

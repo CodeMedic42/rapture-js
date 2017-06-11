@@ -8,17 +8,13 @@ const Common = require('./common.js');
 let __Logic;
 
 const defaultOptions = {
-    state: { // Defines what makes up the state of the logic
-        content: false, // Use the state of the content to determine state. // default: false
-        parameters: true, // Use the state of the parameters to determine state. // default: true
-        rule: false // use the current state of the rule to determine state. // default: false
+    content: {
+        watch: 'shallow',
+        asToken: false,
+        affectsValidState: false
     },
-    value: { // As values change onValid/onInvalid will be called as appropriate based on the state
-        content: false, // Will force a re-run of the onValid/onInvalid when the value changes. // default: 'true'
-        parameters: true // Will force a re-run of the onValid/onInvalid when any parameter value changes. // default: 'true'
-    },
-    contentWatch: 'shallow', // Defines how much of the content needs to change to trigger a re-run. // default: 'shallow'
-    useToken: false // Define how the content is presented to onStart, onStop, onValid, onInvalid // default: false
+    parametersAffectsValidState: true,
+    rulePositionAffectsValidState: false
 };
 
 function executeCallback(cbName, ...args) {
@@ -63,9 +59,9 @@ function calculateValidState() {
     let newValidState = 'failing';
 
     // Calculate the total state of this logic context
-    if ((!this._options.state.parameters || this._status.parametersState === 'passing') && // If we care about the state of the parameters
-        (!this._options.state.rule || this._status.previousRuleState === 'passing') && // If we care about the state of the rule
-        (!this._options.state.content || this._status.contentState === 'passing')) { // If we care about the state of the content
+    if ((!this._options.parametersAffectsValidState || this._status.parametersState === 'passing') && // If we care about the state of the parameters
+        (!this._options.rulePositionAffectsValidState || this._status.previousRuleState === 'passing') && // If we care about the state of the rule
+        (!this._options.content.affectsValidState || this._status.contentState === 'passing')) { // If we care about the state of the content
         newValidState = 'passing';
     }
 
@@ -172,7 +168,7 @@ function calculatParameterState() {
     if (newParamStatus !== this._status.parametersState) {
         this._status.parametersState = newParamStatus;
 
-        if (this._options.state.parameters) {
+        if (this._options.parametersAffectsValidState) {
             this._status.evalPending = true;
         }
 
@@ -269,7 +265,7 @@ function _onPreviousStateUpdate(state) {
 
     this._status.previousRuleState = state;
 
-    if (this._options.state.rule) {
+    if (this._options.rulePositionAffectsValidState) {
         this._control.state.rule = this._status.previousRuleState;
 
         calculateStates.call(this);
@@ -505,7 +501,7 @@ function setupRuleConnetion(previousLogic) {
         // No need to CONSTANTLY be checking to see if we have previous logic.
         this._status.previousRuleState = 'passing';
 
-        if (this._options.state.rule) {
+        if (this._options.rulePositionAffectsValidState) {
             this._control.state.rule = this._status.previousRuleState;
         }
 
@@ -520,7 +516,7 @@ function setupRuleConnetion(previousLogic) {
 
     this._status.previousRuleState = previousLogic.ruleState();
 
-    if (this._options.state.rule) {
+    if (this._options.rulePositionAffectsValidState) {
         this._control.state.rule = this._status.previousRuleState;
     }
 }
@@ -541,24 +537,28 @@ function updateContentState() {
 }
 
 function setupContentRequirements() {
-    if (this._options.useToken) {
+    if (this._options.content.watch !== 'shallow' && this._options.content.watch !== 'deep') {
+        return;
+    }
+
+    if (this._options.content.asToken) {
         this._content = this._tokenContext;
     } else {
         this._content = this._tokenContext.getRaw();
     }
 
     this._tokenContext.on('update', (value) => {
-        if (value.raise && this._options.state.content) {
+        if (value.raise && this._options.content.affectsValidState) {
             updateContentState.call(this);
         }
 
-        if (value.update && this._options.value.content) {
-            if ((this._options.contentWatch === 'shallow' && value.isShallow) ||
-                (this._options.contentWatch === 'deep' && (value.isDeep || value.isShallow))) {
+        if (value.update) {
+            if ((this._options.content.watch === 'shallow' && value.isShallow) ||
+                (this._options.content.watch === 'deep' && (value.isDeep || value.isShallow))) {
                 this._status.evalPending = true;
             }
 
-            if (!this._options.useToken) {
+            if (!this._options.content.asToken) {
                 this._content = this._tokenContext.getRaw();
             }
         }
@@ -568,9 +568,7 @@ function setupContentRequirements() {
         runEmits.call(this);
     });
 
-    if (this._options.state.content) {
-        updateContentState.call(this);
-    }
+    updateContentState.call(this);
 }
 
 function LogicContext(properties, callbacks, parameters, options) {

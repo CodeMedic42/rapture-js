@@ -120,7 +120,6 @@ describe('Registration Tests :', () => {
                 id: 'custom',
                 require: 'testReg',
                 onValid: () => {
-                    debugger;
                     expect.fail();
                 }
             })

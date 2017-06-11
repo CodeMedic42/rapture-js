@@ -13,17 +13,19 @@ const registeredAction = require('../common/registered.js');
 const toReferenceAction = require('../common/toReference');
 const fromReferenceAction = require('./fromReference');
 
-function stringDefinition(parentRule) {
-    const logic = Logic('raise', {
-        onValid: (control, content) => {
-            if (!_.isNil(content) && !_.isString(content)) {
-                control.raise('schema', 'When defined this field must be a string.', 'error');
-            } else {
-                control.clear();
-            }
-        }
-    });
+function onValid(control, content) {
+    if (!_.isNil(content) && !_.isString(content)) {
+        control.raise('schema', 'When defined this field must be a string.', 'error');
+    } else {
+        control.clear();
+    }
+}
 
+const logic = Logic('raise', {
+    onValid
+});
+
+function stringDefinition(parentRule) {
     const actions = {
         min: minAction,
         max: maxAction,

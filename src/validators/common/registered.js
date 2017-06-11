@@ -37,17 +37,7 @@ function onValid(control, contents, params) {
 
 function registeredAction(parentRule, actions, id) {
     const logic = Logic('full', {
-        // options: {
-        //     data: {
-        //         id:
-        //     }
-        // },
         define: [{ id: 'registerID', value: id }],
-        // onBuild: (control) => {
-        //     const _control = control;
-        //
-        //     _control.data[control.id] = { id: null };
-        // },
         onValid,
         onInvalid: cleanUp,
         onStop: cleanUp,

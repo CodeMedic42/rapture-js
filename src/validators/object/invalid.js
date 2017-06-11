@@ -28,6 +28,38 @@ function cleanLogicData(logicData, allowArray) {
     throw new Error('Must be either a string, regular expression, an array of the former two, or a Rapture Logic definition if not already loaded through one.');
 }
 
+function onValid(control, content, params) {
+    const data = control.data;
+
+    const contents = content.contents;
+
+    if (_.isNil(contents) || !_.isPlainObject(contents)) {
+        // Do nothing
+        return;
+    }
+
+    let keys = params.keys;
+
+    if (data.needsCleaned) {
+        keys = cleanLogicData(keys, true, false);
+    }
+    // TODO Work on creating this isStatic part
+    // if (context.params && !context.params[keys].isStatic) {
+    // }
+
+    const issues = [];
+
+    _.forOwn(contents, (property, name) => {
+        const index = _.findIndex(keys, key => key(name));
+
+        if (index >= 0) {
+            issues.push({ type: 'schema', message: `The property "${name}" is not allowed to exist.`, severity: 'error', from: property.from, location: property.location });
+        }
+    });
+
+    context.raise(issues);
+}
+
 function invalidAction(parentRule, actions, logicData) {
     if (_.isNil(logicData)) {
         return parentRule;
@@ -45,38 +77,15 @@ function invalidAction(parentRule, actions, logicData) {
 
     const logic = Logic('raise', {
         options: {
-            useToken: true
+            data: {
+                needsCleaned
+            },
+            content: {
+                asToken: true
+            }
         },
         define: { id: 'keys', value: cleanedLogic },
-        onValid: (context, content, params) => {
-            const contents = content.contents;
-
-            if (_.isNil(contents) || !_.isPlainObject(contents)) {
-                // Do nothing
-                return;
-            }
-
-            let keys = params.keys;
-
-            if (needsCleaned) {
-                keys = cleanLogicData(keys, true, false);
-            }
-            // TODO Work on creating this isStatic part
-            // if (context.params && !context.params[keys].isStatic) {
-            // }
-
-            const issues = [];
-
-            _.forOwn(contents, (property, name) => {
-                const index = _.findIndex(keys, key => key(name));
-
-                if (index >= 0) {
-                    issues.push({ type: 'schema', message: `The property "${name}" is not allowed to exist.`, severity: 'error', from: property.from, location: property.location });
-                }
-            });
-
-            context.raise(issues);
-        }
+        onValid
     });
 
     const nextActions = _.clone(actions);

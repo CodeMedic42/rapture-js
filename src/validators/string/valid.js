@@ -23,6 +23,34 @@ function cleanLogicData(logicData, allowLogic) {
     });
 }
 
+function onValid(control, content, params) {
+    control.clear();
+
+    if (!_.isString(content)) {
+        return;
+    }
+
+    const finalData = cleanLogicData([params.logicData], false);
+
+    let isValid = false;
+
+    _.forEach(finalData, (item) => {
+        if (_.isString(item)) {
+            if (content === item) {
+                isValid = true;
+            }
+        } else if (!_.isNil(content.match(item))) {
+            isValid = true;
+        }
+
+        return !isValid;
+    });
+
+    if (!isValid) {
+        control.raise('schema', `Must be one of ${JSON.stringify(finalData)}`, 'error');
+    }
+}
+
 function validAction(parentRule, actions, ...initalLogicData) {
     if (_.isNil(initalLogicData)) {
         return parentRule;
@@ -32,33 +60,7 @@ function validAction(parentRule, actions, ...initalLogicData) {
 
     const logic = Logic('raise', {
         define: { id: 'logicData', value: logicData },
-        onValid: (control, content, params) => {
-            control.clear();
-
-            if (!_.isString(content)) {
-                return;
-            }
-
-            const finalData = cleanLogicData([params.logicData], false);
-
-            let isValid = false;
-
-            _.forEach(finalData, (item) => {
-                if (_.isString(item)) {
-                    if (content === item) {
-                        isValid = true;
-                    }
-                } else if (!_.isNil(content.match(item))) {
-                    isValid = true;
-                }
-
-                return !isValid;
-            });
-
-            if (!isValid) {
-                control.raise('schema', `Must be one of ${JSON.stringify(finalData)}`, 'error');
-            }
-        }
+        onValid
     });
 
     const nextActions = _.clone(actions);

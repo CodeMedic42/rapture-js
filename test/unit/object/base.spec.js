@@ -46,6 +46,27 @@ module.exports = () => {
                 });
             });
 
+            it('Not an object then becomes one', () => {
+                let testObject = [];
+
+                const rule = Rapture.object();
+
+                const context = TestingSupport.fail(testObject, rule, {
+                    type: 'schema',
+                    rowStart: 0,
+                    rowEnd: 0,
+                    columnStart: 0,
+                    columnEnd: 0,
+                    message: 'When defined this field must be a plain object',
+                    cause: '',
+                    severity: 'error'
+                });
+
+                testObject = {};
+
+                TestingSupport.updatePass(context, testObject);
+            });
+
             it('Is null', () => {
                 const testObject = null;
 

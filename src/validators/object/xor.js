@@ -54,9 +54,11 @@ module.exports = (parentRule, actions, ...properties) => {
 
     const logic = Logic('raise', {
         options: {
-            useToken: true,
             data: {
                 properties: cleanProperties(properties)
+            },
+            content: {
+                asToken: true
             }
         },
         onValid

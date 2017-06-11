@@ -86,7 +86,10 @@ function registerAction(parentRule, actions, registerData) {
     };
 
     if (_.isNil(value)) {
-        logicComponents.options.state = { content: true };
+        logicComponents.options.content = {
+            affectsValidState: true,
+            watch: 'deep'
+        };
         logicComponents.options.value = { content: true };
         logicComponents.options.contentWatch = 'deep';
 

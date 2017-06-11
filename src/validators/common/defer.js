@@ -40,7 +40,9 @@ function deferAction(load) {
     const logicComponents = {
         options: {
             data: { load },
-            useToken: true
+            content: {
+                asToken: true
+            }
         },
         onBuild,
         onStart,

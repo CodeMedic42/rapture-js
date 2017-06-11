@@ -60,40 +60,42 @@ function cleanUp(control) {
     }
 }
 
+function onValid(control, content, params) {
+    const data = control.data;
+
+    cleanUp(control);
+
+    data.ran = true;
+
+    const cleanUpReference = [];
+
+    if (_.isPlainObject(content.contents)) {
+        _.forOwn(content.contents, (item, name) => {
+            cleanUpReference.push(theLoop(params.referenceId, name, item, control, data.unique));
+        });
+    } else if (!_.isNil(content.contents)) {
+        cleanUpReference.push(theLoop(params.referenceId, content.contents, content, control, data.unique));
+    }
+
+    data.cleanUp = () => {
+        data.ran = false;
+
+        _.forEach(cleanUpReference, cleanUpCb => cleanUpCb());
+    };
+}
+
 function toReferenceAction(parentRule, actions, referenceId, unique) {
     const logic = Logic('raise', {
         options: {
-            useToken: true
+            data: {
+                unique
+            },
+            content: {
+                asToken: true
+            }
         },
         require: { id: 'referenceId', value: referenceId },
-        // onSetup: (control) => {
-        //     const _control = control;
-        //
-        //     _control.data[control.id] = {};
-        // },
-        onValid: (control, content, params) => {
-            const data = control.data;
-
-            cleanUp(control);
-
-            data.ran = true;
-
-            const cleanUpReference = [];
-
-            if (_.isPlainObject(content.contents)) {
-                _.forOwn(content.contents, (item, name) => {
-                    cleanUpReference.push(theLoop(params.referenceId, name, item, control, unique));
-                });
-            } else if (!_.isNil(content.contents)) {
-                cleanUpReference.push(theLoop(params.referenceId, content.contents, content, control, unique));
-            }
-
-            data.cleanUp = () => {
-                data.ran = false;
-
-                _.forEach(cleanUpReference, cleanUpCb => cleanUpCb());
-            };
-        },
+        onValid,
         onmInvalid: cleanUp,
         onStop: cleanUp,
         onDispose: cleanUp

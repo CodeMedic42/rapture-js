@@ -22,6 +22,12 @@ function baseValidate(testObject, rule) {
     return context;
 }
 
+function baseUpdateValidate(context, testObject) {
+    const testData = JSON.stringify(testObject, null, 2);
+
+    context.update(testData);
+}
+
 function validateIssue(issue, expectedIssue) {
     expect(issue.type, 'Issue type').to.be.equal(expectedIssue.type);
     expect(issue.location.rowStart, 'Issue location.rowStart.').to.be.equal(expectedIssue.rowStart);
@@ -44,6 +50,17 @@ module.exports.pass = function pass(testObject, rule) {
     expect(issues.length, 'Zero issues found.').to.be.equal(0);
 
     return context;
+};
+
+module.exports.updatePass = function updatePass(context, testObject) {
+    baseUpdateValidate(context, testObject);
+
+    const issues = context.issues();
+
+    _.forEach(issues, issue => Console.log(issue.message));
+
+    expect(issues, 'Issues is an array').to.be.instanceOf(Array);
+    expect(issues.length, 'Zero issues found.').to.be.equal(0);
 };
 
 module.exports.fail = function fail(testObject, rule, ...args) {

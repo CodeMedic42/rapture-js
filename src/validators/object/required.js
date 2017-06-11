@@ -2,6 +2,42 @@ const _ = require('lodash');
 const Rule = require('../../rule.js');
 const Logic = require('../../logic.js');
 
+const options = {
+    content: {
+        asToken: true
+    }
+};
+
+function onValid(control, content, params) {
+    const contents = content.contents;
+
+    const issues = [];
+
+    control.clear();
+
+    if (!_.isPlainObject(contents)) {
+        return;
+    }
+
+    _.forEach(params.requiredKeys, (keyName) => {
+        const target = contents[keyName];
+        const targetContents = _.isNil(target) ? target : target.contents;
+
+        if (_.isNil(targetContents)) {
+            const issue = { type: 'schema', message: `The property "${keyName}" is required`, severity: 'error' };
+
+            if (targetContents === null) {
+                issue.from = target.from;
+                issue.location = target.location;
+            }
+
+            issues.push(issue);
+        }
+    });
+
+    control.raise(issues);
+}
+
 function requiredAction(parentRule, actions, ...requiredKeys) {
     let keysList = requiredKeys;
 
@@ -24,39 +60,9 @@ function requiredAction(parentRule, actions, ...requiredKeys) {
     }
 
     const logic = Logic('raise', {
-        options: {
-            useToken: true
-        },
+        options,
         define: { id: 'requiredKeys', value: keysList },
-        onValid: (control, content, params) => {
-            const contents = content.contents;
-
-            const issues = [];
-
-            control.clear();
-
-            if (!_.isPlainObject(contents)) {
-                return;
-            }
-
-            _.forEach(params.requiredKeys, (keyName) => {
-                const target = contents[keyName];
-                const targetContents = _.isNil(target) ? target : target.contents;
-
-                if (_.isNil(targetContents)) {
-                    const issue = { type: 'schema', message: `The property "${keyName}" is required`, severity: 'error' };
-
-                    if (targetContents === null) {
-                        issue.from = target.from;
-                        issue.location = target.location;
-                    }
-
-                    issues.push(issue);
-                }
-            });
-
-            control.raise(issues);
-        }
+        onValid
     });
 
     return Rule('object-required', logic, actions, parentRule);

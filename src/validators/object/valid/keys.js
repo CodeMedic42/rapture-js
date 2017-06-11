@@ -79,6 +79,21 @@ function validateKeys(keys) {
     return keysExist;
 }
 
+function onValid(control, content) {
+    const data = control.data;
+
+    const contents = content.contents;
+
+    if (_.isNil(contents) || !_.isPlainObject(contents)) {
+        // Do nothing
+        return;
+    }
+
+    disposeContexts(control);
+
+    buildContexts(control, contents, data.keys);
+}
+
 function buildKeysLogicComponents(keys) {
     if (!validateKeys(keys)) {
         return null;
@@ -86,20 +101,14 @@ function buildKeysLogicComponents(keys) {
 
     return {
         options: {
-            useToken: true
-        },
-        onValid: (control, content) => {
-            const contents = content.contents;
-
-            if (_.isNil(contents) || !_.isPlainObject(contents)) {
-                // Do nothing
-                return;
+            data: {
+                keys
+            },
+            content: {
+                asToken: true
             }
-
-            disposeContexts(control);
-
-            buildContexts(control, contents, keys);
         },
+        onValid,
         onInvalid: disposeContexts,
         onStop: disposeContexts,
         onDispose: disposeContexts

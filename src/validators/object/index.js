@@ -24,7 +24,7 @@ function onBuild(control) {
     data.$shared.__keyData = Observable({});
 }
 
-function onStart(control, content) {
+function onValid(control, content) {
     if (!_.isNil(content) && !_.isPlainObject(content)) {
         control.raise('schema', 'When defined this field must be a plain object', 'error');
     } else {
@@ -34,7 +34,7 @@ function onStart(control, content) {
 
 const objectLogic = Logic('raise', {
     onBuild,
-    onStart
+    onValid
 });
 
 const objectActions = {
